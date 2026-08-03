@@ -1,0 +1,59 @@
+# =============================================================
+#  .gitignore — repositório de CÓDIGO-FONTE
+#
+#  Regra geral: este repo guarda fonte e templates. Nada que
+#  seja gerado, baixado, específico da máquina ou secreto.
+#  O runtime do servidor vive em ~/minecraft e nunca entra aqui.
+# =============================================================
+
+# --- Build do Maven -----------------------------------------
+# 'target/' sem prefixo pega qualquer nível: plugin/target/,
+# target/ na raiz (já aconteceu uma vez), e módulos futuros.
+target/
+
+# --- Segredos ------------------------------------------------
+# A API key do Claude e qualquer credencial. Um vazamento aqui
+# é irreversível: histórico de Git guarda para sempre, mesmo
+# depois de "apagar" o arquivo num commit seguinte.
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.jks
+secrets.yml
+secrets.json
+credentials*.json
+**/api-key*
+
+# --- Runtime do servidor (nunca versionar) -------------------
+buildtools/
+bundler/
+world*/
+logs/
+*.log
+*.log.gz
+crash-reports/
+cache/
+*.jar
+eula.txt
+usercache.json
+ops.json
+whitelist.json
+banned-*.json
+
+# --- Editor / SO ---------------------------------------------
+# Mantém .vscode/settings.json (compartilhável) e ignora o resto.
+.vscode/*
+!.vscode/settings.json
+.idea/
+*.iml
+.DS_Store
+
+# Claude Code: ignora tudo em .claude/ exceto o settings.json
+# compartilhado. Precisa ser assim (e não só 'settings.local.json')
+# porque o editor grava via arquivo temporário 'settings.local.json.tmp.*'
+# e um 'git add .' no momento errado captura o temporário.
+.claude/*
+!.claude/settings.json

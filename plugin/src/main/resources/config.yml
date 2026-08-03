@@ -1,0 +1,15 @@
+# =============================================================
+#  BigaCore — configuração
+#  Recarregue com /biga reload após editar.
+# =============================================================
+
+# Envia mensagem privada ao jogador quando ele entra.
+boas-vindas-ativo: true
+
+# Placeholders disponíveis:
+#   {jogador} — nick de quem entrou
+#   {online}  — quantidade de jogadores conectados
+#
+# Códigos de cor com & são traduzidos automaticamente:
+#   &b ciano  &a verde  &e amarelo  &c vermelho  &7 cinza  &l negrito
+mensagem-boas-vindas: "&bBem-vindo ao servidor, &f{jogador}&b! &7Online agora: {online}"

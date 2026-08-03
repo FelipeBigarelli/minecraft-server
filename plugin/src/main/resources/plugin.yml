@@ -1,0 +1,32 @@
+name: BigaCore
+version: '${project.version}'
+main: codes.biga.bigacore.BigaCore
+author: Felipe
+website: https://biga.codes
+description: Plugin base para Spigot 26.2
+
+# Valores aceitos vão de 1.13 até 26.2. Declarar a versão mais
+# recente diz ao servidor para NÃO aplicar camadas de
+# compatibilidade legada — é o que você quer num plugin novo.
+# Se omitir, o servidor carrega como plugin legado e loga aviso.
+api-version: '26.2'
+
+# STARTUP carrega antes do mundo; POSTWORLD (default) depois.
+load: POSTWORLD
+
+commands:
+  biga:
+    description: Comando principal do BigaCore
+    usage: /biga <info|reload|voar>
+    aliases: [bc]
+    permission: bigacore.use
+
+permissions:
+  bigacore.use:
+    description: Permite usar /biga
+    default: true
+  bigacore.admin:
+    description: Acesso a reload e voo
+    default: op
+    children:
+      bigacore.use: true

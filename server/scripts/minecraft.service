@@ -1,0 +1,50 @@
+# =============================================================
+#  minecraft.service — roda o servidor como serviço do systemd
+#
+#  Instalação:
+#    sudo cp scripts/minecraft.service /etc/systemd/system/
+#    sudo nano /etc/systemd/system/minecraft.service   # ajuste User= e paths
+#    sudo systemctl daemon-reload
+#    sudo systemctl enable --now minecraft
+#
+#  Uso:
+#    sudo systemctl status minecraft
+#    sudo systemctl stop minecraft
+#    sudo journalctl -u minecraft -f          # ver logs ao vivo
+#
+#  Para mandar comandos no console, use o screen (ver README) ou
+#  RCON. O systemd sozinho não te dá stdin interativo.
+# =============================================================
+[Unit]
+Description=Servidor Minecraft Spigot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# >>> AJUSTE ESTES DOIS <<<
+User=minecraft
+WorkingDirectory=/home/minecraft/minecraft
+
+Environment="RAM=4G"
+Environment="MC_VERSION=26.2"
+Environment="SERVER_DIR=/home/minecraft/minecraft"
+
+ExecStart=/bin/bash /home/minecraft/minecraft/scripts/start.sh
+
+# Salva o mundo e desliga limpo em vez de matar o processo.
+# 90s dá folga para o save de mundos grandes.
+ExecStop=/bin/bash -c 'echo "save-all" > /run/minecraft.stdin; sleep 5; echo "stop" > /run/minecraft.stdin'
+TimeoutStopSec=90
+
+Restart=on-failure
+RestartSec=15
+
+# Hardening básico
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

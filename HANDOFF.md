@@ -1,0 +1,415 @@
+# 🤖 HANDOFF — Servidor Minecraft do Felipe
+
+> **Para o Claude Code:** este documento é o estado completo do projeto. Leia inteiro antes de rodar qualquer comando. A seção **AUDITORIA** no fim tem o checklist do que verificar primeiro.
+>
+> **Você tem autonomia para rodar comandos.** O Felipe quer que você execute, não que descreva. Exceções na seção "Regras de operação".
+
+---
+
+## 1. 🎯 O que é este projeto
+
+Servidor de Minecraft rodando na máquina local do Felipe (Ubuntu 24.04), com plugin próprio em Java. O objetivo final não é "ter um servidor" — é construir **algo que não existe**: um mundo com um narrador vivo, alimentado pela API do Claude, que reage ao que os jogadores realmente fazem.
+
+Horizonte declarado: **construir algo grande, sem pressa.** Não otimize para entregar rápido; otimize para uma base que aguente crescer.
+
+---
+
+## 2. 📍 Estado atual — o que já funciona
+
+Tudo abaixo foi executado e verificado com sucesso:
+
+| Item | Status |
+|---|---|
+| Ubuntu 24.04.3 LTS (noble), kernel 6.17 | ✅ |
+| OpenJDK 25.0.3 como default (`java`, `javac`, `JAVA_HOME`) | ✅ |
+| Maven 3.8.7 rodando sobre JDK 25 | ✅ |
+| Spigot 26.2 compilado via BuildTools | ✅ |
+| Servidor sobe em ~0.9s, mundo gerado | ✅ |
+| Plugin BigaCore 1.0.0 compilando e carregando | ✅ |
+| Cliente Minecraft instalado (.deb oficial) | ✅ |
+| Conta Microsoft original, `online-mode=true` | ✅ |
+
+**Última linha de log confirmada:**
+```
+[BigaCore] BigaCore habilitado.
+Done (0.929s)! For help, type "help"
+```
+
+### ⏳ O que ainda NÃO foi feito
+
+- ❌ Migração para Paper (decidida, não executada — ver seção 7)
+- ❌ Nenhum plugin de terceiro instalado
+- ✅ Git inicializado em 03/08/2026, commit inicial = estado pré-Paper
+- ❌ Backup não agendado no cron (existe 1 backup manual de 03/08/2026 em `~/minecraft-backups/`)
+- ❌ Acesso remoto para amigos (Radmin não serve — é Windows-only)
+- ❌ Nada do narrador com IA
+
+---
+
+## 3. 🗺️ Estrutura — duas pastas, propósitos distintos
+
+```
+~/Desktop/minecraft-server/     ← código-fonte (versionável)
+├── .gitignore
+├── COMO-RODAR.md               ← guia operacional do Felipe
+├── HANDOFF.md                  ← este arquivo
+├── README.md
+├── server/
+│   ├── scripts/
+│   │   ├── setup.sh            # compila o Spigot via BuildTools
+│   │   ├── start.sh            # sobe o servidor com Aikar's flags
+│   │   ├── backup.sh           # backup rotativo
+│   │   └── minecraft.service   # unit systemd (não instalado)
+│   └── config/
+│       └── server.properties   # cópia de referência
+└── plugin/                     # projeto Maven
+    ├── pom.xml
+    └── src/main/
+        ├── java/codes/biga/bigacore/
+        │   ├── BigaCore.java         # JavaPlugin, ciclo de vida
+        │   ├── BigaCommand.java      # /biga — info|reload|voar + tab complete
+        │   └── JogadorListener.java  # PlayerJoinEvent, PlayerQuitEvent
+        └── resources/
+            ├── plugin.yml            # api-version 26.2
+            └── config.yml
+
+~/minecraft/                    ← runtime (NUNCA versionar)
+├── spigot-26.2.jar
+├── scripts/                    # cópia dos scripts
+├── plugins/
+│   ├── bigacore-1.0.0.jar
+│   ├── BigaCore/config.yml     # config REAL, gerado no 1º boot
+│   └── PluginMetrics/config.yml
+├── world/ world_nether/ world_the_end/
+├── server.properties           # config REAL
+├── bukkit.yml  spigot.yml
+├── ops.json  whitelist.json  banned-players.json  banned-ips.json
+├── commands.yml  help.yml  permissions.yml  usercache.json  eula.txt
+├── bundler/                    # 91 MB — ⚠️ NÃO apagar (ver abaixo)
+├── buildtools/                 # 639 MB de sobra do build — removível
+└── logs/latest.log
+```
+
+### Duas pastas que parecem lixo e não são a mesma coisa
+
+| Pasta | Tamanho | Pode apagar? | O que é |
+|---|---|---|---|
+| `bundler/` | 91 MB | ❌ **NÃO** | Onde o jar do servidor extrai as bibliotecas e o server jar versionado. É lido em runtime, a cada boot. Apagar quebra o servidor |
+| `buildtools/` | 639 MB | ✅ Sim | Sobra do BuildTools depois de compilar o Spigot. Nada em runtime depende dela |
+
+`plugins/PluginMetrics/` também não estava documentado: é telemetria embutida no
+próprio Spigot (aponta para `mcstats.org`, domínio morto há anos), criada no
+primeiro boot. **Não é plugin de terceiro** — a seção 2 continua correta ao
+dizer que nenhum foi instalado.
+
+### ⚠️ Regra que já causou confusão duas vezes
+
+**Arquivos de config existem em duplicata.** O projeto guarda o template; o servidor usa a cópia.
+
+| Editar isto | NÃO tem efeito | Editar isto | TEM efeito |
+|---|---|---|---|
+| `server/config/server.properties` | ❌ | `~/minecraft/server.properties` | ✅ |
+| `plugin/src/main/resources/config.yml` | ❌ | `~/minecraft/plugins/BigaCore/config.yml` | ✅ |
+
+O `saveDefaultConfig()` só copia o template **se o arquivo ainda não existir**. Recompilar não sobrescreve. Para forçar: `rm ~/minecraft/plugins/BigaCore/config.yml` e reiniciar.
+
+**Ao alterar config, altere nos dois lugares** — o do servidor para funcionar agora, o do projeto para não perder a mudança.
+
+### 📌 Divergência INTENCIONAL — não é bug
+
+Os dois `config.yml` do BigaCore estão **de propósito** diferentes hoje:
+
+| Arquivo | `mensagem-boas-vindas` |
+|---|---|
+| `plugin/src/main/resources/config.yml` (template) | `&bBem-vindo ao servidor, &f{jogador}&b! &7Online agora: {online}` |
+| `~/minecraft/plugins/BigaCore/config.yml` (runtime) | `&bBem-vindo ao servidor, seu baiano! &f{jogador}&b! ...` |
+
+O Felipe editou o runtime em 03/08/2026 para testar o `/biga reload` — o teste
+funcionou. O `seu baiano!` é **texto de teste, não a mensagem definitiva**.
+
+Decisão dele: **manter assim.** O template fica com a mensagem limpa (é o que
+uma instalação nova deve receber); o runtime fica com o texto de teste até ele
+decidir a mensagem final.
+
+⚠️ Não "corrija" essa diferença achando que é a armadilha acima. Não é.
+
+---
+
+## 4. 🔢 Versões — contexto crítico
+
+**A numeração do Minecraft mudou em 2026.** A Mojang abandonou `1.x.y` e adotou `ano.drop.patch`:
+
+- `26.1` = primeiro drop de 2026
+- `26.2` = segundo drop, lançado 16/06/2026, codinome *Chaos Cubed*
+
+Consequências:
+- 🔴 **Java 25 é obrigatório.** As builds 26.x são compiladas com JDK 25.
+- 🔴 Qualquer código que faça parsing de versão assumindo prefixo `"1."` quebra.
+- 🟡 Tutoriais e respostas de treino falando em `1.21.x` como "mais recente" estão desatualizados.
+
+| Componente | Versão travada |
+|---|---|
+| Minecraft | 26.2 |
+| Java (servidor + build) | 25.0.3 |
+| Maven | 3.8.7 |
+| `api-version` no plugin.yml | `'26.2'` |
+| `maven.compiler.release` | `25` |
+
+Java 17, 21 e 8 também existem na máquina. O `update-alternatives` e o `JAVA_HOME` no `~/.zshrc` apontam para o 25. **Não mexer nisso** — outros projetos do Felipe podem depender das outras versões.
+
+---
+
+## 5. 🐛 Problemas já resolvidos — não repetir
+
+| Problema | Causa | Solução aplicada |
+|---|---|---|
+| `java -version` mostrava 17 | JDK 17 preexistente com prioridade | `update-alternatives --config java` e `javac` → opção 0 (auto, 25) |
+| `mvn` usava JDK errado | Maven ignora alternatives, lê `JAVA_HOME` | `export JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64` no `~/.zshrc` |
+| Pasta com espaço no nome | `"server mine"` quebra BuildTools e Maven | Renomeada para `minecraft-server` |
+| Arquivos todos soltos numa pasta | Estrutura perdida no download | Árvore reconstruída manualmente |
+| Dump gigante do Watchdog no `stop` | `sync-chunk-writes=true` → fsync por chunk em disco SATA | `sync-chunk-writes=false` + `timeout-time: 300` no spigot.yml |
+| Plugin não compilava (previsto) | Código usava Adventure API e `getPluginMeta()` — **ambos Paper-only** | Reescrito com `ChatColor` e `getDescription()` |
+| `restart-on-crash` nunca funcionaria | `restart-script: ./start.sh` no spigot.yml, mas o script mora em `scripts/start.sh`. Caminho é relativo a `~/minecraft` | Corrigido para `./scripts/start.sh` (03/08/2026, achado na auditoria) |
+| `target/` vazio na raiz do projeto | `mvn` rodado em `~/Desktop/minecraft-server` em vez de `plugin/` | Pasta apagada; `.gitignore` passou de `plugin/target/` para `target/` (pega qualquer nível) |
+
+⚠️ **Sobre o último item:** o BigaCore foi escrito deliberadamente **sem APIs Paper-only** para rodar nos dois. Isso torna a migração trivial. Após migrar, você **pode** usar Adventure — mas leia a seção 7.4 antes.
+
+---
+
+## 6. 🎨 Decisões tomadas e por quê
+
+| Decisão | Motivo |
+|---|---|
+| Servidor em `~/minecraft`, fora do projeto | Mundo/logs/jars não devem ficar perto de código nem de Git |
+| `scope=provided` na API no pom | A API já existe no runtime; embutir causa conflito de classloader |
+| Aikar's flags no `start.sh` | Configuram o G1 para pausas curtas — em Minecraft, GC pause = lag spike |
+| `sync-chunk-writes=false` | Save rápido; trade-off é risco em queda de energia, mitigado por backup |
+| `maven-shade-plugin` mantido | Hoje não faz nada (sem deps), mas já estará pronto quando entrar HttpClient/driver |
+| Não usar `/reload confirm` | Deixa classes antigas na memória → bugs fantasma. Reiniciar leva 1s |
+| `online-mode=true` | Com `false`, qualquer um entra com qualquer nick |
+
+---
+
+## 7. 🚀 PRÓXIMA TAREFA — Migrar para Paper
+
+**Decidido pelo Felipe.** Motivo: em 2026 a maioria dos plugins é testada contra Paper, e alguns exigem APIs Paper-only e não rodam em Spigot. Manter Spigot puro fecha portas — e o projeto vai precisar de ferramentas de conteúdo custom (ver seção 8).
+
+### 7.1 Antes de tudo: backup
+
+```bash
+cd ~/minecraft && bash scripts/backup.sh
+```
+
+Confirme que o `.tar.gz` foi criado em `~/minecraft-backups/` antes de prosseguir.
+
+### 7.2 Baixar o Paper
+
+⚠️ **A API mudou.** O endpoint antigo `api.papermc.io/v2` parou de receber builds em 31/12/2025. O atual é `https://fill.papermc.io/v3/projects/paper`.
+
+Build conhecida no momento desta escrita: `paper-26.2-92.jar`. Verifique se há mais recente:
+
+```bash
+curl -s -H "User-Agent: biga-mc-server/1.0" \
+  https://fill.papermc.io/v3/projects/paper/versions/26.2/builds | jq '.[0]'
+```
+
+Baixe a build STABLE mais recente para `~/minecraft/paper-26.2.jar`.
+
+### 7.3 Ajustar o start.sh
+
+Trocar a variável do jar. As Aikar's flags continuam válidas — foram feitas pensando em Paper, inclusive.
+
+Manter o `spigot-26.2.jar` no disco por enquanto, como rollback.
+
+### 7.4 Decisão sobre o pom.xml
+
+Aqui tem uma escolha real, **converse com o Felipe antes de decidir**:
+
+**Opção A — manter `spigot-api` no pom.** O plugin continua rodando em Spigot e Paper. Perde acesso a Adventure, ao scheduler melhorado e às APIs novas do Paper.
+
+**Opção B — trocar para `paper-api`:**
+```xml
+<repository>
+  <id>papermc</id>
+  <url>https://repo.papermc.io/repository/maven-public/</url>
+</repository>
+
+<dependency>
+  <groupId>io.papermc.paper</groupId>
+  <artifactId>paper-api</artifactId>
+  <version>[26.2.build,)</version>
+  <scope>provided</scope>
+</dependency>
+```
+Ganha Adventure (texto com hover, click, cores RGB — que o narrador com IA vai querer) e APIs melhores. Perde compatibilidade com Spigot puro.
+
+**Minha recomendação:** opção B, dado que a decisão de migrar já foi tomada e o projeto é para uso próprio, não para distribuir. Mas é decisão do Felipe.
+
+### 7.5 Validar
+
+1. `mvn clean package` → BUILD SUCCESS
+2. Copiar jar para `~/minecraft/plugins/`
+3. Subir e confirmar `[BigaCore] BigaCore habilitado.`
+4. No jogo: `/biga info`, `/biga` + Tab, `/biga voar`, sair e entrar (mensagem de boas-vindas)
+
+⚠️ O Paper gera `config/paper-global.yml` e `config/paper-world-defaults.yml` no primeiro boot. O `spigot.yml` continua existindo e sendo lido. Não apagar nada.
+
+---
+
+## 8. 🌌 O objetivo maior — o narrador vivo
+
+Este é o diferencial do projeto. Vale entender antes de escrever código.
+
+### O conceito
+
+Uma entidade que **observa** o servidor — mortes, descobertas, construções, padrões de convivência — e **gera** lore, profecias e eventos que referenciam o que os jogadores de fato fizeram. Não texto genérico: "a profecia menciona o nome de quem morreu ontem naquele mesmo lugar".
+
+Isso exige a interseção que o Felipe tem: dev Java + acesso à API do Claude + capacidade de montar web. É por isso que ninguém tem.
+
+### Arquitetura proposta (a discutir, não decidida)
+
+```
+Eventos do jogo  →  Coletor  →  Memória do mundo  →  Gerador (Claude API)  →  Manifestação
+(listeners)         (async)     (SQLite/JSON)         (async, com cache)      (chat, mob, evento)
+```
+
+**Fases sugeridas, incrementais:**
+
+1. **Memória** — persistir eventos significativos. Sem IA ainda. Só coletar bem.
+2. **`/pergunta`** — comando que consulta a API do Claude com contexto do mundo. Valida o pipeline inteiro.
+3. **Narrador passivo** — mensagens ambientes geradas a partir da memória, em intervalos.
+4. **Narrador ativo** — dispara eventos de mundo (invoca mob, muda clima, cria estrutura) baseado no que gerou.
+5. **NPC corpóreo** — com ModelEngine, o narrador ganha corpo e animação.
+
+### 🔴 Regras técnicas inegociáveis
+
+- **NUNCA fazer I/O na thread principal.** Chamada HTTP, arquivo, banco — tudo em `Bukkit.getScheduler().runTaskAsynchronously()`. Bloquear o tick congela o servidor inteiro para todos os jogadores. Este é o erro nº1 em plugin que chama API externa.
+- **Voltar para a thread principal antes de tocar no mundo.** A API do Bukkit não é thread-safe. Padrão: async para buscar → `runTask()` para aplicar.
+- **API key nunca no código nem no Git.** Variável de ambiente ou arquivo fora do repo, no `.gitignore`.
+- **Rate limit e cache.** Um evento de morte não pode virar uma chamada de API por morte. Agrupe, debounce, cacheie.
+- **Degradar com elegância.** API fora do ar não pode derrubar o servidor nem travar o jogador. Timeout curto, fallback silencioso.
+
+### Ferramentas de conteúdo custom (para as fases 4-5)
+
+| Ferramenta | Para quê |
+|---|---|
+| **Oraxen** ou **ItemsAdder** | Itens/blocos/móveis com textura e modelo próprios; gera e distribui o resource pack automaticamente |
+| **ModelEngine** | Mobs com modelo 3D animado de verdade |
+| **MythicMobs** | Comportamento de mob por config: fases, skills, bossbar |
+
+Oraxen e ItemsAdder são equivalentes na prática; ItemsAdder só ganha em servidores com 500+ blocos custom.
+
+### Infraestrutura a instalar quando fizer sentido
+
+`LuckPerms` (permissões), `CoreProtect` (log + rollback), `EssentialsX` (comandos básicos), `Vault` (ponte economia/perms), `WorldEdit` (construção), `spark` (profiler).
+
+⚠️ **Conflito conhecido:** EssentialsX e plugins de economia brigam por `/pay` e `/balance`. Verificar avisos no startup.
+
+⚠️ **Segurança:** já houve malware distribuído via contas comprometidas de autores no SpigotMC. Baixar só de SpigotMC, Modrinth ou Hangar oficiais. Preferir open-source.
+
+---
+
+## 9. ⚙️ Regras de operação — para você, Claude Code
+
+### Pode fazer sem perguntar
+
+- Rodar `mvn clean package`, copiar jar, reiniciar servidor
+- Ler logs, inspecionar configs, rodar diagnósticos
+- Editar código do plugin e configs
+- Criar branches, commits (se Git for inicializado)
+
+### Pergunte antes
+
+- Apagar ou regenerar mundo
+- Mudar `online-mode`
+- Instalar plugin de terceiro
+- Mudar decisão registrada na seção 6
+- Trocar a dependência do pom (seção 7.4)
+
+### Sempre
+
+- ✅ `stop` no console para desligar. **Nunca** `kill -9` — corrompe chunk no meio de escrita
+- ✅ Backup antes de mexer em mundo ou versão
+- ✅ Após editar config, aplicar nos dois lugares (projeto + servidor)
+- ✅ Confirmar `[BigaCore] BigaCore habilitado.` após cada deploy
+- ❌ Nunca `/reload confirm`
+
+### Ciclo de desenvolvimento
+
+```bash
+# editar código
+cd ~/Desktop/minecraft-server/plugin
+mvn clean package && cp target/bigacore-1.0.0.jar ~/minecraft/plugins/
+# console: stop
+cd ~/minecraft && bash scripts/start.sh
+```
+
+### Comandos úteis
+
+```bash
+tail -f ~/minecraft/logs/latest.log      # log ao vivo
+ps aux | grep "[p]aper-26.2.jar"         # servidor está rodando?
+java -version && mvn -version            # confirmar JDK 25
+bash ~/minecraft/scripts/backup.sh       # backup manual
+```
+
+---
+
+## 10. ✅ AUDITORIA — rode isto primeiro
+
+Antes de qualquer trabalho novo, verifique se o estado descrito aqui bate com a realidade. Este documento foi escrito por outra instância do Claude e **pode estar desatualizado ou errado**.
+
+```bash
+# 1. Ambiente
+lsb_release -a
+java -version 2>&1 | head -1        # esperado: 25.0.3
+javac -version                      # esperado: 25.0.3
+mvn -version | grep "Java version"  # esperado: 25.0.3
+echo $JAVA_HOME
+
+# 2. Estrutura do projeto
+cd ~/Desktop/minecraft-server && find . -type f -not -path './plugin/target/*' | sort
+
+# 3. Estado do servidor
+ls -la ~/minecraft/
+ls -la ~/minecraft/plugins/
+ps aux | grep "[s]pigot\|[p]aper"
+
+# 4. Configs reais em uso
+grep -E "online-mode|sync-chunk-writes|view-distance|simulation-distance" ~/minecraft/server.properties
+grep -A2 "^settings:" ~/minecraft/spigot.yml | grep timeout-time
+
+# 5. O plugin compila?
+cd ~/Desktop/minecraft-server/plugin && mvn clean package -q && echo "BUILD OK"
+
+# 6. Git
+cd ~/Desktop/minecraft-server && git status 2>&1 | head -3
+```
+
+### Checklist de auditoria
+
+- [ ] Java 25 nos três comandos
+- [ ] Estrutura de pastas bate com a seção 3
+- [ ] `sync-chunk-writes=false` e `timeout-time: 300` aplicados
+- [ ] `online-mode=true`
+- [ ] `mvn clean package` passa
+- [ ] Nenhuma API Paper-only no código (`grep -rn "net.kyori\|getPluginMeta\|io.papermc" plugin/src/`) — **antes** da migração
+- [ ] Git inicializado (feito em 03/08/2026 — o commit inicial é o estado **pré-Paper**, use-o para voltar)
+- [ ] `~/minecraft/bundler/` existe e **não pode ser apagada** (ver seção 3)
+- [ ] `~/minecraft/buildtools/` ocupa **639 MB** (não ~2 GB, como esta seção afirmava antes de 03/08/2026). Removível, mas o Felipe decidiu **manter**: é a rota de volta para o Spigot se o Paper der problema, e há 662 GB livres no disco
+
+### Divergências
+
+Se algo não bater, **reporte ao Felipe em vez de assumir**. Ele acompanhou cada passo e vai saber dizer o que aconteceu.
+
+---
+
+## 11. 👤 Sobre o Felipe
+
+- Dev full-stack, fundador da biga.codes. React, TypeScript, Next.js, Node, Supabase, API do Claude
+- Formado em Engenharia de Software (UTFPR)
+- Trabalha no VS Code com a extensão do Claude Code + terminal
+- Comunica em **português brasileiro**
+- Prefere: estrutura visual clara, emojis, quebras de seção, **arquivos completos em vez de diffs**
+- Quer validação antes da entrega — se você não testou algo, diga que não testou
+- Java não é a linguagem principal dele. Vale explicar o *porquê* das escolhas de API, não só o *como*
