@@ -13,10 +13,44 @@ BACKUP_DIR="${BACKUP_DIR:-$HOME/minecraft-backups}"
 KEEP_DAYS="${KEEP_DAYS:-7}"
 
 STAMP=$(date +%Y-%m-%d_%H%M%S)
-ARCHIVE="$BACKUP_DIR/mc-backup-$STAMP.tar.gz"
 
 mkdir -p "$BACKUP_DIR"
 cd "$SERVER_DIR"
+
+# -------------------------------------------------------------
+#  Backup com o servidor no ar é backup "quente".
+#
+#  O servidor pode estar gravando um chunk no exato momento em que
+#  o tar o lê, e o resultado é um .mca truncado — que só aparece
+#  na hora de restaurar, o pior momento possível. Não bloqueamos
+#  (o cron roda com o servidor de pé, e um backup quente é melhor
+#  que nenhum), mas marcamos o nome do arquivo para que a diferença
+#  seja óbvia quando você for escolher qual restaurar.
+# -------------------------------------------------------------
+#  Detecção via 'ps' filtrando pelo EXECUTÁVEL ser java, e não via
+#  'pgrep -f' num padrão solto: o pgrep -f casa contra a linha de
+#  comando inteira de qualquer processo, então um shell que apenas
+#  MENCIONE "paper" (este script sendo editado, um grep, o próprio
+#  cron) vira falso positivo. Testado: os quatro padrões ingênuos
+#  davam positivo com o servidor desligado.
+servidor_rodando() {
+    ps -eo comm= -o args= 2>/dev/null \
+        | awk '$1 == "java" && /(paper|spigot)-[^ ]*\.jar/ { encontrado = 1 }
+               END { exit !encontrado }'
+}
+
+if servidor_rodando; then
+    SUFIXO="-quente"
+    echo "[backup] ⚠️  O servidor está RODANDO. Este backup vai sair marcado como '-quente'."
+    echo "[backup]    Para um backup consistente, no console do servidor:"
+    echo "[backup]        save-off"
+    echo "[backup]        save-all flush"
+    echo "[backup]    ...rode este script, e depois:  save-on"
+else
+    SUFIXO=""
+fi
+
+ARCHIVE="$BACKUP_DIR/mc-backup-$STAMP$SUFIXO.tar.gz"
 
 # -------------------------------------------------------------
 #  O que entra no backup.
