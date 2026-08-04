@@ -26,7 +26,7 @@ Tudo abaixo foi executado e verificado com sucesso:
 | **Paper 26.2 build 92** rodando (migrado em 04/08/2026) | ✅ |
 | Spigot 26.2 mantido no disco como rollback | ✅ |
 | Plugin BigaCore 1.0.0 compilando e carregando | ✅ |
-| **BigaCore usando Adventure + MiniMessage** (paper-api) | ✅ |
+| **BigaCore usando Adventure + MiniMessage** (paper-api) | ✅ validado em jogo |
 | Cliente Minecraft instalado (.deb oficial) | ✅ |
 | Conta Microsoft original, `online-mode=true` | ✅ |
 | `setup.sh` instala tudo do zero em ~1 min, idempotente | ✅ |
@@ -48,8 +48,6 @@ número antigo leva a um falso alarme.
 - ❌ Backup não agendado no cron (há backups manuais em `~/minecraft-backups/`)
 - ❌ Acesso remoto para amigos (Radmin não serve — é Windows-only)
 - ❌ Nada do narrador com IA
-- ⏳ Validação em jogo do BigaCore pós-Adventure (hover, click, MiniMessage) —
-  pendente de teste do Felipe
 
 ### ✅ Concluído em 03–04/08/2026
 
@@ -275,7 +273,7 @@ dele em silêncio.
 | 7.2 Download | `paper-26.2-92.jar`, **SHA256 conferido** contra a API |
 | 7.3 `start.sh` | `SERVER_FLAVOR` (paper\|spigot) + `PAPER_BUILD` explícito no nome do jar |
 | 7.4 `pom.xml` | **Opção C**: `paper-api` fixo em `26.2.build.92-stable` **e** código migrado para Adventure |
-| 7.5 Validação | Build OK, servidor sobe, plugin carrega. **Teste em jogo pendente** |
+| 7.5 Validação | ✅ **Completa.** Build OK, servidor sobe, plugin carrega, e o Felipe confirmou em jogo em 04/08/2026: `/biga info` com hover e click, help clicável, tab complete, `/biga voar`, mensagem de boas-vindas em MiniMessage, e o mundo migrado (nether e end incluídos) |
 | — | Migração automática da estrutura do mundo pelo Paper (ver seção 5) |
 
 **Sobre o 7.4:** a recomendação original deste documento era a opção B (trocar o
