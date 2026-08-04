@@ -344,4 +344,17 @@ ambiente ou arquivo fora do repo. O `.gitignore` já bloqueia `.env`, `*.key`,
 | Arquivo | Para quê |
 |---|---|
 | [HANDOFF.md](HANDOFF.md) | Estado completo do projeto, decisões, armadilhas, o plano do narrador |
+| [PLANO-EXECUCAO.md](PLANO-EXECUCAO.md) | Plano faseado: infra → coletor de memória → narrador → conteúdo |
 | [COMO-RODAR.md](COMO-RODAR.md) | Guia operacional do dia a dia |
+| [docs/sessoes/](docs/sessoes/) | Transcripts das sessões de trabalho + **prompt pronto para retomar em outra máquina** |
+
+### 🔄 Retomando o trabalho em outro PC
+
+```bash
+git clone https://github.com/FelipeBigarelli/minecraft-server.git
+cd minecraft-server && bash server/scripts/setup.sh
+```
+
+Depois abra o Claude Code na pasta e cole o prompt de retomada que está em
+[docs/sessoes/README.md](docs/sessoes/README.md) — ele diz o que ler, em que
+ordem, e quais regras valem sempre.

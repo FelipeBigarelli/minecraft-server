@@ -420,6 +420,29 @@ Oraxen e ItemsAdder são equivalentes na prática; ItemsAdder só ganha em servi
 embutido. O log mostra `[spark] Starting background profiler...` no boot. Use
 direto: `/spark profiler start`, `/spark tps`, `/spark health`.
 
+### 🔴 Bloqueados: sem suporte a 26.2 (verificado em 04/08/2026)
+
+Verificados em três fontes independentes — Modrinth, Hangar e GitHub Releases.
+Nenhuma declara 26.2. **Não instalar** até portarem (regra 0.1 do PLANO-EXECUCAO).
+
+| Plugin | Última versão | Declara até | Impacto de não ter |
+|---|---|---|---|
+| **CoreProtect** | 24.0 (07/07/2026) | 26.1.2 | 🔴 Alto — sem log nem rollback de grief. Pesa mais com o FAWE instalado, que edita milhares de blocos por comando |
+| **EssentialsX** | 2.22.0 (31/05/2026) | 26.1.2 | 🟡 Baixo — só conveniência (`/home`, `/tpa`, `/warp`, kits) |
+
+⚠️ O CoreProtect **lançou a 24.0 em 07/07/2026, depois do 26.2 sair (16/06)**, e
+mesmo assim parou na 26.1.2. Não é atraso de catálogo — ainda não portaram.
+
+**Como reverificar:**
+
+```bash
+curl -s -H "Accept: application/json" \
+  "https://hangar.papermc.io/api/v1/projects/CoreProtect/versions?limit=3" \
+  | jq -r '.result[] | "\(.name)  \(.platformDependencies.PAPER | join(", "))"'
+```
+
+Troque `CoreProtect` por `Essentials` para o outro. Se aparecer `26.2`, liberou.
+
 ⚠️ **Conflito conhecido:** EssentialsX e plugins de economia brigam por `/pay` e `/balance`. Verificar avisos no startup.
 
 ⚠️ **Segurança:** já houve malware distribuído via contas comprometidas de autores no SpigotMC. Baixar só de SpigotMC, Modrinth ou Hangar oficiais. Preferir open-source.
