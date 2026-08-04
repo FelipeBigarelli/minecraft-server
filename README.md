@@ -26,6 +26,35 @@ cd ~/minecraft && bash scripts/start.sh
 
 Conecte em `localhost`. Para desligar, digite `stop` no console — **nunca Ctrl+C**.
 
+### 🌍 Levar o mundo junto (opcional)
+
+O mundo **não** está no Git — são 17 MB de binário que mudam a cada save, e o
+histórico do Git guardaria uma cópia nova a cada commit, para sempre. Ele vive
+em **GitHub Releases**, fora do histórico:
+
+```bash
+# depois do setup.sh, com o servidor DESLIGADO:
+cd ~/minecraft
+gh release download mundo-2026-08-04 -p "mc-backup-*.tar.gz" \
+   -R FelipeBigarelli/minecraft-server
+tar xzf mc-backup-*.tar.gz && rm mc-backup-*.tar.gz
+bash scripts/start.sh
+```
+
+Sem isso, o `setup.sh` gera um mundo novo do zero — restaurar é opcional.
+
+Para publicar um snapshot novo depois de jogar:
+
+```bash
+cd ~/minecraft && bash scripts/backup.sh        # com o servidor desligado
+gh release create mundo-AAAA-MM-DD ~/minecraft-backups/mc-backup-*.tar.gz \
+   --title "Mundo — DD/MM/AAAA"
+```
+
+⚠️ Se o nome do backup terminar em `-quente`, ele foi feito com o servidor no
+ar e pode ter um chunk capturado no meio da escrita. Prefira publicar um feito
+com o servidor desligado.
+
 ### Variáveis opcionais
 
 ```bash
