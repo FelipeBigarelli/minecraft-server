@@ -1,11 +1,12 @@
 package codes.biga.bigacore;
 
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
  * Ponto de entrada do plugin.
  *
- * O Spigot instancia esta classe uma única vez e chama onEnable()
+ * O Paper instancia esta classe uma única vez e chama onEnable()
  * quando carrega o plugin e onDisable() quando desliga. Não use
  * construtor para lógica de inicialização — nessa hora o servidor
  * ainda não está pronto e várias APIs retornam null.
@@ -53,9 +54,28 @@ public final class BigaCore extends JavaPlugin {
         return instance;
     }
 
-    /** Mensagem de boas-vindas configurável, lida do config.yml. */
+    /**
+     * O parser de MiniMessage.
+     *
+     * MiniMessage.miniMessage() já devolve uma instância única e
+     * compartilhada, criada uma vez pela própria biblioteca. É
+     * thread-safe e barata de chamar, então não precisa ser
+     * guardada em campo — mas centralizar aqui deixa um ponto único
+     * para, no futuro, trocar por uma instância customizada (com
+     * tags próprias do narrador, por exemplo).
+     */
+    public MiniMessage mini() {
+        return MiniMessage.miniMessage();
+    }
+
+    /**
+     * Template da mensagem de boas-vindas, em sintaxe MiniMessage.
+     * Ainda é String aqui de propósito: só vira Component depois de
+     * os placeholders serem resolvidos, no JogadorListener.
+     */
     public String getMensagemBoasVindas() {
-        return getConfig().getString("mensagem-boas-vindas", "Bem-vindo, {jogador}!");
+        return getConfig().getString("mensagem-boas-vindas",
+                "<aqua>Bem-vindo, <white><jogador></white>!");
     }
 
     public boolean isBoasVindasAtivo() {

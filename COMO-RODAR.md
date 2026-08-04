@@ -54,18 +54,25 @@ Duas pastas, propósitos diferentes:
 
 ```
 ~/minecraft/
-├── spigot-26.2.jar    # o servidor compilado
+├── paper-26.2-92.jar  # o servidor (desde 04/08/2026)
+├── spigot-26.2.jar    # rollback — precisa restaurar backup junto
 ├── scripts/           # cópia dos scripts
 ├── plugins/           # .jar dos plugins vão aqui
-├── world/             # overworld
-├── world_nether/
-├── world_the_end/
+├── world/             # ⚠️ as TRÊS dimensões vivem aqui dentro
+│   └── dimensions/minecraft/{overworld,the_nether,the_end}/
+├── config/            # paper-global.yml, paper-world-defaults.yml
 ├── server.properties  # ← editar AQUI, não no projeto
 ├── bukkit.yml         # gerado no 1º boot
 ├── spigot.yml         # gerado no 1º boot
 ├── ops.json           # quem é admin
 └── logs/latest.log
 ```
+
+⚠️ **`world_nether/` e `world_the_end/` não existem mais.** No primeiro boot o
+Paper migrou as três dimensões para dentro de `world/dimensions/`, no formato
+vanilla. Nada foi perdido — só mudou de lugar. Isso significa que voltar pro
+Spigot exige restaurar o backup `PRE-PAPER-*.tar.gz`, porque o Spigot procura as
+pastas antigas.
 
 ⚠️ **Importante:** editar `server.properties` no projeto **não faz nada**. O servidor lê a cópia em `~/minecraft/`. Se quiser versionar uma mudança, edite nos dois lugares.
 
@@ -75,10 +82,11 @@ Duas pastas, propósitos diferentes:
 
 | Componente | Versão | Por quê importa |
 |---|---|---|
-| Minecraft / Spigot | **26.2** | Cliente tem que ser exatamente essa |
+| Minecraft / **Paper** | **26.2 build 92** | Cliente tem que ser exatamente essa |
 | Java (servidor e build) | **25** | A 26.x não roda em Java < 25 |
 | Java do launcher | 21 | Instalado junto, não conflita |
 | Maven | 3.8.7 | ok |
+| `paper-api` no pom | `26.2.build.92-stable` | **Fixa**, casada com o jar do servidor |
 
 💡 Desde 2026 a Mojang usa `ano.drop.patch`. `26.2` = segundo drop de 2026. O formato `1.21.x` ficou pra trás — qualquer tutorial antigo vai falar em `1.x` e está desatualizado.
 
@@ -193,12 +201,30 @@ echo "127.0.0.1    biga.server" | sudo tee -a /etc/hosts
 # ver o que aconteceu
 tail -100 ~/minecraft/logs/latest.log
 
-# recompilar o Spigot do zero
-rm ~/minecraft/spigot-26.2.jar
+# reinstalar o servidor do zero (não toca no mundo nem nos configs)
+rm ~/minecraft/paper-26.2-92.jar
 cd ~/Desktop/minecraft-server && bash server/scripts/setup.sh
 ```
 
-O mundo fica em `~/minecraft/world*/` — apagar o jar não afeta o mundo.
+O mundo fica em `~/minecraft/world/` — apagar o jar não afeta o mundo. O
+`setup.sh` é idempotente: preserva mundo, configs editados e plugins.
+
+### Restaurar um backup
+
+```bash
+cd ~/minecraft
+# com o servidor DESLIGADO:
+tar xzf ~/minecraft-backups/mc-backup-AAAA-MM-DD_HHMMSS.tar.gz
+```
+
+Para voltar ao Spigot é preciso o backup pré-Paper (estrutura de pastas antiga):
+
+```bash
+cd ~/minecraft
+rm -rf world                                    # a estrutura Paper
+tar xzf ~/minecraft-backups/PRE-PAPER-2026-08-03_195957.tar.gz
+SERVER_FLAVOR=spigot bash scripts/start.sh
+```
 
 ---
 
@@ -220,7 +246,17 @@ merge-radius:
   item: 3.5
 ```
 
-Pra descobrir o que está causando lag de verdade, instalar o **spark** e rodar `/spark profiler start`. Muito melhor que chutar.
+Pra descobrir o que está causando lag de verdade, use o **spark** — ele **já vem
+embutido no Paper**, não precisa instalar:
+
+```
+/spark profiler start     # começa a medir
+/spark profiler stop      # gera o relatório com link
+/spark tps                # TPS e uso de CPU
+/spark health             # visão geral (memória, GC, disco)
+```
+
+Muito melhor que chutar.
 
 ---
 

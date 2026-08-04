@@ -1,222 +1,318 @@
-# 🎮 Servidor Spigot 26.2 + Plugin Base
+# 🎮 Servidor Minecraft Paper 26.2 + BigaCore
 
-Kit completo para rodar um servidor Minecraft Spigot em Linux/VPS e desenvolver plugins pra ele.
+Servidor Minecraft com plugin próprio em Java. Clone, rode um script, jogue.
 
----
-
-## ⚠️ Leia primeiro: a versão do Minecraft mudou de formato
-
-Desde 2026 a Mojang abandonou o `1.x.y`. O formato agora é **`ano.drop.patch`**:
-
-| Versão | O que é |
-|---|---|
-| `26.1` | Primeiro drop de 2026 |
-| `26.1.2` | Segundo hotfix desse drop |
-| `26.2` | Segundo drop de 2026 — **atual**, lançado em 16/06/2026, codinome *Chaos Cubed* |
-
-Consequências práticas:
-
-- 🔴 **Java 25 é obrigatório.** As builds da 26.x são compiladas com JDK 25. Java 21 não sobe.
-- 🔴 **Se você faz parsing de versão em código**, qualquer lógica que assume prefixo `"1."` quebra.
-- 🟢 Não houve mudanças significativas de API entre a 26.1 e a 26.2 — plugins que usam só a API pública devem seguir funcionando.
+O objetivo de longo prazo não é "ter um servidor" — é construir um mundo com um
+**narrador vivo**, alimentado pela API do Claude, que reage ao que os jogadores
+de fato fazem. Ver [HANDOFF.md](HANDOFF.md), seção 8.
 
 ---
 
-## 📁 O que tem aqui
+## 🚀 Instalação
+
+Em qualquer Linux com `sudo`. Leva ~1 minuto.
+
+```bash
+git clone <url-do-repo> minecraft-server
+cd minecraft-server
+bash server/scripts/setup.sh
+```
+
+Pronto. Para subir:
+
+```bash
+cd ~/minecraft && bash scripts/start.sh
+```
+
+Conecte em `localhost`. Para desligar, digite `stop` no console — **nunca Ctrl+C**.
+
+### Variáveis opcionais
+
+```bash
+MC_OP=SeuNick bash server/scripts/setup.sh   # já te deixa operador
+RAM=8G        bash server/scripts/setup.sh   # padrão é 4G
+SERVER_DIR=~/mc bash server/scripts/setup.sh # instalar em outro lugar
+FORCE_CONFIG=1  bash server/scripts/setup.sh # sobrescrever configs existentes
+```
+
+### O que o setup faz
+
+1. Instala o que faltar: `curl`, `tar`, `screen`, `maven`, **OpenJDK 25**
+2. Confere que o `JAVA_HOME` aponta para o JDK 25 (o Maven ignora o
+   `update-alternatives` e obedece só a essa variável)
+3. Baixa o **Paper 26.2 build 92** e **verifica o SHA256** — descarta o arquivo
+   se não bater
+4. Aceita a EULA da Mojang
+5. Instala os configs — **sem sobrescrever** nada que já exista
+6. Compila o BigaCore e instala em `plugins/`
+7. Opcionalmente resolve seu UUID na Mojang e te define como operador
+
+É **idempotente**: rodar de novo não destrói mundo, config editado nem nada.
+
+---
+
+## 📁 Estrutura
+
+Duas pastas, propósitos distintos. **Este repositório é só o código-fonte.**
+
+| Caminho | O que é | Versionado |
+|---|---|---|
+| `minecraft-server/` (este repo) | Código, scripts, templates de config | ✅ |
+| `~/minecraft/` | O servidor rodando: mundo, logs, jars | ❌ nunca |
 
 ```
-mc-server/
-├── scripts/
-│   ├── setup.sh            # roda 1x: instala JDK 25 + compila o Spigot
-│   ├── start.sh            # sobe o servidor com GC otimizado
-│   ├── backup.sh           # backup rotativo do mundo
-│   └── minecraft.service   # unit systemd
-├── config/
-│   └── server.properties   # já ajustado para 26.2
-└── plugin/                 # projeto Maven do plugin base
+minecraft-server/
+├── server/
+│   ├── scripts/
+│   │   ├── setup.sh          # instala tudo do zero (idempotente)
+│   │   ├── start.sh          # sobe o servidor com Aikar's flags
+│   │   ├── backup.sh         # backup rotativo, com verificação
+│   │   └── minecraft.service # unit systemd (opcional)
+│   └── config/               # templates — o servidor usa cópias
+│       ├── server.properties
+│       ├── bukkit.yml
+│       ├── spigot.yml        # timeout-time e restart-script corrigidos
+│       ├── commands.yml
+│       └── paper/
+│           ├── paper-global.yml
+│           └── paper-world-defaults.yml
+└── plugin/                   # projeto Maven do BigaCore
     ├── pom.xml
     └── src/main/
         ├── java/codes/biga/bigacore/
-        │   ├── BigaCore.java         # ciclo de vida
-        │   ├── BigaCommand.java      # /biga com subcomandos + tab complete
-        │   └── JogadorListener.java  # eventos de join/quit
+        │   ├── BigaCore.java        # ciclo de vida do plugin
+        │   ├── BigaCommand.java     # /biga info|reload|voar + tab complete
+        │   └── JogadorListener.java # eventos de join/quit
         └── resources/
             ├── plugin.yml
             └── config.yml
 ```
 
+### 🪤 A armadilha dos dois configs
+
+Os arquivos de config existem **em duplicata**: o projeto guarda o template, o
+servidor usa a cópia.
+
+| Editar isto | Efeito |
+|---|---|
+| `server/config/server.properties` | ❌ nenhum no servidor rodando |
+| `~/minecraft/server.properties` | ✅ é o que vale |
+| `plugin/src/main/resources/config.yml` | ❌ só vale em instalação nova |
+| `~/minecraft/plugins/BigaCore/config.yml` | ✅ é o que vale |
+
+`saveDefaultConfig()` só copia o template **se o arquivo ainda não existir**.
+Recompilar não sobrescreve.
+
+**Ao mudar config, mude nos dois lugares** — no servidor para valer agora, no
+projeto para não se perder.
+
 ---
 
-## 🚀 Parte 1 — Subir o servidor
+## 🔢 Versões
 
-### Requisitos da VPS
+Desde 2026 a Mojang abandonou o `1.x.y` e adotou **`ano.drop.patch`**:
+`26.2` é o segundo drop de 2026, lançado em 16/06/2026 (*Chaos Cubed*).
 
-| Jogadores | RAM | vCPU |
+| Componente | Versão | Por que importa |
 |---|---|---|
-| 1–5 | 2 GB | 1 |
-| 5–20 | 4 GB | 2 |
-| 20–50 | 8 GB | 4 |
+| Minecraft / Paper | **26.2 build 92** | O cliente tem que ser exatamente essa |
+| Java | **25** | A 26.x não sobe em Java < 25 |
+| `api-version` no plugin.yml | `'26.2'` | Sem camada de compatibilidade legada |
+| `maven.compiler.release` | `25` | A API vem em bytecode 25 |
+| `paper-api` no pom | `26.2.build.92-stable` | **Fixa**, casada com o jar |
 
-Minecraft é **single-thread para o tick principal**. Clock alto por core importa muito mais que quantidade de cores — não adianta pegar 8 vCPU fracas.
+⚠️ Qualquer código que faça parsing de versão assumindo prefixo `"1."` quebra.
 
-### Instalação
+⚠️ Tutoriais falando em `1.21.x` como "mais recente" estão desatualizados.
 
-```bash
-# 1. Envie a pasta para a VPS
-scp -r mc-server usuario@seu-ip:~/
+### Atualizar a build do Paper
 
-# 2. Torne os scripts executáveis
-cd ~/mc-server && chmod +x scripts/*.sh
-
-# 3. Rode o setup (demora 5-15 min compilando o Spigot)
-bash scripts/setup.sh
-
-# 4. Copie a config e suba
-cp config/server.properties ~/minecraft/
-cp -r scripts ~/minecraft/
-cd ~/minecraft && bash scripts/start.sh
-```
-
-> 💡 **Por que compilar?** A Spigot não distribui `.jar` pronto por questões de licença — o BuildTools baixa e monta localmente. É normal e é o jeito oficial.
-
-### Rodar em background
-
-Duas opções:
-
-**`screen`** — simples, dá acesso ao console:
-```bash
-screen -S mc -dm bash scripts/start.sh
-screen -r mc                # entrar no console
-# Ctrl+A depois D para sair sem derrubar
-```
-
-**`systemd`** — reinicia sozinho se cair, sobe no boot:
-```bash
-sudo cp scripts/minecraft.service /etc/systemd/system/
-sudo nano /etc/systemd/system/minecraft.service   # ajuste User= e os paths
-sudo systemctl daemon-reload
-sudo systemctl enable --now minecraft
-sudo journalctl -u minecraft -f
-```
-
-### Firewall
+Dois lugares, no mesmo commit:
 
 ```bash
-sudo ufw allow 25565/tcp
-sudo ufw allow OpenSSH
-sudo ufw enable
-```
+# 1. server/scripts/setup.sh  → PAPER_BUILD e PAPER_SHA256_DEFAULT
+# 2. server/scripts/start.sh  → PAPER_BUILD
+# 3. plugin/pom.xml           → <paper.version>
 
-Não abra a 25575 (RCON) para a internet.
+# Descobrir a build mais recente:
+curl -s -H "User-Agent: biga-mc-server/1.0" \
+  https://fill.papermc.io/v3/projects/paper/versions/26.2/builds | jq '.[0]'
+```
 
 ---
 
-## 🔧 Parte 2 — Desenvolver o plugin
-
-### Compilar
+## 🔧 Desenvolver o plugin
 
 ```bash
 cd plugin
-mvn clean package
-# saída: target/bigacore-1.0.0.jar
-cp target/bigacore-1.0.0.jar ~/minecraft/plugins/
+mvn clean package && cp target/bigacore-1.0.0.jar ~/minecraft/plugins/
+# no console do servidor: stop
+cd ~/minecraft && bash scripts/start.sh
 ```
 
-Precisa de **JDK 25** e Maven 3.9+ na máquina de desenvolvimento.
+Confirmar no log: `[BigaCore] BigaCore habilitado.`
 
-### Testar
+⚠️ **Não use `/reload confirm`.** Funciona, mas deixa classes antigas na memória
+e gera bugs fantasma difíceis de rastrear. Reiniciar leva ~1 segundo.
 
-No console do servidor:
+### Comandos
+
 ```
-/biga info      → versão do plugin e do servidor
-/biga reload    → recarrega config.yml (precisa de OP)
-/biga voar      → alterna voo (precisa de OP)
+/biga info      versão do plugin e do servidor (com hover e clique)
+/biga reload    recarrega o config.yml           (precisa de OP)
+/biga voar      alterna voo                      (precisa de OP)
 ```
 
 ### Decisões de API que valem entender
 
-**`api-version: '26.2'` no plugin.yml.** Os valores aceitos vão de `1.13` até `26.2`. Declarar a mais recente diz ao servidor para *não* aplicar camadas de compatibilidade legada. Se você omitir, o plugin carrega em modo legado e cospe um aviso no console.
+**`paper-api`, não `spigot-api`.** O `paper-api` é um *superset*: todo
+`org.bukkit.*` continua lá, mais Adventure, Brigadier e as APIs do Paper.
+Custo: o plugin passa a exigir Paper assim que usar a primeira API exclusiva.
 
-**Spigot ≠ Paper.** Isso pega muita gente:
+**Versão fixa, nunca range.** Um `[26.2.build,)` parece prático e tem três
+defeitos: build não reprodutível, pega pré-release, e quando sair a 26.3 sobe
+sozinho para a API de outra versão do Minecraft — compila liso e quebra em
+runtime.
 
-| Recurso | Spigot | Paper |
-|---|---|---|
-| `Component` / Adventure (texto rico) | ❌ | ✅ |
-| `getPluginMeta()` | ❌ (use `getDescription()`) | ✅ |
-| `ChatColor` + String | ✅ | ✅ (deprecado) |
+**`scope=provided`.** A API já existe no servidor. Embutir no jar causa conflito
+de classloader: duas cópias da mesma classe, e o Java trata como tipos
+diferentes.
 
-Este plugin usa **só API Spigot pura**, então roda tanto em Spigot quanto em Paper. Código escrito para Paper não roda em Spigot.
+**Adventure em vez de `ChatColor`.** `ChatColor.AQUA + "texto"` é uma String com
+códigos de controle costurados dentro — 16 cores, nada de interatividade, e está
+deprecado. Um `Component` é um objeto: RGB completo, `hoverEvent`, `clickEvent`,
+inspecionável. É a diferença entre montar HTML concatenando strings e montar uma
+árvore DOM.
 
-**`scope=provided` no pom.xml.** A API já existe no servidor em runtime. Se você usar `compile`, ela é embutida no jar e você ganha conflitos de classloader.
+**MiniMessage nos configs.** Marcação em texto, com tags que abrem e fecham:
 
-**`EventPriority.MONITOR`** é para *observar* sem alterar — roda por último. Se você vai cancelar ou modificar um evento, use `NORMAL` ou `HIGH`.
+```yaml
+mensagem: "<gradient:dark_purple:gold>A profecia</gradient> <hover:show_text:'12/07'>se cumpre</hover>"
+```
+
+Decisivo para o narrador: o Claude pode gerar a marcação **junto** com a prosa,
+e você renderiza direto — sem pós-processar em Java para colorir.
+
+**Placeholders por `Placeholder.unparsed()`, não `String.replace`.** O valor
+entra como texto literal e nunca é interpretado como marcação. Nick de Minecraft
+só aceita `[a-zA-Z0-9_]`, então hoje o risco é teórico — mas no dia em que um
+placeholder vier de texto gerado por IA, deixa de ser.
+
+**`EventPriority.MONITOR`** é para *observar* sem alterar; roda por último. Para
+cancelar ou modificar um evento, use `NORMAL` ou `HIGH`.
+
+### 🔴 Regras inegociáveis para o narrador com IA
+
+- **Nunca fazer I/O na thread principal.** HTTP, arquivo, banco: tudo em
+  `Bukkit.getScheduler().runTaskAsynchronously()`. Bloquear o tick congela o
+  servidor para todos. É o erro nº1 em plugin que chama API externa.
+- **Voltar à thread principal antes de tocar no mundo.** A API do Bukkit não é
+  thread-safe. Padrão: async para buscar → `runTask()` para aplicar.
+- **API key nunca no código nem no Git.** Variável de ambiente ou arquivo fora
+  do repo. O `.gitignore` já cobre `.env`, `*.key`, `*.pem`, `credentials*`.
+- **Rate limit e cache.** Uma morte não pode virar uma chamada de API por morte.
+- **Degradar com elegância.** API fora do ar não pode derrubar o servidor.
 
 ---
 
-## ⚡ Parte 3 — Performance
+## 🛠️ Operação
 
-Depois do primeiro boot, o servidor gera `spigot.yml` e `bukkit.yml`. Os ajustes que mais rendem:
-
-**`server.properties`** (já vem ajustado no kit):
-- `simulation-distance=6` — este é o parâmetro de maior impacto. Controla quantos chunks realmente processam mobs e redstone. Baixar aqui alivia muito mais que baixar `view-distance`, e o jogador quase não percebe.
-- `view-distance=8` — pesa em CPU e banda.
-
-**`spigot.yml`** — em `world-settings.default`:
-```yaml
-mob-spawn-range: 6
-entity-activation-range:
-  animals: 16
-  monsters: 24
-  misc: 8
-merge-radius:
-  item: 3.5
-  exp: 4.0
-ticks-per:
-  hopper-transfer: 8
-  hopper-check: 8
+```bash
+cd ~/minecraft && bash scripts/start.sh          # subir
+SERVER_FLAVOR=spigot bash scripts/start.sh       # rollback pro Spigot*
+RAM=2G bash scripts/start.sh                     # menos RAM
+bash scripts/backup.sh                           # backup manual
+tail -f ~/minecraft/logs/latest.log              # log ao vivo
 ```
 
-Para diagnosticar lag de verdade, instale o **spark** (`/spark profiler start`). Ele mostra qual plugin ou qual chunk está consumindo tick — muito melhor que chutar.
+\* O rollback exige restaurar um backup pré-Paper: o Paper migrou a estrutura de
+pastas do mundo para o formato vanilla (`world/dimensions/...`), e o Spigot
+espera `world_nether/` e `world_the_end/` separados. Ver HANDOFF, seção 5.
+
+No console (prompt `>`):
+
+```
+op SeuNick          virar admin           list       quem está online
+stop                desligar (SEMPRE)     tps        performance
+save-all            forçar save           restart    testa o restart-script
+/spark profiler start   profiler — já vem embutido no Paper
+```
+
+### Rodar em background
+
+```bash
+screen -dmS minecraft bash scripts/start.sh
+screen -r minecraft     # entrar no console; Ctrl+A depois D para sair
+```
+
+Ou via systemd (reinicia sozinho, sobe no boot):
+
+```bash
+sudo cp ~/minecraft/scripts/minecraft.service /etc/systemd/system/
+sudo nano /etc/systemd/system/minecraft.service   # ajuste User= e os paths
+sudo systemctl daemon-reload && sudo systemctl enable --now minecraft
+```
+
+### Backup no cron
+
+```bash
+crontab -e
+0 4 * * * /bin/bash $HOME/minecraft/scripts/backup.sh >> $HOME/minecraft/backup.log 2>&1
+```
+
+O `backup.sh` monta a lista de alvos dinamicamente (a estrutura de pastas do
+mundo difere entre Paper e Spigot), verifica o `.tar.gz` com `gzip -t` e **falha
+ruidosamente** se algo der errado — um backup pela metade não pode parecer
+completo.
 
 ---
 
 ## 🔒 Segurança
 
-- ✅ `online-mode=true` — **nunca** deixe `false` em servidor público. Com `false`, qualquer pessoa entra usando qualquer nick, incluindo o seu.
-- ✅ `enable-command-block=false` a menos que precise.
-- ✅ Rode como usuário dedicado, nunca root.
-- ✅ Backups testados. `backup.sh` no cron:
-  ```bash
-  0 4 * * * /bin/bash $HOME/minecraft/scripts/backup.sh >> $HOME/minecraft/backup.log 2>&1
-  ```
-- ⚠️ **Cuidado com plugins de fonte duvidosa.** Já houve casos de malware distribuído via contas comprometidas de autores no SpigotMC. Baixe só de SpigotMC, Modrinth ou Hangar, e prefira plugins com código aberto.
+- ✅ `online-mode=true` sempre. Com `false`, qualquer um entra com qualquer nick.
+- ✅ `stop` no console, nunca `kill -9` — corrompe chunk no meio da escrita.
+- ✅ Backup antes de mexer em mundo ou versão.
+- ⚠️ Não abrir a porta 25575 (RCON) para a internet.
+- ⚠️ Plugin de terceiro só de SpigotMC, Modrinth ou Hangar. Já houve malware
+  distribuído via contas comprometidas de autores. Prefira open-source.
 
----
+### 🔴 Dois campos que nunca podem ser preenchidos neste repositório
 
-## ✅ O que eu validei e o que não
+Os templates em `server/config/` **estão no Git**. Dois campos aceitam segredo e
+hoje estão vazios de propósito:
 
-**Validado aqui:**
-- ✔️ Sintaxe dos 3 scripts bash (`bash -n`)
-- ✔️ `plugin.yml` e `config.yml` parseiam como YAML válido
-- ✔️ `pom.xml` parseia como XML válido
-- ✔️ Estrutura dos 3 arquivos Java: chaves balanceadas, nome de classe = nome do arquivo, package correto, zero resíduo de API Paper-only
+| Arquivo | Campo | Onde preencher, se precisar |
+|---|---|---|
+| `server/config/server.properties` | `rcon.password=` | só em `~/minecraft/server.properties` |
+| `server/config/paper/paper-global.yml` | `velocity.secret` | só em `~/minecraft/config/paper-global.yml` |
 
-**Não validado — você precisa conferir:**
-- ❌ **`mvn clean package` não foi executado.** Não há JDK nem acesso ao Maven Central no meu ambiente. Um erro de tipo ou assinatura de método só aparece no seu primeiro build.
-- ❌ **`setup.sh` não foi executado.** O nome do pacote `openjdk-25-jdk` pode não existir nos repositórios da sua distro — nesse caso use o [Adoptium Temurin 25](https://adoptium.net/temurin/releases/?version=25).
-- ❌ Nada foi testado com o servidor de fato rodando.
+Um segredo commitado fica no histórico do Git **para sempre** — apagar num
+commit seguinte não resolve, é preciso reescrever o histórico e rotacionar a
+credencial. O runtime não é versionado justamente para ser o lugar deles.
 
-Se o build reclamar de algo, me manda o erro que eu ajusto.
+O mesmo vale para a **API key do Claude** quando o narrador entrar: variável de
+ambiente ou arquivo fora do repo. O `.gitignore` já bloqueia `.env`, `*.key`,
+`*.pem`, `*.p12`, `*.jks`, `secrets.*` e `credentials*.json`.
 
 ---
 
 ## 🐛 Problemas comuns
 
-| Sintoma | Causa provável |
+| Sintoma | Causa | Solução |
+|---|---|---|
+| `UnsupportedClassVersionError` | Java < 25 | `sudo update-alternatives --config java` |
+| `mvn` usa o JDK errado | Maven ignora o alternatives, lê `JAVA_HOME` | `export JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64` |
+| `session.lock: already locked` | Já há um servidor rodando | `pgrep -af paper` e desligue o outro com `stop` |
+| Servidor fecha na hora | `eula.txt` sem `eula=true` | Rode o `setup.sh` |
+| Mudei o config e nada mudou | Editou o template, não o do servidor | Ver "armadilha dos dois configs" |
+| Tags MiniMessage aparecem como texto | Config em sintaxe antiga (`&b`, `{jogador}`) | Migrar para `<aqua>`, `<jogador>` |
+| Lag spikes periódicos | Autosave ou GC | `/spark profiler start` e meça |
+
+---
+
+## 📚 Documentação
+
+| Arquivo | Para quê |
 |---|---|
-| `UnsupportedClassVersionError` | Java < 25. Confira `java -version`. |
-| Servidor fecha na hora | `eula.txt` sem `eula=true` |
-| `Plugin is not marked as compatible` | `api-version` ausente ou inválido no plugin.yml |
-| Ninguém consegue conectar | Firewall, ou `server-ip` preenchido quando devia estar vazio |
-| BuildTools falha | Pouca RAM. Aumente o `-Xmx2G` no setup.sh |
-| Lag spikes periódicos | Autosave ou GC. Instale o spark e meça. |
+| [HANDOFF.md](HANDOFF.md) | Estado completo do projeto, decisões, armadilhas, o plano do narrador |
+| [COMO-RODAR.md](COMO-RODAR.md) | Guia operacional do dia a dia |

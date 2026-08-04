@@ -1,6 +1,10 @@
 package codes.biga.bigacore;
 
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -50,14 +54,54 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
     }
 
     private void mostrarInfo(CommandSender sender) {
-        // getDescription() e a via do Spigot-API para ler o plugin.yml.
-        // (getPluginMeta() existe, mas so no Paper.)
-        sender.sendMessage(ChatColor.AQUA + "BigaCore v"
-                + plugin.getDescription().getVersion());
-        sender.sendMessage(ChatColor.GRAY + "Servidor: " + plugin.getServer().getVersion());
-        sender.sendMessage(ChatColor.GRAY + "Online: "
-                + plugin.getServer().getOnlinePlayers().size() + "/"
-                + plugin.getServer().getMaxPlayers());
+        // getPluginMeta() e a via do Paper para ler o plugin.yml.
+        // No Spigot so existia getDescription(), que no Paper esta
+        // deprecado. Como agora compilamos contra paper-api, usamos
+        // a versao atual.
+        var meta = plugin.getPluginMeta();
+
+        String site = meta.getWebsite();
+        String autores = String.join(", ", meta.getAuthors());
+
+        // ---------------------------------------------------------
+        // Um Component nao e so texto com cor: e um objeto que
+        // carrega comportamento junto. Aqui a mesma linha tem
+        // cor, negrito, um balao ao passar o mouse e uma acao ao
+        // clicar. Com ChatColor + String isso era impossivel.
+        // ---------------------------------------------------------
+        Component titulo = Component.text("BigaCore v" + meta.getVersion())
+                .color(NamedTextColor.AQUA)
+                .decorate(TextDecoration.BOLD)
+                .hoverEvent(HoverEvent.showText(
+                        Component.text("Autor: " + autores, NamedTextColor.WHITE)
+                                .appendNewline()
+                                .append(Component.text(
+                                        site == null ? "sem site declarado" : "Clique para abrir " + site,
+                                        NamedTextColor.GRAY))
+                ));
+
+        // clickEvent so faz sentido se houver um site declarado no
+        // plugin.yml. Anexar um evento com URL nula lanca excecao.
+        if (site != null && !site.isBlank()) {
+            titulo = titulo.clickEvent(ClickEvent.openUrl(site));
+        }
+
+        sender.sendMessage(titulo);
+
+        // Component.text(...) sem cor herda a cor do contexto; por
+        // isso a cor vai explicita em cada parte.
+        sender.sendMessage(
+                Component.text("Servidor: ", NamedTextColor.GRAY)
+                        .append(Component.text(plugin.getServer().getVersion(), NamedTextColor.WHITE))
+        );
+
+        sender.sendMessage(
+                Component.text("Online: ", NamedTextColor.GRAY)
+                        .append(Component.text(
+                                plugin.getServer().getOnlinePlayers().size()
+                                        + "/" + plugin.getServer().getMaxPlayers(),
+                                NamedTextColor.WHITE))
+        );
     }
 
     private void recarregar(CommandSender sender) {
@@ -66,7 +110,7 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             return;
         }
         plugin.reloadConfig();
-        sender.sendMessage(ChatColor.GREEN + "Configuracao recarregada.");
+        sender.sendMessage(Component.text("Configuracao recarregada.", NamedTextColor.GREEN));
     }
 
     private void alternarVoo(CommandSender sender) {
@@ -77,21 +121,41 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
         // O console pode executar comandos, entao nunca assuma que
         // o sender e um Player sem checar.
         if (!(sender instanceof Player jogador)) {
-            sender.sendMessage(ChatColor.RED + "Esse comando so funciona em jogo.");
+            sender.sendMessage(Component.text("Esse comando so funciona em jogo.", NamedTextColor.RED));
             return;
         }
         boolean novoEstado = !jogador.getAllowFlight();
         jogador.setAllowFlight(novoEstado);
-        jogador.sendMessage(ChatColor.GREEN + "Voo "
-                + (novoEstado ? "ativado" : "desativado") + ".");
+        jogador.sendMessage(Component.text(
+                "Voo " + (novoEstado ? "ativado" : "desativado") + ".",
+                NamedTextColor.GREEN));
     }
 
     private void semPermissao(CommandSender sender) {
-        sender.sendMessage(ChatColor.RED + "Voce nao tem permissao para isso.");
+        sender.sendMessage(Component.text("Voce nao tem permissao para isso.", NamedTextColor.RED));
     }
 
     private void enviarAjuda(CommandSender sender, String label) {
-        sender.sendMessage(ChatColor.YELLOW + "Uso: /" + label + " <info|reload|voar>");
+        Component ajuda = Component.text("Uso: ", NamedTextColor.YELLOW)
+                .append(Component.text("/" + label + " ", NamedTextColor.WHITE));
+
+        // Cada subcomando vira um botao: clicar preenche o chat com o
+        // comando ja digitado (suggestCommand nao executa, so sugere -
+        // e o certo para algo que pode ter efeito, como /biga voar).
+        for (int i = 0; i < SUBCOMANDOS.size(); i++) {
+            String sub = SUBCOMANDOS.get(i);
+            if (i > 0) {
+                ajuda = ajuda.append(Component.text(" | ", NamedTextColor.DARK_GRAY));
+            }
+            ajuda = ajuda.append(
+                    Component.text(sub, NamedTextColor.AQUA)
+                            .clickEvent(ClickEvent.suggestCommand("/" + label + " " + sub))
+                            .hoverEvent(HoverEvent.showText(
+                                    Component.text("Clique para preencher no chat", NamedTextColor.GRAY)))
+            );
+        }
+
+        sender.sendMessage(ajuda);
     }
 
     @Override

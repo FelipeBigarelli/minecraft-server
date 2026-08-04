@@ -3,7 +3,7 @@ version: '${project.version}'
 main: codes.biga.bigacore.BigaCore
 author: Felipe
 website: https://biga.codes
-description: Plugin base para Spigot 26.2
+description: Plugin base para Paper 26.2
 
 # Valores aceitos vão de 1.13 até 26.2. Declarar a versão mais
 # recente diz ao servidor para NÃO aplicar camadas de
