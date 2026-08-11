@@ -1,8 +1,10 @@
-# 📜 Sessões do Claude Code
+# 📜 Sessões e decisões de trabalho
 
-Histórico das sessões de trabalho neste projeto. Serve para **retomar o
-contexto em outra máquina** ou meses depois, sem depender da memória de
-ninguém.
+Histórico para retomar o contexto em outra máquina ou meses depois sem depender
+da memória de uma única conversa.
+
+O `HANDOFF.md` é a fonte principal do **estado corrente**. Esta pasta registra
+como chegamos nele.
 
 ---
 
@@ -10,22 +12,22 @@ ninguém.
 
 Cole isto numa sessão nova do Claude Code, já dentro do projeto clonado:
 
-```
+```text
 Leia, nesta ordem:
 
-1. HANDOFF.md — estado da máquina, decisões e armadilhas. É a fonte da verdade.
-2. PLANO-EXECUCAO.md — o plano faseado. Estamos na Fase 1.
-3. docs/sessoes/ — o transcript da última sessão, se precisar do detalhe de
-   como chegamos aqui.
+1. HANDOFF.md — estado atual, decisões e armadilhas.
+2. PLANO-EXECUCAO.md — plano faseado.
+3. README.md e COMO-RODAR.md — operação atual.
+4. docs/sessoes/ — use os resumos recentes se precisar entender como chegamos aqui.
 
-Trate o HANDOFF como hipótese, não como verdade: rode a auditoria da seção 10
-antes de confiar nele. Ele já esteve errado antes.
+Trate o HANDOFF como hipótese, não como verdade absoluta: audite o estado real
+relevante para a tarefa antes de agir.
 
-Regras que valem sempre (seção 9 do HANDOFF):
-- NUNCA subir o servidor. Eu rodo no meu terminal. Prepare tudo e me peça.
+Regras que valem sempre:
+- NUNCA subir o servidor por conta própria. Eu rodo no meu terminal.
 - Backup antes de mexer em mundo ou versão.
-- Português brasileiro, arquivos completos em vez de diffs.
 - Se não testou, diga que não testou.
+- Não instale plugin sem confirmar versão/fonte atual.
 ```
 
 ---
@@ -34,44 +36,53 @@ Regras que valem sempre (seção 9 do HANDOFF):
 
 | Data | Arquivo | O que aconteceu |
 |---|---|---|
-| 04/08/2026 | [2026-08-04-auditoria-migracao-paper.md](2026-08-04-auditoria-migracao-paper.md) | Auditoria do HANDOFF (7 divergências), migração Spigot → Paper 26.2, código migrado para Adventure/MiniMessage, projeto publicado no GitHub, Fase 1 iniciada |
+| 11/08/2026 | [2026-08-11-auditoria-correcoes-github.md](2026-08-11-auditoria-correcoes-github.md) | Auditoria do repositório atual, separação de backup privado/snapshot do mundo, persistência de RAM/path, correção do plano SQLite/scanner e CI |
+| 04/08/2026 | [2026-08-04-auditoria-migracao-paper.md](2026-08-04-auditoria-migracao-paper.md) | Transcript histórico da auditoria/migração Spigot → Paper 26.2, Adventure/MiniMessage e publicação inicial |
 
 ---
 
-## 🔄 Exportar uma sessão nova
+## 📝 Formato recomendado daqui para frente
 
-O Claude Code grava cada sessão como JSONL em
-`~/.claude/projects/<caminho-do-projeto-sanitizado>/<uuid>.jsonl`. O script
-converte isso em Markdown legível:
+Prefira **resumos de sessão** como o arquivo de 11/08:
+
+- objetivo;
+- decisões;
+- arquivos alterados;
+- riscos encontrados;
+- validações executadas;
+- próximos passos.
+
+Um transcript integral só deve ser versionado quando o detalhe cronológico tiver
+valor real. Transcripts carregam muito ruído e podem registrar paths locais,
+saídas de terminal ou dados que não precisam ficar públicos.
+
+---
+
+## 🔄 Exportar uma sessão do Claude Code
+
+O script histórico continua disponível:
 
 ```bash
-python3 docs/sessoes/exportar.py --listar          # ver o que existe
-python3 docs/sessoes/exportar.py                   # exporta a mais recente
-python3 docs/sessoes/exportar.py --sessao <uuid>   # uma específica
-python3 docs/sessoes/exportar.py -o docs/sessoes/2026-09-01-narrador.md
+python3 docs/sessoes/exportar.py --listar
+python3 docs/sessoes/exportar.py
+python3 docs/sessoes/exportar.py --sessao <uuid>
+python3 docs/sessoes/exportar.py -o docs/sessoes/AAAA-MM-DD-sessao.md
 ```
-
-Depois: revise, renomeie com um nome que diga o que aconteceu, adicione na
-tabela acima e commite.
 
 ### ⚠️ Antes de commitar um transcript
 
-Um transcript registra **tudo que passou pelo terminal naquela sessão**. Se um
-comando imprimiu uma chave, ela está lá.
+Um transcript registra o que passou pela sessão. Se um comando imprimiu uma
+credencial, ela pode estar no arquivo.
 
-O script avisa sobre padrões conhecidos (`sk-ant-*`, `gh[pousr]_*`, chaves
-privadas, atribuições tipo `password=`), mas isso é uma rede de segurança, não
-uma garantia. **Leia o arquivo antes de subir.**
+O script procura alguns padrões conhecidos, mas isso é uma rede de segurança,
+não garantia. **Revise o arquivo antes de subir.**
 
-Vale ainda mais aqui do que em código normal: um segredo commitado fica no
-histórico do Git para sempre. Apagar num commit seguinte não resolve — é
-preciso reescrever o histórico e rotacionar a credencial.
+Um segredo commitado fica no histórico do Git; apagar o arquivo num commit
+seguinte não é o mesmo que revogar/rotacionar a credencial.
 
 ### O que o export deixa de fora
 
-- **Raciocínio interno do modelo.** Volumoso e sem valor para quem lê depois.
-- **Saídas de ferramenta longas.** Truncadas com aviso de quanto foi cortado.
-  O JSONL original continua na sua máquina se precisar do inteiro.
+- blocos de raciocínio interno;
+- saídas de ferramenta muito longas, que aparecem truncadas.
 
-O que sobra: as mensagens, as respostas e uma linha por chamada de ferramenta
-dizendo o que foi feito — que é o suficiente para reconstruir a história.
+O JSONL original continua local caso o detalhe completo seja necessário.
