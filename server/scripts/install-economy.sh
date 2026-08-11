@@ -73,7 +73,7 @@ instalar_url_fixa() {
 
 verificar_plugin_yml() {
     local jar_file="$1" nome_esperado="$2" versao_esperada="$3"
-    local tmp_dir
+    local tmp_dir versao_regex
     tmp_dir="$(mktemp -d)"
 
     if ! (cd "$tmp_dir" && jar xf "$jar_file" plugin.yml >/dev/null 2>&1); then
@@ -83,7 +83,13 @@ verificar_plugin_yml() {
 
     grep -Eq "^name:[[:space:]]*${nome_esperado}[[:space:]]*$" "$tmp_dir/plugin.yml" \
         || { rm -rf "$tmp_dir"; die "Plugin inesperado em $(basename "$jar_file")."; }
-    grep -Eq "^version:[[:space:]]*['\"]?${versao_esperada//./\\.}['\"]?[[:space:]]*$" "$tmp_dir/plugin.yml" \
+
+    # Algumas releases oficiais (ChestShop, por exemplo) acrescentam uma
+    # descrição de build depois da versão semântica. O SHA256 continua sendo
+    # a verificação forte do binário; aqui confirmamos que a versão declarada
+    # começa exatamente na release que fixamos.
+    versao_regex="${versao_esperada//./\\.}"
+    grep -Eq "^version:[[:space:]]*['\"]?${versao_regex}([[:space:]]|['\"]|$)" "$tmp_dir/plugin.yml" \
         || { rm -rf "$tmp_dir"; die "Versão inesperada em $(basename "$jar_file")."; }
 
     rm -rf "$tmp_dir"
