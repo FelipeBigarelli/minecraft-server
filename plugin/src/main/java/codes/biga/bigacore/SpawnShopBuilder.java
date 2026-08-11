@@ -411,8 +411,10 @@ public final class SpawnShopBuilder {
             layout.block(world, u, 1, floorY + 2).setType(Material.FLOWERING_AZALEA_LEAVES, false);
         }
 
+        // Material.CHAIN não existe na API 26.2 usada pelo projeto; IRON_BARS
+        // mantém o detalhe vertical da luminária sem depender de material legado.
         for (int u : new int[]{-6, 6}) {
-            layout.block(world, u, 1, floorY + 5).setType(Material.CHAIN, false);
+            layout.block(world, u, 1, floorY + 5).setType(Material.IRON_BARS, false);
             layout.block(world, u, 1, floorY + 4).setType(Material.LANTERN, false);
         }
 
