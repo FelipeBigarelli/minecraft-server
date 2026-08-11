@@ -41,3 +41,27 @@ boas-vindas-ativo: true
 #  Para escrever um "<" literal sem virar tag, use \<
 # -------------------------------------------------------------
 mensagem-boas-vindas: "<aqua>Bem-vindo ao servidor, <white><jogador></white>! <gray>Online agora: <online>"
+
+# -------------------------------------------------------------
+#  Loja física do spawn — Biga Market
+#
+#  Não usa coordenada absoluta. Em runtime o BigaCore lê o spawn
+#  REAL do mundo e soma este offset para obter o centro da loja.
+#
+#  Padrão: 28 blocos no eixo +X em relação ao spawn. A fachada é
+#  automaticamente virada de volta para o spawn.
+#
+#  Antes de construir, use:
+#    /biga loja local
+#    /biga loja validar
+#
+#  A construção só acontece com confirmação explícita:
+#    /biga loja criar CONFIRMAR
+#
+#  Se a validação acusar árvore, água, construção ou relevo ruim,
+#  altere os offsets, rode /biga reload e valide novamente.
+# -------------------------------------------------------------
+loja-spawn:
+  offset-x: 28
+  offset-z: 0
+  max-desnivel: 3
