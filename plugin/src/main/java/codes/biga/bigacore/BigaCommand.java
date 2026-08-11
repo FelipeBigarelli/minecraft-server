@@ -5,6 +5,7 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -25,8 +26,9 @@ import java.util.OptionalDouble;
  */
 public final class BigaCommand implements CommandExecutor, TabCompleter {
 
-    private static final List<String> SUBCOMANDOS = List.of("info", "eco", "reload", "voar");
+    private static final List<String> SUBCOMANDOS = List.of("info", "eco", "loja", "reload", "voar");
     private static final List<String> ECO_SUBCOMANDOS = List.of("status", "saldo", "preco", "regras");
+    private static final List<String> LOJA_SUBCOMANDOS = List.of("local", "validar", "criar");
 
     private final BigaCore plugin;
 
@@ -46,6 +48,7 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "info" -> mostrarInfo(sender);
             case "eco" -> economia(sender, label, args);
+            case "loja" -> lojaSpawn(sender, label, args);
             case "reload" -> recarregar(sender);
             case "voar" -> alternarVoo(sender);
             default -> enviarAjuda(sender, label);
@@ -206,6 +209,102 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
                 NamedTextColor.GRAY));
     }
 
+    private void lojaSpawn(CommandSender sender, String label, String[] args) {
+        if (!sender.hasPermission("bigacore.admin")) {
+            semPermissao(sender);
+            return;
+        }
+        if (!(sender instanceof Player jogador)) {
+            sender.sendMessage(Component.text("Use os comandos da loja dentro do jogo.", NamedTextColor.RED));
+            return;
+        }
+        if (args.length < 2) {
+            enviarAjudaLoja(sender, label);
+            return;
+        }
+
+        switch (args[1].toLowerCase(Locale.ROOT)) {
+            case "local" -> mostrarLocalLoja(jogador);
+            case "validar" -> validarLoja(jogador);
+            case "criar" -> criarLoja(jogador, label, args);
+            default -> enviarAjudaLoja(sender, label);
+        }
+    }
+
+    private void mostrarLocalLoja(Player jogador) {
+        SpawnShopBuilder.Analysis analysis = plugin.spawnShopBuilder().analyze(jogador.getWorld());
+        if (!analysis.valid()) {
+            jogador.sendMessage(Component.text(analysis.reason(), NamedTextColor.RED));
+            return;
+        }
+
+        jogador.sendMessage(Component.text("Biga Market — referência do spawn", NamedTextColor.GOLD)
+                .decorate(TextDecoration.BOLD));
+        jogador.sendMessage(linha("Spawn real", formatLocation(analysis.spawn())));
+        jogador.sendMessage(linha("Centro proposto", formatLocation(analysis.center())));
+        jogador.sendMessage(linha("Fachada olha para", analysis.facingName()));
+        jogador.sendMessage(Component.text(
+                "A posição vem do spawn do mundo + offset configurado, nunca de coordenada fixa no Git.",
+                NamedTextColor.DARK_GRAY));
+    }
+
+    private void validarLoja(Player jogador) {
+        SpawnShopBuilder.Analysis analysis = plugin.spawnShopBuilder().analyze(jogador.getWorld());
+        if (!analysis.valid()) {
+            jogador.sendMessage(Component.text(analysis.reason(), NamedTextColor.RED));
+            return;
+        }
+
+        mostrarLocalLoja(jogador);
+        jogador.sendMessage(linha("Altura da superfície", analysis.minSurfaceY() + ".." + analysis.maxSurfaceY()));
+        jogador.sendMessage(linha("Blocos suspeitos na superfície", String.valueOf(analysis.suspiciousSurfaceBlocks())));
+        jogador.sendMessage(linha("Obstruções aéreas", String.valueOf(analysis.obstructionCount())));
+
+        NamedTextColor color = NamedTextColor.RED;
+        String status = "BLOQUEADA";
+        if (analysis.safe()) {
+            color = NamedTextColor.GREEN;
+            status = "SEGURA";
+        }
+
+        jogador.sendMessage(Component.text("Validação: " + status + " — " + analysis.reason(), color)
+                .decorate(TextDecoration.BOLD));
+    }
+
+    private void criarLoja(Player jogador, String label, String[] args) {
+        if (args.length < 3 || !args[2].equalsIgnoreCase("CONFIRMAR")) {
+            jogador.sendMessage(Component.text(
+                    "Este comando altera blocos do mundo. Valide antes com /" + label + " loja validar.",
+                    NamedTextColor.YELLOW));
+            jogador.sendMessage(Component.text(
+                    "Para construir: /" + label + " loja criar CONFIRMAR",
+                    NamedTextColor.GOLD));
+            return;
+        }
+
+        SpawnShopBuilder.BuildResult result = plugin.spawnShopBuilder().build(jogador.getWorld());
+        NamedTextColor color = NamedTextColor.RED;
+        if (result.success()) {
+            color = NamedTextColor.GREEN;
+        }
+        jogador.sendMessage(Component.text(result.message(), color).decorate(TextDecoration.BOLD));
+
+        if (!result.success()) {
+            jogador.sendMessage(Component.text(
+                    "Ajuste loja-spawn.offset-x/offset-z no config e rode /biga reload antes de tentar novamente.",
+                    NamedTextColor.GRAY));
+        }
+    }
+
+    private String formatLocation(Location location) {
+        String worldName = "sem-mundo";
+        if (location.getWorld() != null) {
+            worldName = location.getWorld().getName();
+        }
+        return worldName + " " + location.getBlockX() + ", "
+                + location.getBlockY() + ", " + location.getBlockZ();
+    }
+
     private Component linha(String chave, String valor) {
         return Component.text(chave + ": ", NamedTextColor.GRAY)
                 .append(Component.text(valor, NamedTextColor.WHITE));
@@ -270,6 +369,15 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
                 NamedTextColor.YELLOW));
     }
 
+    private void enviarAjudaLoja(CommandSender sender, String label) {
+        sender.sendMessage(Component.text(
+                "Uso: /" + label + " loja <local|validar|criar>",
+                NamedTextColor.YELLOW));
+        sender.sendMessage(Component.text(
+                "Ordem segura: local -> validar -> criar CONFIRMAR",
+                NamedTextColor.GRAY));
+    }
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command,
                                       String alias, String[] args) {
@@ -277,16 +385,24 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             return filtrar(SUBCOMANDOS, args[0]);
         }
 
-        if (!args[0].equalsIgnoreCase("eco")) {
+        if (args[0].equalsIgnoreCase("eco")) {
+            if (args.length == 2) {
+                return filtrar(ECO_SUBCOMANDOS, args[1]);
+            }
+            if (args.length == 3 && args[1].equalsIgnoreCase("preco")) {
+                return filtrar(plugin.economyCatalog().keys(), args[2]);
+            }
             return List.of();
         }
 
-        if (args.length == 2) {
-            return filtrar(ECO_SUBCOMANDOS, args[1]);
-        }
-
-        if (args.length == 3 && args[1].equalsIgnoreCase("preco")) {
-            return filtrar(plugin.economyCatalog().keys(), args[2]);
+        if (args[0].equalsIgnoreCase("loja")) {
+            if (args.length == 2) {
+                return filtrar(LOJA_SUBCOMANDOS, args[1]);
+            }
+            if (args.length == 3 && args[1].equalsIgnoreCase("criar")) {
+                return filtrar(List.of("CONFIRMAR"), args[2]);
+            }
+            return List.of();
         }
 
         return List.of();
