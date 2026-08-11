@@ -22,15 +22,10 @@ RAM="${RAM:-4G}"
 SERVER_DIR="${SERVER_DIR:-$HOME/minecraft}"
 FORCE_CONFIG="${FORCE_CONFIG:-0}"
 
-# Checksum da build padrão (92). Fixo aqui para que a verificação
-# funcione mesmo sem consultar a API. Se PAPER_BUILD for outro, o
-# script busca o checksum correspondente na API do PaperMC.
 PAPER_SHA256_DEFAULT="059d00bbce0fa1707739618b3276f5c80b9655dc0f964306fa799a9c7cb01cc2"
-
 PAPER_API="https://fill.papermc.io/v3/projects/paper"
 UA="biga-mc-server/1.0"
 
-# Raiz do projeto = duas pastas acima deste script (server/scripts/).
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 log()  { printf '\033[1;36m[setup]\033[0m %s\n' "$*"; }
@@ -70,11 +65,6 @@ ok "Dependências presentes."
 
 # -------------------------------------------------------------
 # 2. Java 25
-#
-#    O Minecraft 26.x é compilado com JDK 25 e não sobe em versão
-#    anterior (dá UnsupportedClassVersionError). O Maven é caso à
-#    parte: ele IGNORA o update-alternatives e obedece só ao
-#    JAVA_HOME, então os dois são verificados separadamente.
 # -------------------------------------------------------------
 versao_java() {
     "$1" -version 2>&1 | head -1 | grep -oP '(?<=version ")[0-9]+' || echo 0
@@ -94,7 +84,6 @@ if ! command -v java >/dev/null 2>&1 || [ "$(versao_java java)" -lt 25 ]; then
 fi
 ok "Java $(versao_java java) ativo."
 
-# JAVA_HOME correto importa para o Maven, não para o servidor.
 JDK25_PATH="$(dirname "$(dirname "$(readlink -f "$(command -v javac || command -v java)")")")"
 if [ -z "${JAVA_HOME:-}" ] || [ "$(versao_java "$JAVA_HOME/bin/java")" -lt 25 ] 2>/dev/null; then
     export JAVA_HOME="$JDK25_PATH"
@@ -113,12 +102,6 @@ ok "Diretórios criados."
 
 # -------------------------------------------------------------
 # 4. Baixar o Paper
-#
-#    Diferente do Spigot, o Paper distribui jar pronto — não é
-#    preciso compilar nada. Segundos em vez de 15 minutos.
-#
-#    O endpoint v2 (api.papermc.io) parou de receber builds em
-#    31/12/2025. O atual é o fill.papermc.io/v3.
 # -------------------------------------------------------------
 JAR="paper-$MC_VERSION-$PAPER_BUILD.jar"
 
@@ -164,11 +147,6 @@ ok "EULA aceita."
 
 # -------------------------------------------------------------
 # 6. Configs
-#
-#    Só copia o que ainda NÃO existe. Um config já no disco foi
-#    editado por alguém e sobrescrever apagaria esse trabalho —
-#    é a "armadilha dos dois configs" da seção 3 do HANDOFF.
-#    Use FORCE_CONFIG=1 para forçar.
 # -------------------------------------------------------------
 copiar_config() {
     local origem="$1" destino="$2"
@@ -195,12 +173,10 @@ ok "Configs instalados."
 # -------------------------------------------------------------
 # 7. Scripts operacionais + defaults persistentes
 # -------------------------------------------------------------
-cp "$PROJECT_DIR"/server/scripts/{start.sh,backup.sh,export-world.sh,setup.sh} "$SERVER_DIR/scripts/"
+cp "$PROJECT_DIR"/server/scripts/{start.sh,backup.sh,export-world.sh,restore-world.sh,doctor.sh,setup.sh} "$SERVER_DIR/scripts/"
 cp "$PROJECT_DIR"/server/scripts/minecraft.service "$SERVER_DIR/scripts/" 2>/dev/null || true
 chmod +x "$SERVER_DIR"/scripts/*.sh
 
-# start.sh vive no runtime e precisa lembrar os parâmetros usados no
-# setup. O arquivo contém apenas defaults operacionais — nenhum segredo.
 RUNTIME_ENV="$SERVER_DIR/scripts/server.env"
 if [ -f "$RUNTIME_ENV" ] && [ "$FORCE_CONFIG" != "1" ]; then
     printf '         %-34s (já existe, preservado)\n' "server.env"
@@ -230,10 +206,6 @@ ok "BigaCore instalado: $(basename "$PLUGIN_JAR")"
 
 # -------------------------------------------------------------
 # 9. Operador (opcional)
-#
-#    O ops.json exige o UUID, não o nick — por isso a consulta à
-#    API da Mojang. Se falhar, não é problema: dá para virar op
-#    digitando "op SeuNick" no console depois.
 # -------------------------------------------------------------
 if [ -n "${MC_OP:-}" ]; then
     if [ -s "$SERVER_DIR/ops.json" ] && grep -q '"name"' "$SERVER_DIR/ops.json" 2>/dev/null; then
@@ -276,13 +248,19 @@ echo "  Jar      : $JAR"
 echo "  Plugin   : $(basename "$PLUGIN_JAR")"
 echo "  RAM      : $RAM (persistida em scripts/server.env)"
 echo
+echo "  Antes do primeiro boot neste PC, valide:"
+echo "      cd $SERVER_DIR && bash scripts/doctor.sh"
+echo
+echo "  Restaurar mundo de um snapshot/backup:"
+echo "      bash $SERVER_DIR/scripts/restore-world.sh /caminho/arquivo.tar.gz"
+echo
 echo "  Para subir:"
 echo "      cd $SERVER_DIR && bash scripts/start.sh"
 echo
 echo "  Backup privado completo:"
 echo "      cd $SERVER_DIR && bash scripts/backup.sh"
 echo
-echo "  Snapshot público do mundo:"
+echo "  Snapshot compartilhável do mundo:"
 echo "      cd $SERVER_DIR && bash scripts/export-world.sh"
 echo
 echo "  Para desligar: digite 'stop' no console. Nunca Ctrl+C."
