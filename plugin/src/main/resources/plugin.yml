@@ -8,22 +8,26 @@ description: Plugin base para Paper 26.2
 # Valores aceitos vão de 1.13 até 26.2. Declarar a versão mais
 # recente diz ao servidor para NÃO aplicar camadas de
 # compatibilidade legada — é o que você quer num plugin novo.
-# Se omitir, o servidor carrega como plugin legado e loga aviso.
 api-version: '26.2'
 
 # STARTUP carrega antes do mundo; POSTWORLD (default) depois.
 load: POSTWORLD
 
+# Integrações opcionais: BigaCore ainda sobe sem a stack econômica,
+# mas, quando ela existe, deve carregar depois dela para encontrar o
+# provider Vault já registrado.
+softdepend: [Vault, EternalEconomy, ChestShop]
+
 commands:
   biga:
     description: Comando principal do BigaCore
-    usage: /biga <info|reload|voar>
+    usage: /biga <info|eco|reload|voar>
     aliases: [bc]
     permission: bigacore.use
 
 permissions:
   bigacore.use:
-    description: Permite usar /biga
+    description: Permite usar /biga e consultar a economia
     default: true
   bigacore.admin:
     description: Acesso a reload e voo
