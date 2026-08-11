@@ -21,6 +21,21 @@ jobs:
       - name: Validate shell syntax
         run: bash -n server/scripts/*.sh
 
+      - name: Test safe world restore
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORK="$RUNNER_TEMP/restore-test"
+          mkdir -p "$WORK/source/world/region" "$WORK/server"
+          printf 'chunk-test\n' > "$WORK/source/world/region/r.0.0.mca"
+          printf 'rcon.password=NAO_PODE_SER_RESTAURADO\n' > "$WORK/source/server.properties"
+          tar -C "$WORK/source" -czf "$WORK/legacy-backup.tar.gz" world server.properties
+
+          SERVER_DIR="$WORK/server" bash server/scripts/restore-world.sh "$WORK/legacy-backup.tar.gz"
+
+          test -f "$WORK/server/world/region/r.0.0.mca"
+          test ! -e "$WORK/server/server.properties"
+
       - name: Set up Java 25
         uses: actions/setup-java@v5
         with:
