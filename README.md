@@ -28,41 +28,64 @@ Conecte em `localhost`. Para desligar, digite `stop` no console — **nunca Ctrl
 
 ### 🌍 Levar o mundo junto (opcional)
 
-O mundo **não** está no Git — são 17 MB de binário que mudam a cada save, e o
-histórico do Git guardaria uma cópia nova a cada commit, para sempre. Ele vive
-em **GitHub Releases**, fora do histórico:
+O mundo **não** está no Git — são arquivos binários que mudam a cada save, e o
+histórico do Git guardaria cópias novas a cada commit. Snapshots publicáveis do
+mundo vivem em **GitHub Releases**, fora do histórico.
+
+Há dois artefatos diferentes e eles **não podem ser confundidos**:
+
+| Comando | Conteúdo | Pode ir para Release pública? |
+|---|---|---|
+| `bash scripts/backup.sh` | mundo + plugins + configs + listas administrativas | ❌ **NÃO — backup privado** |
+| `bash scripts/export-world.sh` | somente os mundos | ✅ sim |
+
+O `backup.sh` pode conter futuramente senha de RCON, segredo de proxy, banco de
+plugin ou outras credenciais do runtime. **Nunca publique `mc-backup-*.tar.gz`.**
+
+Para publicar um snapshot novo depois de jogar, com o servidor desligado:
+
+```bash
+cd ~/minecraft
+ARQUIVO=$(bash scripts/export-world.sh | tail -1)
+gh release create mundo-AAAA-MM-DD "$ARQUIVO" \
+   -R FelipeBigarelli/minecraft-server \
+   --title "Mundo — DD/MM/AAAA"
+```
+
+O `export-world.sh` se recusa a rodar com o servidor ligado e gera um
+`mc-world-*.tar.gz` contendo somente `world/` (ou as pastas de mundo equivalentes
+no Spigot).
+
+Para restaurar um snapshot público numa máquina nova:
 
 ```bash
 # depois do setup.sh, com o servidor DESLIGADO:
 cd ~/minecraft
-gh release download mundo-2026-08-04 -p "mc-backup-*.tar.gz" \
+gh release download <tag-da-release> -p "mc-world-*.tar.gz" \
    -R FelipeBigarelli/minecraft-server
-tar xzf mc-backup-*.tar.gz && rm mc-backup-*.tar.gz
+tar xzf mc-world-*.tar.gz && rm mc-world-*.tar.gz
 bash scripts/start.sh
 ```
 
-Sem isso, o `setup.sh` gera um mundo novo do zero — restaurar é opcional.
+Sem snapshot, o `setup.sh` gera um mundo novo do zero — restaurar é opcional.
 
-Para publicar um snapshot novo depois de jogar:
-
-```bash
-cd ~/minecraft && bash scripts/backup.sh        # com o servidor desligado
-gh release create mundo-AAAA-MM-DD ~/minecraft-backups/mc-backup-*.tar.gz \
-   --title "Mundo — DD/MM/AAAA"
-```
-
-⚠️ Se o nome do backup terminar em `-quente`, ele foi feito com o servidor no
-ar e pode ter um chunk capturado no meio da escrita. Prefira publicar um feito
-com o servidor desligado.
+> **Release legada `mundo-2026-08-04`:** foi criada antes da separação entre
+> backup privado e snapshot público e usa arquivos `mc-backup-*.tar.gz`. Não use
+> esse formato como modelo para releases futuras.
 
 ### Variáveis opcionais
 
 ```bash
 MC_OP=SeuNick bash server/scripts/setup.sh   # já te deixa operador
-RAM=8G        bash server/scripts/setup.sh   # padrão é 4G
-SERVER_DIR=~/mc bash server/scripts/setup.sh # instalar em outro lugar
-FORCE_CONFIG=1  bash server/scripts/setup.sh # sobrescrever configs existentes
+RAM=8G        bash server/scripts/setup.sh   # padrão persistente passa a ser 8G
+SERVER_DIR=~/mc bash server/scripts/setup.sh # instala e lembra esse diretório
+FORCE_CONFIG=1 bash server/scripts/setup.sh  # sobrescreve configs/defaults existentes
 ```
+
+O setup grava os defaults operacionais em `~/minecraft/scripts/server.env` (ou
+no `SERVER_DIR` escolhido). Esse arquivo guarda somente diretório, versão, build,
+RAM e flavor — **nenhum segredo**. Na hora de iniciar, uma variável passada no
+comando ainda tem prioridade, por exemplo `RAM=2G bash scripts/start.sh`.
 
 ### O que o setup faz
 
@@ -73,8 +96,9 @@ FORCE_CONFIG=1  bash server/scripts/setup.sh # sobrescrever configs existentes
    se não bater
 4. Aceita a EULA da Mojang
 5. Instala os configs — **sem sobrescrever** nada que já exista
-6. Compila o BigaCore e instala em `plugins/`
-7. Opcionalmente resolve seu UUID na Mojang e te define como operador
+6. Instala os scripts e grava os defaults persistentes em `scripts/server.env`
+7. Compila o BigaCore e instala em `plugins/`
+8. Opcionalmente resolve seu UUID na Mojang e te define como operador
 
 É **idempotente**: rodar de novo não destrói mundo, config editado nem nada.
 
@@ -95,8 +119,9 @@ minecraft-server/
 │   ├── scripts/
 │   │   ├── setup.sh          # instala tudo do zero (idempotente)
 │   │   ├── start.sh          # sobe o servidor com Aikar's flags
-│   │   ├── backup.sh         # backup rotativo, com verificação
-│   │   └── minecraft.service # unit systemd (opcional)
+│   │   ├── backup.sh         # backup PRIVADO completo, rotativo e verificado
+│   │   ├── export-world.sh   # snapshot público SOMENTE dos mundos
+│   │   └── minecraft.service # unit systemd (opcional; não instalada)
 │   └── config/               # templates — o servidor usa cópias
 │       ├── server.properties
 │       ├── bukkit.yml
@@ -116,6 +141,9 @@ minecraft-server/
             ├── plugin.yml
             └── config.yml
 ```
+
+No runtime, `scripts/server.env` é gerado pelo setup e guarda os defaults usados
+pelo `start.sh`. Ele não é um arquivo de segredos.
 
 ### 🪤 A armadilha dos dois configs
 
@@ -156,12 +184,14 @@ Desde 2026 a Mojang abandonou o `1.x.y` e adotou **`ano.drop.patch`**:
 
 ### Atualizar a build do Paper
 
-Dois lugares, no mesmo commit:
+Três lugares, no mesmo commit:
 
 ```bash
 # 1. server/scripts/setup.sh  → PAPER_BUILD e PAPER_SHA256_DEFAULT
-# 2. server/scripts/start.sh  → PAPER_BUILD
+# 2. server/scripts/start.sh  → fallback de DEFAULT_PAPER_BUILD
 # 3. plugin/pom.xml           → <paper.version>
+
+# Depois, FORCE_CONFIG=1 no setup atualiza scripts/server.env no runtime.
 
 # Descobrir a build mais recente:
 curl -s -H "User-Agent: biga-mc-server/1.0" \
@@ -182,7 +212,7 @@ cd ~/minecraft && bash scripts/start.sh
 Confirmar no log: `[BigaCore] BigaCore habilitado.`
 
 ⚠️ **Não use `/reload confirm`.** Funciona, mas deixa classes antigas na memória
-e gera bugs fantasma difíceis de rastrear. Reiniciar leva ~1 segundo.
+e pode gerar bugs difíceis de rastrear. Prefira reiniciar o servidor.
 
 ### Comandos
 
@@ -219,8 +249,10 @@ inspecionável. É a diferença entre montar HTML concatenando strings e montar 
 mensagem: "<gradient:dark_purple:gold>A profecia</gradient> <hover:show_text:'12/07'>se cumpre</hover>"
 ```
 
-Decisivo para o narrador: o Claude pode gerar a marcação **junto** com a prosa,
-e você renderiza direto — sem pós-processar em Java para colorir.
+Para o narrador, **não renderize MiniMessage arbitrário vindo da IA**. A resposta
+do Claude será dado externo: passe prosa como texto literal ou por um renderer
+com uma lista restrita de tags permitidas. Tags como `click:run_command` não
+devem ser aceitas da resposta do modelo.
 
 **Placeholders por `Placeholder.unparsed()`, não `String.replace`.** O valor
 entra como texto literal e nunca é interpretado como marcação. Nick de Minecraft
@@ -249,8 +281,9 @@ cancelar ou modificar um evento, use `NORMAL` ou `HIGH`.
 ```bash
 cd ~/minecraft && bash scripts/start.sh          # subir
 SERVER_FLAVOR=spigot bash scripts/start.sh       # rollback pro Spigot*
-RAM=2G bash scripts/start.sh                     # menos RAM
-bash scripts/backup.sh                           # backup manual
+RAM=2G bash scripts/start.sh                     # override temporário da RAM
+bash scripts/backup.sh                           # backup PRIVADO completo
+bash scripts/export-world.sh                     # snapshot público (servidor desligado)
 tail -f ~/minecraft/logs/latest.log              # log ao vivo
 ```
 
@@ -274,7 +307,7 @@ screen -dmS minecraft bash scripts/start.sh
 screen -r minecraft     # entrar no console; Ctrl+A depois D para sair
 ```
 
-Ou via systemd (reinicia sozinho, sobe no boot):
+Ou via systemd (opcional; **não está instalado no setup atual**):
 
 ```bash
 sudo cp ~/minecraft/scripts/minecraft.service /etc/systemd/system/
@@ -292,7 +325,8 @@ crontab -e
 O `backup.sh` monta a lista de alvos dinamicamente (a estrutura de pastas do
 mundo difere entre Paper e Spigot), verifica o `.tar.gz` com `gzip -t` e **falha
 ruidosamente** se algo der errado — um backup pela metade não pode parecer
-completo.
+completo. Ele é um **backup privado de disaster recovery** e não deve ser usado
+como asset de uma release pública.
 
 ---
 
@@ -301,6 +335,7 @@ completo.
 - ✅ `online-mode=true` sempre. Com `false`, qualquer um entra com qualquer nick.
 - ✅ `stop` no console, nunca `kill -9` — corrompe chunk no meio da escrita.
 - ✅ Backup antes de mexer em mundo ou versão.
+- ✅ Release pública usa `export-world.sh`, nunca `backup.sh`.
 - ⚠️ Não abrir a porta 25575 (RCON) para a internet.
 - ⚠️ Plugin de terceiro só de SpigotMC, Modrinth ou Hangar. Já houve malware
   distribuído via contas comprometidas de autores. Prefira open-source.
@@ -323,6 +358,9 @@ O mesmo vale para a **API key do Claude** quando o narrador entrar: variável de
 ambiente ou arquivo fora do repo. O `.gitignore` já bloqueia `.env`, `*.key`,
 `*.pem`, `*.p12`, `*.jks`, `secrets.*` e `credentials*.json`.
 
+Também não publique `mc-backup-*.tar.gz`: esse backup contém arquivos do runtime
+e poderá carregar credenciais mesmo que o `.gitignore` esteja perfeito.
+
 ---
 
 ## 🐛 Problemas comuns
@@ -334,6 +372,7 @@ ambiente ou arquivo fora do repo. O `.gitignore` já bloqueia `.env`, `*.key`,
 | `session.lock: already locked` | Já há um servidor rodando | `pgrep -af paper` e desligue o outro com `stop` |
 | Servidor fecha na hora | `eula.txt` sem `eula=true` | Rode o `setup.sh` |
 | Mudei o config e nada mudou | Editou o template, não o do servidor | Ver "armadilha dos dois configs" |
+| `RAM=8G setup.sh` e depois aparece 4G | `scripts/server.env` antigo foi preservado | Rode setup com `FORCE_CONFIG=1` ou edite o default do runtime |
 | Tags MiniMessage aparecem como texto | Config em sintaxe antiga (`&b`, `{jogador}`) | Migrar para `<aqua>`, `<jogador>` |
 | Lag spikes periódicos | Autosave ou GC | `/spark profiler start` e meça |
 
@@ -343,10 +382,10 @@ ambiente ou arquivo fora do repo. O `.gitignore` já bloqueia `.env`, `*.key`,
 
 | Arquivo | Para quê |
 |---|---|
-| [HANDOFF.md](HANDOFF.md) | Estado completo do projeto, decisões, armadilhas, o plano do narrador |
+| [HANDOFF.md](HANDOFF.md) | Estado completo do projeto, decisões e armadilhas; leia primeiro |
 | [PLANO-EXECUCAO.md](PLANO-EXECUCAO.md) | Plano faseado: infra → coletor de memória → narrador → conteúdo |
 | [COMO-RODAR.md](COMO-RODAR.md) | Guia operacional do dia a dia |
-| [docs/sessoes/](docs/sessoes/) | Transcripts das sessões de trabalho + **prompt pronto para retomar em outra máquina** |
+| [docs/sessoes/](docs/sessoes/) | Histórico das sessões + prompt para retomar em outra máquina |
 
 ### 🔄 Retomando o trabalho em outro PC
 
