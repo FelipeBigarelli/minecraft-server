@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate shell syntax
+        run: bash -n server/scripts/*.sh
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+          cache-dependency-path: plugin/pom.xml
+
+      - name: Build BigaCore
+        run: mvn -B -f plugin/pom.xml verify
+
+      - name: Validate Python helper
+        run: python3 -m py_compile docs/sessoes/exportar.py
