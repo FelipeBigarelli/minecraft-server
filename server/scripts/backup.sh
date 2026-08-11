@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================
-#  backup.sh — Backup compactado dos mundos + configs
+#  backup.sh — Backup PRIVADO compactado dos mundos + configs.
+#
+#  ⚠️  ESTE ARQUIVO NÃO É PARA GITHUB RELEASE PÚBLICA.
+#  Ele inclui plugins, configs, ops/whitelist e pode passar a
+#  conter senhas, bancos ou tokens do runtime no futuro.
+#
+#  Para gerar um snapshot publicável só do mundo, use:
+#      bash scripts/export-world.sh
 #
 #  Agende no cron (todo dia às 4h):
 #    crontab -e
@@ -90,6 +97,7 @@ fi
 
 echo "[backup] Criando $ARCHIVE ..."
 echo "[backup] Incluindo: ${ALVOS[*]}"
+echo "[backup] 🔒 PRIVADO: não publique este arquivo em GitHub Release pública."
 
 # Excluir cache, logs e jars economiza espaço e nada disso é
 # necessário para restaurar: os jars se baixam ou recompilam, e o
