@@ -95,7 +95,7 @@ A construção usa principalmente:
 - `COBBLESTONE`;
 - `POLISHED_ANDESITE` / `ANDESITE`;
 - `GLASS_PANE`;
-- `LANTERN` + `CHAIN`;
+- `LANTERN` + `IRON_BARS` como detalhe de suporte;
 - `BARREL`;
 - `CHEST`;
 - `BLUE_WOOL` + `WHITE_WOOL` na cobertura lateral;
