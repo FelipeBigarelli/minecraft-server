@@ -1,0 +1,125 @@
+# =============================================================
+# BigaCore — Economia v1
+#
+# Este arquivo é a política/catálogo do servidor, não uma tabela que
+# força o preço de lojas entre jogadores. P2P é referência inicial.
+# "server-buy"/"server-sell" só devem virar Admin Shop quando houver
+# uma decisão explícita de construir aquela loja no mundo.
+# =============================================================
+
+version: 1
+
+currency:
+  name: "Biga"
+  symbol: "B$"
+  decimals: 0
+  starting-balance: 250
+
+policy:
+  chestshop-tax-percent: 4
+  shop-creation-price: 50
+  shop-refund-price: 10
+  admin-buyback-daily-cap: 150
+  admin-buyback-weekly-cap: 900
+  combined-mint-daily-cap: 200
+  player-shop-first-limit: 6
+  allow-partial-transactions: false
+  auto-sell-enabled: false
+  admin-buyback-enabled-at-launch: false
+
+# tier é uma classificação ECONÔMICA do BigaCore, não a rarity oficial.
+# Campos ausentes server-buy/server-sell significam P2P somente naquele lado.
+catalog:
+  cobblestone: { tier: COMMON, lot: 64, p2p: 20, server-buy: 8, server-sell: 32 }
+  stone: { tier: COMMON, lot: 64, p2p: 28, server-buy: 10, server-sell: 44 }
+  dirt: { tier: COMMON, lot: 64, p2p: 16, server-buy: 4, server-sell: 28 }
+  grass_block: { tier: COMMON, lot: 32, p2p: 28, server-sell: 48 }
+  gravel: { tier: COMMON, lot: 64, p2p: 32, server-buy: 8, server-sell: 52 }
+  sand: { tier: COMMON, lot: 64, p2p: 48, server-buy: 12, server-sell: 80 }
+  red_sand: { tier: COMMON, lot: 64, p2p: 72, server-buy: 12, server-sell: 110 }
+  glass: { tier: COMMON, lot: 64, p2p: 72, server-sell: 110 }
+  clay_ball: { tier: COMMON, lot: 32, p2p: 48, server-buy: 10, server-sell: 75 }
+  deepslate: { tier: COMMON, lot: 64, p2p: 28, server-buy: 8, server-sell: 44 }
+  tuff: { tier: COMMON, lot: 64, p2p: 28, server-buy: 8, server-sell: 44 }
+  calcite: { tier: COMMON, lot: 32, p2p: 64, server-sell: 100 }
+
+  oak_log: { tier: COMMON, lot: 32, p2p: 48, server-buy: 16, server-sell: 80 }
+  spruce_log: { tier: COMMON, lot: 32, p2p: 48, server-buy: 16, server-sell: 80 }
+  birch_log: { tier: COMMON, lot: 32, p2p: 48, server-buy: 16, server-sell: 80 }
+  jungle_log: { tier: COMMON, lot: 32, p2p: 56, server-buy: 16, server-sell: 88 }
+  acacia_log: { tier: COMMON, lot: 32, p2p: 48, server-buy: 16, server-sell: 80 }
+  dark_oak_log: { tier: COMMON, lot: 32, p2p: 56, server-buy: 16, server-sell: 88 }
+  mangrove_log: { tier: COMMON, lot: 32, p2p: 64, server-buy: 16, server-sell: 96 }
+  cherry_log: { tier: COMMON, lot: 32, p2p: 64, server-buy: 16, server-sell: 96 }
+  bamboo: { tier: COMMON, lot: 64, p2p: 16, server-buy: 2, server-sell: 30 }
+
+  coal: { tier: COMMON, lot: 32, p2p: 64, server-buy: 20, server-sell: 100 }
+  charcoal: { tier: COMMON, lot: 32, p2p: 56, server-buy: 16, server-sell: 90 }
+  wheat: { tier: COMMON, lot: 32, p2p: 36, server-buy: 8, server-sell: 60 }
+  carrot: { tier: COMMON, lot: 32, p2p: 32, server-buy: 6, server-sell: 50 }
+  potato: { tier: COMMON, lot: 32, p2p: 32, server-buy: 6, server-sell: 50 }
+  beetroot: { tier: COMMON, lot: 32, p2p: 28, server-buy: 5, server-sell: 46 }
+  pumpkin: { tier: COMMON, lot: 16, p2p: 40, server-buy: 6, server-sell: 64 }
+  melon: { tier: COMMON, lot: 16, p2p: 40, server-buy: 6, server-sell: 64 }
+  sugar_cane: { tier: COMMON, lot: 32, p2p: 36, server-buy: 6, server-sell: 60 }
+  cocoa_beans: { tier: COMMON, lot: 32, p2p: 48, server-buy: 8, server-sell: 76 }
+  cactus: { tier: COMMON, lot: 32, p2p: 32, server-buy: 4, server-sell: 52 }
+  kelp: { tier: COMMON, lot: 64, p2p: 20, server-buy: 2, server-sell: 36 }
+
+  bread: { tier: COMMON, lot: 16, p2p: 36, server-sell: 56 }
+  cooked_beef: { tier: COMMON, lot: 16, p2p: 64, server-sell: 96 }
+  cooked_porkchop: { tier: COMMON, lot: 16, p2p: 64, server-sell: 96 }
+  cooked_chicken: { tier: COMMON, lot: 16, p2p: 48, server-sell: 76 }
+  cooked_mutton: { tier: COMMON, lot: 16, p2p: 48, server-sell: 76 }
+  baked_potato: { tier: COMMON, lot: 16, p2p: 30, server-sell: 48 }
+
+  iron_ingot: { tier: UNCOMMON, lot: 16, p2p: 160, server-buy: 80, server-sell: 240 }
+  copper_ingot: { tier: UNCOMMON, lot: 32, p2p: 128, server-buy: 48, server-sell: 192 }
+  gold_ingot: { tier: UNCOMMON, lot: 16, p2p: 240, server-buy: 96, server-sell: 360 }
+  redstone: { tier: UNCOMMON, lot: 64, p2p: 96, server-buy: 24, server-sell: 160 }
+  lapis_lazuli: { tier: UNCOMMON, lot: 64, p2p: 128, server-buy: 32, server-sell: 200 }
+  nether_quartz: { tier: UNCOMMON, lot: 32, p2p: 160, server-buy: 48, server-sell: 240 }
+  amethyst_shard: { tier: UNCOMMON, lot: 32, p2p: 128, server-buy: 24, server-sell: 200 }
+  obsidian: { tier: UNCOMMON, lot: 16, p2p: 160, server-buy: 40, server-sell: 240 }
+
+  leather: { tier: UNCOMMON, lot: 16, p2p: 120, server-buy: 36, server-sell: 180 }
+  gunpowder: { tier: UNCOMMON, lot: 16, p2p: 180, server-buy: 48, server-sell: 280 }
+  slime_ball: { tier: UNCOMMON, lot: 16, p2p: 200, server-buy: 48, server-sell: 320 }
+  ender_pearl: { tier: UNCOMMON, lot: 8, p2p: 160, server-buy: 32, server-sell: 260 }
+  prismarine_shard: { tier: UNCOMMON, lot: 32, p2p: 96, server-buy: 24, server-sell: 160 }
+  bone: { tier: UNCOMMON, lot: 32, p2p: 64, server-buy: 8, server-sell: 100 }
+  string: { tier: UNCOMMON, lot: 32, p2p: 64, server-buy: 8, server-sell: 100 }
+  rotten_flesh: { tier: COMMON, lot: 64, p2p: 24, server-buy: 2, server-sell: 40 }
+  spider_eye: { tier: UNCOMMON, lot: 16, p2p: 48, server-buy: 6, server-sell: 76 }
+
+  diamond: { tier: RARE, lot: 1, p2p: 120, server-buy: 55, server-sell: 190 }
+  emerald: { tier: RARE, lot: 8, p2p: 160 }
+  blaze_rod: { tier: RARE, lot: 8, p2p: 240, server-buy: 32, server-sell: 380 }
+  ghast_tear: { tier: RARE, lot: 4, p2p: 320, server-buy: 64, server-sell: 500 }
+  magma_cream: { tier: RARE, lot: 8, p2p: 180, server-buy: 24, server-sell: 280 }
+  nautilus_shell: { tier: RARE, lot: 8, p2p: 320, server-buy: 48, server-sell: 500 }
+  name_tag: { tier: RARE, lot: 1, p2p: 180, server-sell: 280 }
+  saddle: { tier: RARE, lot: 1, p2p: 160, server-sell: 250 }
+  shulker_shell: { tier: RARE, lot: 1, p2p: 300 }
+  shulker_box: { tier: RARE, lot: 1, p2p: 650 }
+  heart_of_the_sea: { tier: RARE, lot: 1, p2p: 500 }
+
+  ancient_debris: { tier: EPIC, lot: 1, p2p: 650 }
+  netherite_scrap: { tier: EPIC, lot: 1, p2p: 700 }
+  netherite_ingot: { tier: EPIC, lot: 1, p2p: 3000 }
+  netherite_upgrade_smithing_template: { tier: EPIC, lot: 1, p2p: 1200 }
+  elytra: { tier: EPIC, lot: 1, p2p: 3200 }
+  trident: { tier: EPIC, lot: 1, p2p: 1800 }
+  totem_of_undying: { tier: EPIC, lot: 1, p2p: 900 }
+  nether_star: { tier: EPIC, lot: 1, p2p: 3500 }
+  beacon: { tier: EPIC, lot: 1, p2p: 4000 }
+  enchanted_golden_apple: { tier: EPIC, lot: 1, p2p: 1400 }
+  conduit: { tier: EPIC, lot: 1, p2p: 1500 }
+  music_disc_pigstep: { tier: EPIC, lot: 1, p2p: 1200 }
+
+  dragon_egg: { tier: LEGENDARY, lot: 1, p2p: 15000 }
+  mace: { tier: LEGENDARY, lot: 1, p2p: 8000 }
+  heavy_core: { tier: LEGENDARY, lot: 1, p2p: 5500 }
+  silence_armor_trim_smithing_template: { tier: LEGENDARY, lot: 1, p2p: 4500 }
+  dragon_head: { tier: LEGENDARY, lot: 1, p2p: 3500 }
+  netherite_block: { tier: LEGENDARY, lot: 1, p2p: 27000 }
