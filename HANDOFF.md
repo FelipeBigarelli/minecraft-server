@@ -4,6 +4,8 @@
 > projeto, decisões que não devem ser revertidas por acidente e as regras para
 > continuar o trabalho. O runtime (`~/minecraft`) pode ter mudado fora do Git;
 > portanto, **audite antes de assumir que o estado da máquina continua igual**.
+>
+> **Máquina nova:** antes de desenvolver, conclua [NOVO-PC.md](NOVO-PC.md).
 
 ---
 
@@ -32,17 +34,20 @@ Estado confirmado no GitHub em 11/08/2026:
 - BigaCore 1.0.0 usando Adventure + MiniMessage;
 - setup idempotente;
 - backup privado completo (`backup.sh`);
-- snapshot público somente do mundo (`export-world.sh`);
+- snapshot somente do mundo (`export-world.sh`);
+- restauração segura somente de mundo (`restore-world.sh`), inclusive para o backup legado;
+- diagnóstico sem boot (`doctor.sh`);
 - defaults de RAM/diretório/build persistidos em `scripts/server.env` no runtime;
-- nenhuma CI obrigatória neste estágio;
+- GitHub Actions valida sintaxe dos scripts, restauração segura, Java 25, build do BigaCore e helper Python;
 - nenhum sistema de IA implementado ainda.
 
 ### Runtime
 
-Último runtime documentado e validado em jogo: **04/08/2026**. Antes de qualquer
-trabalho dependente da máquina, confirme o estado real.
+Último runtime documentado e validado em jogo no PC anterior: **04/08/2026**.
+Em um PC novo, o runtime precisa ser reconstruído pelo `setup.sh`; o Git não
+carrega mundo, jars nem configs reais do servidor.
 
-Última validação registrada:
+Última validação em jogo registrada:
 
 ```text
 Paper 26.2 build 92
@@ -59,7 +64,8 @@ mundo migrado para a estrutura do Paper
 - plugins de terceiros podem ter atualizado desde a última pesquisa;
 - o runtime pode ter recebido mudanças manuais depois do último handoff;
 - suporte de plugins à 26.2 deve ser conferido **no dia da instalação**;
-- não assuma que versões anotadas em transcripts históricos continuam atuais.
+- não assuma que versões anotadas em transcripts históricos continuam atuais;
+- em PC novo, não assuma que Java/Maven/Paper/mundo estão corretos até `doctor.sh` passar.
 
 ---
 
@@ -71,15 +77,19 @@ mundo migrado para a estrutura do Paper
 minecraft-server/
 ├── .gitignore
 ├── README.md
+├── NOVO-PC.md
 ├── COMO-RODAR.md
 ├── HANDOFF.md
 ├── PLANO-EXECUCAO.md
+├── .github/workflows/ci.yml
 ├── docs/
 │   └── sessoes/
 ├── server/
 │   ├── scripts/
 │   │   ├── setup.sh
 │   │   ├── start.sh
+│   │   ├── doctor.sh
+│   │   ├── restore-world.sh
 │   │   ├── backup.sh
 │   │   ├── export-world.sh
 │   │   └── minecraft.service
@@ -108,23 +118,25 @@ minecraft-server/
 ```text
 ~/minecraft/
 ├── paper-26.2-92.jar
-├── spigot-26.2.jar                 # somente como rota histórica de rollback
 ├── scripts/
 │   ├── setup.sh
 │   ├── start.sh
+│   ├── doctor.sh
+│   ├── restore-world.sh
 │   ├── backup.sh
 │   ├── export-world.sh
 │   └── server.env                  # gerado pelo setup
 ├── plugins/
-├── world/
+│   └── bigacore-1.0.0.jar
+├── world/                          # só existe após restore ou primeiro boot
 ├── config/
 ├── server.properties
 ├── bukkit.yml
 ├── spigot.yml
 ├── commands.yml
-├── ops.json
-├── whitelist.json
-└── logs/
+├── ops.json                        # se criado
+├── whitelist.json                  # se criado
+└── logs/                           # após primeiro boot
 ```
 
 O runtime fica fora do Git de propósito. Mundo, logs, jars, bancos e configs
@@ -199,7 +211,7 @@ Nunca faça rollback de mundo sem um backup novo antes.
 
 ---
 
-## 6. 💾 Backup privado × snapshot público
+## 6. 💾 Backup privado × snapshot do mundo × restore
 
 Esta separação foi formalizada em **11/08/2026** após auditoria de segurança.
 
@@ -215,72 +227,68 @@ Inclui, conforme existirem:
 - `ops.json`;
 - whitelist;
 - bans;
-- cache de usuários.
+- cache de usuários;
+- `scripts/server.env`.
 
 Isso é correto para **disaster recovery**, mas significa que o arquivo poderá
-conter futuramente:
+conter futuramente senha RCON, secret de proxy, bancos ou tokens.
 
-- senha RCON;
-- secret de proxy;
-- API keys salvas incorretamente em runtime;
-- bancos SQLite de plugins;
-- tokens ou credenciais de plugins de terceiro.
+> 🔴 **NUNCA publique `mc-backup-*.tar.gz` como Release pública.**
 
-Portanto:
+### `export-world.sh` — SOMENTE MUNDOS
 
-> 🔴 **NUNCA publique `mc-backup-*.tar.gz` em GitHub Release pública.**
-
-O `.gitignore` não protege conteúdo que foi empacotado dentro de um `.tar.gz` e
-enviado como asset de release.
-
-### `export-world.sh` — PUBLICÁVEL
-
-Gera somente:
-
-```text
-world/
-```
-
-ou as pastas de mundo equivalentes existentes.
+Gera `mc-world-*.tar.gz` com apenas as pastas de mundo existentes.
 
 Características:
 
 - recusa executar com o servidor ligado;
-- não inclui plugins;
-- não inclui configs;
-- não inclui ops/whitelist;
-- não inclui bancos;
-- não inclui credenciais;
-- valida o gzip;
+- não inclui plugins/configs/ops/whitelist/bancos;
+- valida gzip;
 - imprime SHA256.
 
-É o único artefato criado pelos scripts do projeto que deve ser usado para uma
-release pública de mundo.
+O arquivo é adequado para **transportar o mundo**, mas o próprio mundo pode
+conter UUIDs, inventários e posições. Portanto "sem configs/segredos" não é o
+mesmo que "sem dados de jogadores".
+
+### `restore-world.sh` — restauração filtrada
+
+Aceita tanto `mc-world-*.tar.gz` quanto o `mc-backup-*.tar.gz` legado, porém só
+extrai:
+
+```text
+world/
+world_nether/
+world_the_end/
+```
+
+Nunca restaura plugins, configs, ops, whitelist ou credenciais do arquivo.
+Também:
+
+- exige servidor desligado;
+- valida gzip;
+- rejeita caminhos absolutos/`..`;
+- não sobrescreve mundo existente sem `FORCE=1`;
+- com `FORCE=1`, move o mundo anterior para uma pasta de segurança primeiro.
+
+A CI possui teste funcional que cria um backup falso com um `server.properties`
+contendo segredo e confirma que somente `world/` chega ao destino.
 
 ### ⚠️ Release legada de 04/08/2026
 
-A release `mundo-2026-08-04` foi criada **antes** dessa separação e contém
-`mc-backup-*.tar.gz`, inclusive configs e arquivos administrativos.
+A release `mundo-2026-08-04` contém o backup Paper:
 
-Não use esse formato para nenhuma release nova. Os assets antigos devem ser
-considerados legado potencialmente sensível e revisados/removidos no GitHub.
+```text
+mc-backup-2026-08-04_142421.tar.gz
+```
+
+Em PC novo, se não houver snapshot mais recente, ele pode servir de fallback
+**somente através de `restore-world.sh`**.
+
+Não usar `PRE-PAPER-2026-08-03_195957.tar.gz` para continuar no Paper.
 
 ---
 
-## 7. ⚙️ `setup.sh`, `start.sh` e defaults persistentes
-
-### Problema corrigido em 11/08/2026
-
-Antes, o README prometia:
-
-```bash
-RAM=8G bash server/scripts/setup.sh
-SERVER_DIR=~/mc bash server/scripts/setup.sh
-```
-
-mas `start.sh` voltava depois para os defaults próprios (`4G` e `~/minecraft`).
-
-### Solução atual
+## 7. ⚙️ Setup, defaults e diagnóstico
 
 O setup gera:
 
@@ -298,10 +306,10 @@ DEFAULT_RAM
 DEFAULT_SERVER_FLAVOR
 ```
 
-O arquivo contém apenas defaults operacionais, **não segredos**.
+O arquivo contém defaults operacionais, **não segredos**.
 
-`start.sh` lê esses defaults, mas variáveis passadas diretamente continuam tendo
-prioridade:
+Os scripts operacionais leem os mesmos defaults. Variáveis passadas diretamente
+continuam tendo prioridade:
 
 ```bash
 RAM=2G bash scripts/start.sh
@@ -309,6 +317,20 @@ RAM=2G bash scripts/start.sh
 
 `FORCE_CONFIG=1` permite atualizar deliberadamente o `server.env` ao rerodar o
 setup.
+
+### `doctor.sh`
+
+Antes do primeiro boot em máquina nova:
+
+```bash
+cd ~/minecraft
+bash scripts/doctor.sh
+```
+
+Ele não modifica arquivos nem inicia o servidor. Confere Java, Maven, Paper,
+BigaCore, EULA, `online-mode`, RCON, presença de mundo e processos Paper/Spigot.
+
+Se não houver mundo ainda, é apenas aviso: o primeiro boot gera um novo.
 
 ---
 
@@ -325,12 +347,11 @@ Editar template não muda automaticamente uma instalação existente.
 
 ### Divergência histórica intencional do BigaCore
 
-Em 04/08/2026 o runtime possuía uma mensagem de boas-vindas de teste diferente
-do template. Isso foi usado para validar `/biga reload` e não era, por si só, um
-bug.
+Em 04/08/2026 o runtime antigo possuía uma mensagem de boas-vindas de teste
+diferente do template. Isso foi usado para validar `/biga reload`.
 
-Se ainda existir, não "corrija" sem primeiro conferir o runtime e decidir qual
-mensagem deve ser definitiva.
+Uma instalação nova recebe o **template limpo** do Git. Não restaure o config
+antigo só para reproduzir essa divergência de teste.
 
 ---
 
@@ -366,8 +387,7 @@ Nunca faça:
 resposta do Claude → MiniMessage.deserialize() irrestrito → jogador
 ```
 
-porque tags interativas podem carregar ações. Use texto literal ou renderer com
-lista explícita de tags permitidas.
+Use texto literal ou renderer com lista explícita de tags permitidas.
 
 ---
 
@@ -378,21 +398,21 @@ O plano foi corrigido em 11/08/2026.
 ### SQLite
 
 A documentação atual do Paper informa que o driver JDBC SQLite já vem incluído.
-Portanto, no MVP:
+No MVP:
 
 - não adicionar `sqlite-jdbc` ao jar;
 - não fazer shade do driver;
 - não adicionar HikariCP automaticamente;
-- usar uma camada de repositório;
-- usar executor dedicado para writes/batches fora da main thread;
-- usar fila limitada;
-- drenar a fila e fechar a conexão no shutdown.
+- usar camada de repositório;
+- executor dedicado para writes/batches fora da main thread;
+- fila limitada;
+- drenar fila e fechar conexão no shutdown.
 
 Quando houver Postgres ou dependência externa, decidir entre `libraries:` do
-`plugin.yml` e shade/relocation conforme a necessidade concreta.
+`plugin.yml` e shade/relocation conforme necessidade concreta.
 
 O banco do BigaCore pertence ao runtime e ao **backup privado**, nunca ao
-snapshot público do mundo.
+snapshot do mundo.
 
 ---
 
@@ -414,8 +434,6 @@ FASE 4 — conteúdo custom / corpo do narrador
 
 Não pule a memória do mundo.
 
-Um narrador sem contexto real vira apenas um gerador de frases genéricas.
-
 Detalhes: [PLANO-EXECUCAO.md](PLANO-EXECUCAO.md).
 
 ---
@@ -433,11 +451,8 @@ Regras fixas:
 - um plugin por vez;
 - backup antes de mudança de versão/mundo/plugin crítico;
 - `mc-backup-*.tar.gz` é privado;
-- `mc-world-*.tar.gz` é o formato de snapshot público;
+- `mc-world-*.tar.gz` transporta somente mundo, mas ainda pode ter dados de jogadores;
 - nunca confiar em um único scanner como prova de que um JAR está limpo.
-
-O scanner do plano usa `jar tf` porque `grep -R` não inspeciona corretamente o
-conteúdo interno de um JAR.
 
 ---
 
@@ -451,7 +466,7 @@ Já houve incidente em que outra sessão subiu uma instância, segurou
 `world/session.lock` e depois quase matou o processo errado. Duas instâncias no
 mesmo mundo são risco real de corrupção.
 
-Portanto agentes podem:
+Agentes podem:
 
 - ler código/configs;
 - compilar BigaCore;
@@ -459,7 +474,8 @@ Portanto agentes podem:
 - editar arquivos do projeto;
 - inspecionar logs;
 - criar commits;
-- preparar mudanças.
+- preparar mudanças;
+- rodar `doctor.sh`.
 
 Mas **não devem iniciar o servidor Minecraft sem pedido explícito do Felipe**.
 
@@ -475,19 +491,32 @@ Mas **não devem iniciar o servidor Minecraft sem pedido explícito do Felipe**.
 ### systemd
 
 `minecraft.service` é apenas um template opcional e **não faz parte da operação
-atual**. Não tratar bugs ou decisões desse arquivo como problema de produção até
-o projeto decidir realmente usar systemd.
+atual**.
 
 ---
 
 ## 14. ✅ Auditoria antes de trabalho novo
 
-Antes de confiar neste HANDOFF, confira o que for relevante para a tarefa.
+### Em máquina nova
+
+Primeiro siga:
+
+```text
+NOVO-PC.md
+```
+
+Depois:
+
+```bash
+cd ~/minecraft
+bash scripts/doctor.sh
+```
 
 ### Projeto
 
+A pasta do clone pode variar. A partir da raiz do repositório:
+
 ```bash
-cd ~/Desktop/minecraft-server
 git status
 git log -5 --oneline
 find server/scripts -maxdepth 1 -type f -print
@@ -507,13 +536,15 @@ mvn -version
 ls -la ~/minecraft
 ls -la ~/minecraft/scripts
 ls -la ~/minecraft/plugins
-tail -100 ~/minecraft/logs/latest.log
+bash ~/minecraft/scripts/doctor.sh
 ```
 
 ### Build do plugin
 
+A partir da raiz do clone:
+
 ```bash
-cd ~/Desktop/minecraft-server/plugin
+cd plugin
 mvn clean package
 ```
 
@@ -524,7 +555,6 @@ HANDOFF depois que a diferença estiver entendida.
 
 ## 15. 📚 Histórico
 
-O detalhe da migração e das sessões anteriores não precisa ficar duplicado aqui.
 Consulte:
 
 ```text
@@ -532,4 +562,3 @@ docs/sessoes/
 ```
 
 Este HANDOFF deve permanecer focado no **estado corrente, decisões e armadilhas**.
-O transcript histórico serve para responder "como chegamos aqui?".
