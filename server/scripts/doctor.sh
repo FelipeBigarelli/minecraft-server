@@ -3,7 +3,7 @@
 #  doctor.sh — Diagnóstico sem iniciar o servidor.
 #
 #  Útil depois do setup/restore em um PC novo. Confere Java,
-#  Maven, Paper, BigaCore, configs básicas e presença do mundo.
+#  Maven, Paper, BigaCore, economia, configs básicas e mundo.
 #  Não modifica arquivos e NÃO sobe o Minecraft.
 # =============================================================
 set -u
@@ -19,6 +19,10 @@ MC_VERSION="${MC_VERSION:-${DEFAULT_MC_VERSION:-26.2}}"
 PAPER_BUILD="${PAPER_BUILD:-${DEFAULT_PAPER_BUILD:-92}}"
 EXPECTED_JAR="paper-$MC_VERSION-$PAPER_BUILD.jar"
 
+CHESTSHOP_JAR="ChestShop-3.13-pre-1.jar"
+VAULT_JAR="VaultUnlocked-2.20.2.jar"
+ETERNAL_JAR="EternalEconomy-v1.0.1.jar"
+
 ERROS=0
 AVISOS=0
 
@@ -30,9 +34,28 @@ java_major() {
     java -version 2>&1 | head -1 | sed -E 's/.*version "([0-9]+).*/\1/'
 }
 
+verificar_jar_plugin() {
+    local arquivo="$1" descricao="$2"
+    if [ -f "$SERVER_DIR/plugins/$arquivo" ]; then
+        ok "$descricao encontrado: $arquivo"
+    else
+        err "$descricao não encontrado: $SERVER_DIR/plugins/$arquivo"
+    fi
+}
+
+verificar_duplicatas_plugin() {
+    local padrao="$1" descricao="$2"
+    local quantidade
+    quantidade=$(find "$SERVER_DIR/plugins" -maxdepth 1 -type f -iname "$padrao" 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$quantidade" -gt 1 ]; then
+        err "$descricao tem $quantidade JARs no diretório plugins/. Remova versões antigas antes de iniciar."
+    fi
+}
+
 echo "Minecraft Server Doctor"
 echo "Servidor esperado: $SERVER_DIR"
 echo "Paper esperado   : $EXPECTED_JAR"
+echo "Economia         : ChestShop 3.13-pre-1 + VaultUnlocked 2.20.2 + EternalEconomy 1.0.1"
 echo
 
 if command -v java >/dev/null 2>&1; then
@@ -72,8 +95,55 @@ fi
 PLUGIN_JAR=$(find "$SERVER_DIR/plugins" -maxdepth 1 -type f -name 'bigacore-*.jar' 2>/dev/null | head -1)
 if [ -n "$PLUGIN_JAR" ]; then
     ok "BigaCore encontrado: $(basename "$PLUGIN_JAR")"
+    if jar tf "$PLUGIN_JAR" 2>/dev/null | grep -qx 'economy.yml'; then
+        ok "BigaCore contém economy.yml."
+    else
+        err "O JAR do BigaCore não contém economy.yml. Recompile pelo setup.sh."
+    fi
 else
     err "BigaCore não encontrado em $SERVER_DIR/plugins/."
+fi
+
+verificar_duplicatas_plugin '*bigacore-*.jar' 'BigaCore'
+verificar_jar_plugin "$VAULT_JAR" "VaultUnlocked"
+verificar_jar_plugin "$ETERNAL_JAR" "EternalEconomy"
+verificar_jar_plugin "$CHESTSHOP_JAR" "ChestShop"
+verificar_duplicatas_plugin '*Vault*.jar' 'Vault/VaultUnlocked'
+verificar_duplicatas_plugin '*EternalEconomy*.jar' 'EternalEconomy'
+verificar_duplicatas_plugin '*ChestShop*.jar' 'ChestShop'
+
+CHESTSHOP_CONFIG="$SERVER_DIR/plugins/ChestShop/config.yml"
+if [ -f "$CHESTSHOP_CONFIG" ]; then
+    if grep -Eq '^TAX_AMOUNT:[[:space:]]*4([[:space:]]|$)' "$CHESTSHOP_CONFIG"; then
+        ok "ChestShop: taxa P2P = 4%."
+    else
+        err "ChestShop: TAX_AMOUNT não está em 4."
+    fi
+
+    if grep -Eq '^SHOP_CREATION_PRICE:[[:space:]]*50([[:space:]]|$)' "$CHESTSHOP_CONFIG"; then
+        ok "ChestShop: criação de loja = 50 B$."
+    else
+        err "ChestShop: SHOP_CREATION_PRICE não está em 50."
+    fi
+
+    if grep -Eq '^ALLOW_PARTIAL_TRANSACTIONS:[[:space:]]*false([[:space:]]|$)' "$CHESTSHOP_CONFIG"; then
+        ok "ChestShop: transações parciais desativadas."
+    else
+        err "ChestShop: ALLOW_PARTIAL_TRANSACTIONS deve ser false."
+    fi
+else
+    err "Config do ChestShop não encontrado: $CHESTSHOP_CONFIG"
+fi
+
+ETERNAL_CONFIG="$SERVER_DIR/plugins/EternalEconomy/config.yml"
+if [ -f "$ETERNAL_CONFIG" ]; then
+    if grep -Eq '^defaultBalance:[[:space:]]*250(\.0+)?([[:space:]]|$)' "$ETERNAL_CONFIG"; then
+        ok "EternalEconomy: saldo inicial = 250 B$."
+    else
+        err "EternalEconomy: defaultBalance não está em 250."
+    fi
+else
+    err "Config do EternalEconomy não encontrado: $ETERNAL_CONFIG"
 fi
 
 if grep -q '^eula=true$' "$SERVER_DIR/eula.txt" 2>/dev/null; then
