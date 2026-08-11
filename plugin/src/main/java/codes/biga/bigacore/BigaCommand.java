@@ -14,17 +14,19 @@ import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.OptionalDouble;
 
 /**
  * Implementa /biga com subcomandos.
  *
- * Implementar CommandExecutor e TabCompleter na mesma classe e
- * conveniente: o autocomplete fica ao lado da logica que ele
- * completa, entao os dois nao saem de sincronia.
+ * Implementar CommandExecutor e TabCompleter na mesma classe e conveniente:
+ * o autocomplete fica ao lado da logica que ele completa, entao os dois nao
+ * saem de sincronia.
  */
 public final class BigaCommand implements CommandExecutor, TabCompleter {
 
-    private static final List<String> SUBCOMANDOS = List.of("info", "reload", "voar");
+    private static final List<String> SUBCOMANDOS = List.of("info", "eco", "reload", "voar");
+    private static final List<String> ECO_SUBCOMANDOS = List.of("status", "saldo", "preco", "regras");
 
     private final BigaCore plugin;
 
@@ -42,59 +44,44 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
         }
 
         switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "info"   -> mostrarInfo(sender);
+            case "info" -> mostrarInfo(sender);
+            case "eco" -> economia(sender, label, args);
             case "reload" -> recarregar(sender);
-            case "voar"   -> alternarVoo(sender);
-            default       -> enviarAjuda(sender, label);
+            case "voar" -> alternarVoo(sender);
+            default -> enviarAjuda(sender, label);
         }
 
-        // Retornar false faz o servidor imprimir a 'usage' do
-        // plugin.yml. Como ja tratamos tudo acima, sempre true.
         return true;
     }
 
     private void mostrarInfo(CommandSender sender) {
-        // getPluginMeta() e a via do Paper para ler o plugin.yml.
-        // No Spigot so existia getDescription(), que no Paper esta
-        // deprecado. Como agora compilamos contra paper-api, usamos
-        // a versao atual.
         var meta = plugin.getPluginMeta();
 
         String site = meta.getWebsite();
         String autores = String.join(", ", meta.getAuthors());
+        String hoverSite = "sem site declarado";
+        if (site != null && !site.isBlank()) {
+            hoverSite = "Clique para abrir " + site;
+        }
 
-        // ---------------------------------------------------------
-        // Um Component nao e so texto com cor: e um objeto que
-        // carrega comportamento junto. Aqui a mesma linha tem
-        // cor, negrito, um balao ao passar o mouse e uma acao ao
-        // clicar. Com ChatColor + String isso era impossivel.
-        // ---------------------------------------------------------
         Component titulo = Component.text("BigaCore v" + meta.getVersion())
                 .color(NamedTextColor.AQUA)
                 .decorate(TextDecoration.BOLD)
                 .hoverEvent(HoverEvent.showText(
                         Component.text("Autor: " + autores, NamedTextColor.WHITE)
                                 .appendNewline()
-                                .append(Component.text(
-                                        site == null ? "sem site declarado" : "Clique para abrir " + site,
-                                        NamedTextColor.GRAY))
+                                .append(Component.text(hoverSite, NamedTextColor.GRAY))
                 ));
 
-        // clickEvent so faz sentido se houver um site declarado no
-        // plugin.yml. Anexar um evento com URL nula lanca excecao.
         if (site != null && !site.isBlank()) {
             titulo = titulo.clickEvent(ClickEvent.openUrl(site));
         }
 
         sender.sendMessage(titulo);
-
-        // Component.text(...) sem cor herda a cor do contexto; por
-        // isso a cor vai explicita em cada parte.
         sender.sendMessage(
                 Component.text("Servidor: ", NamedTextColor.GRAY)
                         .append(Component.text(plugin.getServer().getVersion(), NamedTextColor.WHITE))
         );
-
         sender.sendMessage(
                 Component.text("Online: ", NamedTextColor.GRAY)
                         .append(Component.text(
@@ -104,13 +91,133 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
         );
     }
 
+    private void economia(CommandSender sender, String label, String[] args) {
+        if (args.length == 1 || args[1].equalsIgnoreCase("status")) {
+            mostrarEconomiaStatus(sender);
+            return;
+        }
+
+        switch (args[1].toLowerCase(Locale.ROOT)) {
+            case "saldo" -> mostrarSaldo(sender);
+            case "preco" -> mostrarPreco(sender, label, args);
+            case "regras" -> mostrarRegras(sender);
+            default -> enviarAjudaEconomia(sender, label);
+        }
+    }
+
+    private void mostrarEconomiaStatus(CommandSender sender) {
+        EconomyCatalog catalog = plugin.economyCatalog();
+
+        sender.sendMessage(Component.text("Economia BigaCore", NamedTextColor.GOLD)
+                .decorate(TextDecoration.BOLD));
+        sender.sendMessage(linha("Moeda", catalog.currencyName() + " (" + catalog.currencySymbol() + ")"));
+        sender.sendMessage(linha("Saldo inicial", catalog.money(catalog.startingBalance())));
+        sender.sendMessage(linha("Taxa P2P ChestShop", catalog.chestShopTaxPercent() + "%"));
+        sender.sendMessage(linha("Criar loja", catalog.money(catalog.shopCreationPrice())));
+        sender.sendMessage(linha("Reembolso ao remover", catalog.money(catalog.shopRefundPrice())));
+        sender.sendMessage(linha("Filosofia", "mercado entre jogadores primeiro"));
+
+        String estadoBuyback = "desativado no lancamento";
+        if (catalog.adminBuybackEnabledAtLaunch()) {
+            estadoBuyback = "ativo";
+        }
+        sender.sendMessage(linha("Admin buyback", estadoBuyback));
+    }
+
+    private void mostrarSaldo(CommandSender sender) {
+        if (!(sender instanceof Player jogador)) {
+            sender.sendMessage(Component.text("Use /biga eco saldo dentro do jogo.", NamedTextColor.RED));
+            return;
+        }
+
+        OptionalDouble saldo = plugin.economyBridge().balance(jogador);
+        if (saldo.isEmpty()) {
+            jogador.sendMessage(Component.text(
+                    "Economia indisponivel. Confirme VaultUnlocked + EternalEconomy.",
+                    NamedTextColor.RED));
+            return;
+        }
+
+        String valor = String.format(Locale.ROOT, "%.0f", saldo.getAsDouble());
+        jogador.sendMessage(Component.text("Seu saldo: ", NamedTextColor.GRAY)
+                .append(Component.text(plugin.economyCatalog().currencySymbol() + " " + valor,
+                        NamedTextColor.GOLD)
+                        .decorate(TextDecoration.BOLD)));
+    }
+
+    private void mostrarPreco(CommandSender sender, String label, String[] args) {
+        if (args.length < 3) {
+            sender.sendMessage(Component.text(
+                    "Uso: /" + label + " eco preco <item>",
+                    NamedTextColor.YELLOW));
+            return;
+        }
+
+        String item = args[2];
+        plugin.economyCatalog().find(item).ifPresentOrElse(
+                entry -> enviarPreco(sender, entry),
+                () -> sender.sendMessage(Component.text(
+                        "Item nao encontrado no catalogo: " + item,
+                        NamedTextColor.RED))
+        );
+    }
+
+    private void enviarPreco(CommandSender sender, EconomyCatalog.PriceEntry entry) {
+        EconomyCatalog catalog = plugin.economyCatalog();
+
+        sender.sendMessage(Component.text(entry.key().toUpperCase(Locale.ROOT), NamedTextColor.AQUA)
+                .decorate(TextDecoration.BOLD)
+                .append(Component.text("  [" + entry.tier() + "]", NamedTextColor.DARK_GRAY)));
+        sender.sendMessage(linha("Lote", String.valueOf(entry.lot())));
+        sender.sendMessage(linha("Referencia P2P", catalog.money(entry.p2p())));
+
+        String serverBuyText = "P2P somente";
+        if (entry.serverBuy() != null) {
+            serverBuyText = catalog.money(entry.serverBuy());
+        }
+        sender.sendMessage(linha("Servidor compra", serverBuyText));
+
+        String serverSellText = "P2P somente";
+        if (entry.serverSell() != null) {
+            serverSellText = catalog.money(entry.serverSell());
+        }
+        sender.sendMessage(linha("Servidor vende", serverSellText));
+
+        sender.sendMessage(Component.text(
+                "P2P e referencia, nao preco obrigatorio.",
+                NamedTextColor.DARK_GRAY));
+    }
+
+    private void mostrarRegras(CommandSender sender) {
+        EconomyCatalog catalog = plugin.economyCatalog();
+
+        sender.sendMessage(Component.text("Regras economicas", NamedTextColor.GOLD)
+                .decorate(TextDecoration.BOLD));
+        sender.sendMessage(Component.text("• Sem dinheiro por login, AFK, mob morto ou bloco quebrado.", NamedTextColor.GRAY));
+        sender.sendMessage(Component.text("• Farms geram itens; nao imprimem B$ infinitamente.", NamedTextColor.GRAY));
+        sender.sendMessage(Component.text("• Itens raros/progressao ficam principalmente no mercado P2P.", NamedTextColor.GRAY));
+        sender.sendMessage(Component.text("• Auto-sell/sell-all fica desligado no lancamento.", NamedTextColor.GRAY));
+        sender.sendMessage(Component.text(
+                "• Buyback futuro: max " + catalog.money(catalog.adminBuybackDailyCap())
+                        + "/dia e " + catalog.money(catalog.adminBuybackWeeklyCap()) + "/semana por jogador.",
+                NamedTextColor.GRAY));
+        sender.sendMessage(Component.text(
+                "• Limite inicial planejado: " + catalog.initialShopLimit() + " lojas por jogador.",
+                NamedTextColor.GRAY));
+    }
+
+    private Component linha(String chave, String valor) {
+        return Component.text(chave + ": ", NamedTextColor.GRAY)
+                .append(Component.text(valor, NamedTextColor.WHITE));
+    }
+
     private void recarregar(CommandSender sender) {
         if (!sender.hasPermission("bigacore.admin")) {
             semPermissao(sender);
             return;
         }
-        plugin.reloadConfig();
-        sender.sendMessage(Component.text("Configuracao recarregada.", NamedTextColor.GREEN));
+        plugin.reloadBigaConfigs();
+        sender.sendMessage(Component.text("Configuracoes do BigaCore recarregadas.", NamedTextColor.GREEN));
     }
 
     private void alternarVoo(CommandSender sender) {
@@ -118,17 +225,19 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             semPermissao(sender);
             return;
         }
-        // O console pode executar comandos, entao nunca assuma que
-        // o sender e um Player sem checar.
         if (!(sender instanceof Player jogador)) {
             sender.sendMessage(Component.text("Esse comando so funciona em jogo.", NamedTextColor.RED));
             return;
         }
+
         boolean novoEstado = !jogador.getAllowFlight();
         jogador.setAllowFlight(novoEstado);
-        jogador.sendMessage(Component.text(
-                "Voo " + (novoEstado ? "ativado" : "desativado") + ".",
-                NamedTextColor.GREEN));
+
+        String textoEstado = "desativado";
+        if (novoEstado) {
+            textoEstado = "ativado";
+        }
+        jogador.sendMessage(Component.text("Voo " + textoEstado + ".", NamedTextColor.GREEN));
     }
 
     private void semPermissao(CommandSender sender) {
@@ -139,9 +248,6 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
         Component ajuda = Component.text("Uso: ", NamedTextColor.YELLOW)
                 .append(Component.text("/" + label + " ", NamedTextColor.WHITE));
 
-        // Cada subcomando vira um botao: clicar preenche o chat com o
-        // comando ja digitado (suggestCommand nao executa, so sugere -
-        // e o certo para algo que pode ter efeito, como /biga voar).
         for (int i = 0; i < SUBCOMANDOS.size(); i++) {
             String sub = SUBCOMANDOS.get(i);
             if (i > 0) {
@@ -158,19 +264,40 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ajuda);
     }
 
+    private void enviarAjudaEconomia(CommandSender sender, String label) {
+        sender.sendMessage(Component.text(
+                "Uso: /" + label + " eco <status|saldo|preco|regras>",
+                NamedTextColor.YELLOW));
+    }
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command,
                                       String alias, String[] args) {
-        if (args.length != 1) {
+        if (args.length == 1) {
+            return filtrar(SUBCOMANDOS, args[0]);
+        }
+
+        if (!args[0].equalsIgnoreCase("eco")) {
             return List.of();
         }
-        // Filtra pelo que o jogador ja digitou, senao o cliente
-        // mostra todas as opcoes mesmo com prefixo escrito.
-        String prefixo = args[0].toLowerCase(Locale.ROOT);
+
+        if (args.length == 2) {
+            return filtrar(ECO_SUBCOMANDOS, args[1]);
+        }
+
+        if (args.length == 3 && args[1].equalsIgnoreCase("preco")) {
+            return filtrar(plugin.economyCatalog().keys(), args[2]);
+        }
+
+        return List.of();
+    }
+
+    private List<String> filtrar(List<String> opcoes, String texto) {
+        String prefixo = texto.toLowerCase(Locale.ROOT);
         List<String> resultado = new ArrayList<>();
-        for (String sub : SUBCOMANDOS) {
-            if (sub.startsWith(prefixo)) {
-                resultado.add(sub);
+        for (String opcao : opcoes) {
+            if (opcao.toLowerCase(Locale.ROOT).startsWith(prefixo)) {
+                resultado.add(opcao);
             }
         }
         return resultado;
