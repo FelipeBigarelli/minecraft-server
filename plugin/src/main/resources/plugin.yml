@@ -21,7 +21,7 @@ softdepend: [Vault, EternalEconomy, ChestShop]
 commands:
   biga:
     description: Comando principal do BigaCore
-    usage: /biga <info|eco|reload|voar>
+    usage: /biga <info|eco|loja|reload|voar>
     aliases: [bc]
     permission: bigacore.use
 
@@ -30,7 +30,7 @@ permissions:
     description: Permite usar /biga e consultar a economia
     default: true
   bigacore.admin:
-    description: Acesso a reload e voo
+    description: Acesso administrativo a reload, voo e construção da loja do spawn
     default: op
     children:
       bigacore.use: true
