@@ -80,7 +80,10 @@ done < <(tar tzf "$ARCHIVE")
 [ -s "$LIST_FILE" ] || fail "nenhuma pasta de mundo reconhecida foi encontrada no arquivo."
 
 echo "[restore] Extraindo somente arquivos de mundo em área temporária..."
-tar xzf "$ARCHIVE" -C "$TMP_DIR" -T "$LIST_FILE"
+# --no-recursion é importante quando a lista contém tanto diretórios quanto
+# seus filhos. Sem ele, o tar extrai o diretório recursivamente e depois tenta
+# localizar os mesmos filhos outra vez, podendo falhar com "Not found in archive".
+tar xzf "$ARCHIVE" --no-recursion -C "$TMP_DIR" -T "$LIST_FILE"
 
 MUNDOS=()
 for mundo in world world_nether world_the_end; do
