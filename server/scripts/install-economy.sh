@@ -146,5 +146,6 @@ copiar_template \
     "$PLUGIN_DIR/ChestShop/config.yml"
 copiar_template \
     "$PROJECT_DIR/server/config/plugins/EternalEconomy/config.yml" \
-    "$PLUGIN_DIR/EternalEconomy/config.yml"\n
+    "$PLUGIN_DIR/EternalEconomy/config.yml"
+
 ok "Stack econômica instalada. Nenhum servidor foi iniciado."
