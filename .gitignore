@@ -27,6 +27,10 @@ secrets.json
 credentials*.json
 **/api-key*
 
+# --- Runtime / máquina local (nunca versionar) ---------------
+# Gerado pelo setup com defaults da máquina (path, RAM, build).
+server.env
+
 # --- Runtime do servidor (nunca versionar) -------------------
 buildtools/
 bundler/
