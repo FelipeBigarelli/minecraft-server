@@ -10,9 +10,9 @@
 
 ### 0.1 Os números deste documento podem estar errados
 
-As versões, builds e URLs aqui vieram de pesquisa feita em **04/08/2026**. Plugins atualizam semanalmente. **Antes de baixar qualquer coisa, confirme na página oficial** se há build para Paper 26.2.
+As versões, builds e URLs aqui vieram de pesquisas pontuais. Plugins atualizam semanalmente. **Antes de baixar qualquer coisa, confirme na página oficial** se há build para Paper 26.2.
 
-Se um plugin só listar até 26.1.2, **não instale e reporte.** Rodar plugin de versão anterior no 26.2 pode funcionar ou pode quebrar de formas silenciosas — não vale o risco num servidor que ainda está sendo construído.
+Se um plugin só listar uma versão anterior, **não instale e reporte.** Rodar plugin de versão anterior no 26.2 pode funcionar ou pode quebrar de formas silenciosas — não vale o risco num servidor que ainda está sendo construído.
 
 ### 0.2 Fontes permitidas
 
@@ -20,15 +20,35 @@ Se um plugin só listar até 26.1.2, **não instale e reporte.** Rodar plugin de
 
 ❌ **NUNCA** baixe de: spigotunlocked, blackspigot, nullforums, ou qualquer site de plugin "nulled"/crackeado. São vetores conhecidos de malware.
 
-### 0.3 O incidente de malware do SpigotMC é real
+### 0.3 JAR de terceiro é código executável — inspecione antes de instalar
 
-A PaperMC documentou malware distribuído por contas de autores comprometidas. Depois de baixar qualquer `.jar`, rode:
+Já houve malware distribuído por contas comprometidas de autores. Um scan por
+um nome de arquivo conhecido é somente uma **rede de segurança**, nunca prova de
+que o plugin é seguro.
+
+O comando antigo usava `grep -R` diretamente nos `.jar`, mas JAR é um ZIP e o
+grep comum **não inspeciona corretamente as entradas internas**. Como o JDK 25 já
+está instalado, use `jar tf`:
 
 ```bash
-cd ~/minecraft/plugins && grep -R "plugin-config.bin" . && echo "⚠️ SUSPEITO" || echo "limpo"
+cd ~/minecraft/plugins
+ACHOU=0
+for plugin in *.jar; do
+  [ -e "$plugin" ] || continue
+  if jar tf "$plugin" | grep -q 'plugin-config\.bin'; then
+    echo "⚠️ SUSPEITO: $plugin contém plugin-config.bin"
+    ACHOU=1
+  fi
+done
+[ "$ACHOU" -eq 0 ] && echo "Nenhum plugin-config.bin encontrado. Isso NÃO substitui verificar origem, versão e hash."
 ```
 
-Se aparecer `plugin-config.bin` dentro de um jar, **pare tudo e reporte imediatamente.**
+Além disso, sempre confirme:
+
+1. fonte oficial;
+2. versão explícita compatível com 26.2;
+3. data/release oficial;
+4. quando possível, SHA256 do arquivo baixado.
 
 ### 0.4 Backup antes de cada fase
 
@@ -38,6 +58,10 @@ cd ~/minecraft && bash scripts/backup.sh
 
 Com o servidor **desligado** — senão o arquivo sai marcado `-quente`. Confirme que o `.tar.gz` foi criado antes de prosseguir.
 
+🔒 `backup.sh` é **privado**: inclui mundo, plugins, configs e arquivos
+administrativos. Nunca envie `mc-backup-*.tar.gz` para uma GitHub Release pública.
+Para compartilhar só o mundo use `scripts/export-world.sh`.
+
 ### 0.5 Um plugin por vez
 
 Instale, suba o servidor, confirme que carregou sem erro, **só então** instale o próximo. Se subir cinco de uma vez e o servidor não subir, você não sabe qual foi.
@@ -46,7 +70,7 @@ Instale, suba o servidor, confirme que carregou sem erro, **só então** instale
 
 O **spark já vem embutido no Paper**. Antes de instalar qualquer coisa, capture o baseline:
 
-```
+```text
 /spark tps
 /spark healthreport
 ```
@@ -80,19 +104,20 @@ Instale **nesta ordem** — há dependências entre eles:
 | 5 | **FastAsyncWorldEdit** | Edição em massa (assíncrona) | Modrinth, Hangar, SpigotMC | GPL-3.0 |
 | 6 | **WorldGuard** | Proteção de regiões | enginehub.org, Modrinth | LGPL-3.0 |
 
+> A tabela é a ordem desejada, **não uma autorização automática para instalar**.
+> Revalide compatibilidade com 26.2 no dia de cada instalação.
+
 ### 1.2 Armadilhas específicas desta fase
 
 🔴 **NUNCA instale WorldEdit e FastAsyncWorldEdit juntos.** Conflito de comandos. FAWE já implementa a API do WorldEdit — plugins que dependem de WorldEdit funcionam com o FAWE instalado.
 
 🔴 **LuckPerms deve ser o único plugin de permissões.** Se houver qualquer outro, os checks quebram de forma imprevisível.
 
-🟡 **LuckPerms baixa libs no primeiro start.** Precisa de internet. Se falhar, a pasta `plugins/LuckPerms/libs/` pode ser copiada manualmente.
+🟡 **LuckPerms baixa libs no primeiro start.** Precisa de internet. Se falhar, não improvise baixando dependências de sites aleatórios.
 
-🟡 **WorldGuard 7.0.17 roda em 26.2 mas loga warnings conhecidos de listener.** Se aparecerem, documente e siga — não são fatais.
+🟡 **Qualquer observação de versão específica neste documento envelhece.** Se uma nota disser que um plugin suporta ou não suporta determinada build, confira de novo na fonte oficial antes de agir.
 
-🟡 **WorldEdit para 26.2 estava em BETA** na data da pesquisa. Como estamos usando FAWE, isso não deve nos afetar, mas confirme que a build do FAWE declara 26.2.
-
-🟡 **EssentialsX x economia:** conflito conhecido por `/pay` e `/balance`. Como não vamos instalar plugin de economia agora, não deve aparecer. Se aparecer aviso no startup, reporte.
+🟡 **EssentialsX x economia:** comandos como `/pay` e `/balance` podem conflitar com plugins de economia. Quando houver economia, revisar aliases e permissões.
 
 ### 1.3 Depois de instalar
 
@@ -122,7 +147,8 @@ Pare aqui. Reporte:
 - [ ] Quais declararam suporte a 26.2 e quais você teve que verificar de outro jeito
 - [ ] MSPT antes × depois
 - [ ] Qualquer warning no log
-- [ ] Resultado do scan de `plugin-config.bin`
+- [ ] Origem e SHA256 de cada JAR instalado, quando disponível
+- [ ] Resultado da inspeção das entradas dos JARs
 
 **Não avance para a Fase 2 sem aprovação do Felipe.**
 
@@ -158,44 +184,70 @@ Eventos que contam uma história. Não logue tudo — logue o que é **narrativa
 
 **Duas camadas, com propósitos diferentes:**
 
-**PersistentDataContainer (PDC)** — para dados por-jogador/por-entidade simples: contadores, flags, última posição de morte. É a API nativa do Paper, sobrevive a restart, não precisa de banco. Note que a antiga `Metadatable` API foi deprecada no 1.21.9 justamente por causar memory leak — use PDC.
+**PersistentDataContainer (PDC)** — para estado pequeno e diretamente ligado a
+jogador/entidade/item: flags, contadores simples, IDs e marcadores. É a API nativa
+adequada para dados persistentes associados a objetos do jogo.
 
-**SQLite** — para o world state consultável: histórico de eventos, agregações, o que o narrador vai ler. Use **HikariCP** como pool de conexões (padrão de fato).
+**SQLite** — para o estado consultável do mundo: histórico de eventos,
+agregações e memória que o narrador vai consultar.
 
-Adicione ao `pom.xml`:
-- `org.xerial:sqlite-jdbc`
-- `com.zaxxer:HikariCP`
+A documentação atual do Paper informa que o **driver JDBC do SQLite já vem
+embutido no servidor**. Portanto, para o SQLite local do MVP:
 
-⚠️ **Agora o `maven-shade-plugin` vai fazer trabalho de verdade.** Ele vai embutir essas libs no jar. **Faça relocation dos pacotes** para evitar conflito de classloader se outro plugin também usar HikariCP:
+- **não** adicione `org.xerial:sqlite-jdbc` ao `pom.xml`;
+- **não** faça shade/relocation do driver SQLite;
+- inicialize `org.sqlite.JDBC` e abra a conexão via JDBC;
+- mantenha toda a persistência fora da main thread.
 
-```xml
-<relocations>
-  <relocation>
-    <pattern>com.zaxxer.hikari</pattern>
-    <shadedPattern>codes.biga.bigacore.lib.hikari</shadedPattern>
-  </relocation>
-</relocations>
-```
+Referência oficial: `https://docs.papermc.io/paper/dev/using-databases/`.
 
-Sem isso, dois plugins com versões diferentes da mesma lib se sabotam.
+**Não introduza HikariCP só porque é comum em aplicações web.** SQLite é um
+arquivo local e o primeiro desenho deve priorizar simplicidade e ordem de
+escrita. Comece com uma camada de repositório e um executor assíncrono dedicado
+para serializar/batchear writes. Se a medição mostrar necessidade real de outra
+estratégia, mude com evidência.
 
-⚠️ **Quando migrar para VPS, isso vira Postgres.** O Felipe já domina Postgres via Supabase. Escreva a camada de acesso a dados atrás de uma interface para a troca não ser cirurgia.
+Quando chegar a hora de PostgreSQL ou outra dependência externa, escolha de forma
+consciente entre:
+
+1. `libraries:` no `plugin.yml` — o Paper baixa a dependência do Maven Central e
+   adiciona ao classpath, removendo a necessidade de shade/relocation em muitos
+   casos; ou
+2. shade + relocation — quando houver motivo específico para empacotar a lib.
+
+Referência oficial: `https://docs.papermc.io/paper/dev/plugin-yml/#libraries`.
+
+⚠️ **Quando migrar para VPS, o backend pode virar PostgreSQL.** Mantenha a camada
+de acesso a dados atrás de uma interface para a troca não virar cirurgia.
+
+⚠️ O banco SQLite do BigaCore ficará no runtime e deve entrar no **backup
+privado**. Ele nunca entra no `export-world.sh` nem em uma release pública.
 
 ### 2.4 Arquitetura
 
-```
+```text
 Listeners (main thread)
-    ↓  só enfileiram, nunca escrevem em disco
-Fila em memória (thread-safe)
-    ↓  flush periódico assíncrono
-SQLite (async)
+    ↓  transformam evento do Bukkit em dado simples
+Fila limitada em memória (thread-safe)
+    ↓  agregação + batch
+Executor dedicado de persistência
+    ↓
+SQLite
     ↓
 Camada de consulta → agregações prontas para o narrador
 ```
 
-🔴 **NUNCA faça I/O na thread principal.** Nem SQLite. Todo write vai em `runTaskAsynchronously()`. Um listener que grava em disco a cada evento congela o servidor inteiro.
+Regras adicionais:
 
-🔴 **Voltar para a main thread antes de tocar no mundo.** A API do Bukkit não é thread-safe. Padrão: async para buscar/gravar → `runTask()` para aplicar no jogo.
+- a fila deve ter limite definido; não pode crescer sem controle;
+- `BlockPlaceEvent` e eventos muito frequentes devem ser agregados antes de persistir;
+- eventos de alto valor narrativo podem ter prioridade maior de flush;
+- no `onDisable()`, pare de aceitar novos eventos, drene a fila com timeout e feche a conexão;
+- falha de banco deve degradar com log claro, não travar o tick.
+
+🔴 **NUNCA faça I/O na thread principal.** Nem SQLite. Um listener que grava em disco a cada evento congela o servidor inteiro.
+
+🔴 **Voltar para a main thread antes de tocar no mundo.** A API do Bukkit não é thread-safe. Padrão: async para buscar/gravar → scheduler da main thread para aplicar mudança no jogo.
 
 ### 2.5 Comando de inspeção
 
@@ -208,7 +260,10 @@ Use Adventure/MiniMessage — já está no projeto e funciona.
 - [ ] Esquema do banco (mostre o DDL)
 - [ ] Quais eventos estão sendo coletados
 - [ ] `/biga memoria` funcionando com dados reais
+- [ ] Fila limitada e política de overflow documentadas
 - [ ] Confirmação de que nenhum write acontece na main thread
+- [ ] Shutdown drena/fecha persistência de forma controlada
+- [ ] Backup privado contém o banco; export público não contém
 - [ ] MSPT antes × depois — o coletor não pode custar performance perceptível
 
 Deixe rodando por alguns dias de jogo antes da Fase 3. Você precisa de memória real acumulada para testar o narrador.
@@ -221,12 +276,17 @@ Deixe rodando por alguns dias de jogo antes da Fase 3. Você precisa de memória
 
 ### 3.1 Referências para estudar antes de escrever
 
-Existem plugins que integram LLM em Minecraft, mas **todos são reativos** (jogador fala → NPC responde). Nenhum é observacional/proativo como este projeto. Isso confirma que o conceito é território aberto — mas os existentes servem de referência arquitetural:
+Existem plugins que integram LLM em Minecraft, mas os projetos externos servem
+apenas como referência arquitetural. **Revalide o estado deles quando esta fase
+começar e não instale um plugin antigo só para testar a ideia.**
 
-- **CraftGPT** (Modrinth, MIT, repo `zizmax/CraftGPT`) — **já suporta Claude nativamente** via `provider: anthropic`. É a referência mais relevante: veja como faz rate-limit, memória e controle de custo.
-- **LLMCraft** (SpigotMC, GPL-3.0) — usa **Langchain4J**. Vale avaliar se essa lib faz sentido aqui ou se chamar a API HTTP direto é mais simples.
+Pontos que vale estudar em implementações existentes:
 
-⚠️ Ambos foram testados em 1.19–1.21, **não em 26.x**. Estude o código, não instale.
+- controle de custo;
+- memória e seleção de contexto;
+- rate limit;
+- timeout/retry;
+- degradação quando o provedor está fora do ar.
 
 ### 3.2 A chave da API
 
@@ -234,13 +294,16 @@ Existem plugins que integram LLM em Minecraft, mas **todos são reativos** (joga
 
 O `.gitignore` já cobre `.env`, `*.key` e `**/api-key*`. Use variável de ambiente lida no `onEnable()`. Se estiver ausente, o plugin deve **carregar normalmente com o narrador desativado** e logar um aviso — nunca derrubar o servidor.
 
+O backup privado também deve ser tratado como sensível: se uma chave for
+armazenada em qualquer arquivo do runtime, ela pode acabar dentro dele.
+
 ### 3.3 Controle de custo — obrigatório desde o primeiro commit
 
 A API é paga por token. Um servidor ativo pode gerar milhares de chamadas por dia se você for ingênuo.
 
 | Mecanismo | Como |
 |---|---|
-| **Agregação** | Nunca uma chamada por evento. Junte eventos numa janela (ex: 30 min) e faça uma chamada |
+| **Agregação** | Nunca uma chamada por evento. Junte eventos numa janela e faça uma chamada |
 | **Rate limit** | Teto rígido de chamadas por hora, configurável |
 | **Cache** | Se o world state não mudou significativamente, reutilize a última geração |
 | **Kill switch** | `/biga narrador off` desliga tudo na hora |
@@ -248,31 +311,39 @@ A API é paga por token. Um servidor ativo pode gerar milhares de chamadas por d
 
 ### 3.4 Fluxo
 
-```
-Timer assíncrono (ex: a cada 30 min)
+```text
+Timer assíncrono
     ↓
 Lê agregação do SQLite
     ↓
-Monta prompt com o contexto do mundo
+Monta contexto mínimo necessário
     ↓
-HttpClient (Java 25, async) → API do Claude
+HttpClient (async) → API do Claude
     ↓
 Resposta → validação e sanitização
     ↓
-runTask() → entrega no jogo via MiniMessage
+main thread → manifestação no jogo
 ```
 
 ### 3.5 Sanitização — não pule isso
 
 🔴 **O texto que volta da API é dado externo.** O `JogadorListener` já usa `Placeholder.unparsed()` pelo motivo certo — o comentário no código antecipou exatamente este momento.
 
-Texto gerado por IA passando direto por `MiniMessage.deserialize()` permite que a saída contenha `<click:run_command:'/op alguem'>`. **Sempre trate a resposta da API como não-confiável:** insira como conteúdo literal, ou use um MiniMessage com resolver restrito só às tags de cor que você permite.
+Texto gerado por IA passando direto por `MiniMessage.deserialize()` permite que a saída contenha `<click:run_command:'/op alguem'>`. **Sempre trate a resposta da API como não-confiável:** insira como conteúdo literal, ou use um MiniMessage/renderer com conjunto explícito e restrito de tags permitidas.
+
+Por padrão, não permita da IA:
+
+- `click:run_command`;
+- `click:suggest_command`;
+- `insertion`;
+- qualquer ação que execute ou sugira comando administrativo.
 
 ### 3.6 Degradação com elegância
 
 - API fora do ar → timeout curto, log, silêncio no jogo. **Jamais travar o jogador.**
 - Resposta malformada → descarta, não entrega texto quebrado.
 - Rate limit estourado → pula o ciclo.
+- Erro do narrador nunca pode impedir o servidor de iniciar ou desligar.
 
 O servidor tem que funcionar perfeitamente com o narrador desligado. Ele é um adorno, não uma dependência.
 
@@ -282,7 +353,7 @@ Implemente em ordem. Cada uma é entregável sozinha:
 
 1. **`/biga pergunta <texto>`** — consulta manual com contexto do mundo. Valida o pipeline inteiro com custo controlado.
 2. **Narrador passivo** — mensagens ambientes periódicas geradas da memória.
-3. **Narrador reativo** — dispara em marcos (boss derrotado, primeira morte de alguém num lugar onde outro já morreu).
+3. **Narrador reativo** — dispara em marcos.
 4. **Narrador ativo** — provoca eventos no mundo: clima, invoca mob, cria estrutura.
 
 ### ✋ CHECKPOINT 3
@@ -290,7 +361,7 @@ Implemente em ordem. Cada uma é entregável sozinha:
 - [ ] `/biga pergunta` funcionando
 - [ ] Custo por chamada medido e logado
 - [ ] Kill switch testado
-- [ ] Sanitização testada (force uma resposta com tag maliciosa e confirme que não executa)
+- [ ] Sanitização testada com tags proibidas
 - [ ] Servidor funciona normalmente com a chave ausente
 
 ---
@@ -299,63 +370,73 @@ Implemente em ordem. Cada uma é entregável sozinha:
 
 > Só depois que o narrador estiver de pé. Isso aqui é o corpo; o narrador é a alma.
 
-### 4.1 Blocos e itens — CraftEngine
+As recomendações de plugins desta fase envelhecem rápido. Quando chegar aqui,
+faça uma pesquisa nova nas fontes oficiais e escolha **um** stack de conteúdo,
+sem empilhar plugins equivalentes que disputem resource pack, registries ou
+comandos.
 
-**Recomendação: CraftEngine (versão Free, open-source)** por Xiao-MoMi.
+### 4.1 Blocos e itens
 
-Por que ele e não Oraxen/Nexo/ItemsAdder:
+Critérios de escolha:
 
-Os plugins tradicionais reaproveitam block states não usados — tipicamente o **note block** (o mecanismo "REAL_NOTE"). Funciona visualmente, mas quebra em coisas sutis: uma árvore custom feita de note blocks faz as folhas conectadas apodrecerem, e transformações de datapack (rotação, espelhamento) não funcionam.
+- suporte explícito ao Paper/Minecraft em uso naquele momento;
+- projeto ativo;
+- documentação e API utilizável pelo BigaCore;
+- modelo de licença/custo aceitável;
+- estratégia de resource pack compatível com o que o narrador precisará criar.
 
-O CraftEngine registra **blocos reais** injetando tipos nos registries do servidor. A doc oficial é direta: seus troncos custom são troncos de verdade e mantêm as folhas vivas. **Para um servidor que quer worldgen e estruturas originais, essa diferença é decisiva.**
+Candidates históricos do plano: CraftEngine, Nexo/ItemsAdder e equivalentes.
+**Não instale com base apenas no nome desta lista; reavalie quando chegar à fase.**
 
-Além disso: é server-side, gera o resource pack automaticamente, e blocos tipo porta/laje/cerca são core (no Nexo são addon pago).
+🔴 **Escolha UM sistema principal de conteúdo custom.** Empilhar dois costuma gerar conflito de resource pack e comportamento.
 
-⚠️ Confirme suporte a 26.2 antes de instalar.
+### 4.2 Mobs e modelos
 
-**Alternativas, se o CraftEngine não servir:** Nexo (pago, sucessor do Oraxen), ItemsAdder (US$ 24,99, mas estava só em 26.1.2 e tem histórico de updates lentos). **Oraxen está em declínio — não comece projeto novo nele.**
+A mesma regra vale para MythicMobs, ModelEngine, BetterModel e alternativas:
+confirme versão, licença e compatibilidade no momento da implementação.
 
-🔴 **Escolha UM.** Empilhar dois plugins de conteúdo custom gera conflito de resource pack.
-
-### 4.2 Mobs — MythicMobs + ModelEngine
-
-- **MythicMobs** tem versão Free e suporta 26.2 (Hangar). Comportamento de mob por YAML: fases, skills, bossbar.
-- **ModelEngine** (pago) dá modelo 3D animado. Suporta 26.2.
-- **BetterModel** aparece como alternativa open-source — vale investigar antes de pagar.
-
-Comece com o MythicMobs Free. Só compre ModelEngine quando tiver um boss que justifique.
+Comece com a menor combinação que prove a mecânica de um boss. Só adicione
+componente pago ou complexo quando existir uma necessidade concreta.
 
 ### 4.3 NPC — quando o narrador ganhar corpo
 
-| Opção | Quando escolher |
-|---|---|
-| **Citizens** (2.0.43, 26.2 confirmado) | Maior API e ecossistema. Melhor para controlar programaticamente do BigaCore |
-| **FancyNpcs** (MIT, leve, packet-based) | Se você quer leveza e vai escrever toda a lógica você mesmo. Confirmado até 26.1.2 |
+Critérios:
 
-Para este projeto, **Citizens** provavelmente vence pela API — o narrador precisa ser controlado por código.
+- API estável para controle pelo BigaCore;
+- suporte à versão atual;
+- custo e licença;
+- integração com o sistema de modelos escolhido.
+
+Citizens e alternativas packet-based podem ser comparados quando esta fase
+existir de verdade.
 
 ### 4.4 Se precisar mexer em packets
 
-Use **PacketEvents**, não ProtocolLib. PacketEvents é assíncrono, multi-plataforma e suporta 26.1 diretamente. O ProtocolLib ainda funciona mas está em declínio — só instale se um plugin de terceiro exigir.
+Não escolha biblioteca por reputação histórica. Reavalie PacketEvents,
+ProtocolLib e alternativas na versão atual do servidor e adote somente se uma
+funcionalidade realmente exigir acesso a packets.
 
 ---
 
-## 5. 🚫 O que NÃO instalar
+## 5. 🚫 O que NÃO instalar por impulso
 
-| Plugin | Motivo |
+| Categoria | Motivo |
 |---|---|
-| **Dynmap** | Notoriamente pesado. Use **BlueMap**, **squaremap** ou **Pl3xMap** — relatos de render em ~10 min contra ~2 dias do Dynmap |
-| **WorldEdit** (junto com FAWE) | Conflito de comandos |
-| Qualquer plugin de permissões além do LuckPerms | Quebra os checks |
-| Anticheat, por enquanto | Pesados e desnecessários num servidor entre amigos |
-| Plugins parados há mais de 1 ano | Cheque a data do último commit antes de adotar |
+| WorldEdit junto com FAWE | conflito/duplicação de função |
+| Outro plugin de permissões junto com LuckPerms | múltiplas fontes de verdade para permissões |
+| Anticheat sem necessidade | custo e complexidade antes de existir problema real |
+| Plugin abandonado ou sem suporte à versão | risco de falha silenciosa |
+| Dois sistemas de conteúdo custom equivalentes | conflito de resource pack/registries |
+
+Para mapas web, anticheat e qualquer outra categoria grande: **pesquise de novo
+quando houver requisito real**. Não fixe uma escolha anos antes da necessidade.
 
 ---
 
 ## 6. 📅 Ordem sugerida de trabalho
 
-```
-Fase 1 (infra)          →  1 sessão
+```text
+Fase 1 (infra)          →  incremental, um plugin por vez
 Fase 2 (coletor)        →  várias sessões — é a base de tudo
    ↓ deixar rodando e acumular memória real
 Fase 3 (narrador)       →  incremental, 4 sub-fases
@@ -368,6 +449,8 @@ Fase 4 (conteúdo)       →  só quando houver o que vestir
 
 ## 7. ✅ Regra final
 
-Se em qualquer momento você não tiver certeza se um plugin suporta 26.2, **não instale e pergunte.** O custo de esperar é zero. O custo de um servidor que não sobe, ou pior, de um mundo corrompido, é alto — e o Felipe declarou horizonte de "construir algo grande sem pressa".
+Se em qualquer momento você não tiver certeza se um plugin suporta a versão
+atual do servidor, **não instale e confirme na fonte oficial**. O custo de esperar
+é zero. O custo de um servidor que não sobe, ou pior, de um mundo corrompido, é alto.
 
 Sem pressa é uma decisão de projeto, não uma desculpa. Respeite ela.
