@@ -10,14 +10,15 @@
 #
 #  Variáveis opcionais:
 #      MC_OP=SeuNick      vira operador automaticamente
-#      RAM=8G             RAM do servidor (grava no start)
+#      RAM=8G             RAM padrão persistida para o start.sh
 #      SERVER_DIR=~/mc    outro diretório de instalação
-#      FORCE_CONFIG=1     sobrescreve configs já existentes
+#      FORCE_CONFIG=1     sobrescreve configs/defaults existentes
 # =============================================================
 set -euo pipefail
 
 MC_VERSION="${MC_VERSION:-26.2}"
 PAPER_BUILD="${PAPER_BUILD:-92}"
+RAM="${RAM:-4G}"
 SERVER_DIR="${SERVER_DIR:-$HOME/minecraft}"
 FORCE_CONFIG="${FORCE_CONFIG:-0}"
 
@@ -39,6 +40,7 @@ die()  { printf '\033[1;31m[erro]\033[0m %s\n' "$*" >&2; exit 1; }
 
 log "Projeto  : $PROJECT_DIR"
 log "Servidor : $SERVER_DIR"
+log "RAM      : $RAM"
 echo
 
 # -------------------------------------------------------------
@@ -191,12 +193,28 @@ copiar_config "$PROJECT_DIR/server/config/paper/paper-world-defaults.yml" \
 ok "Configs instalados."
 
 # -------------------------------------------------------------
-# 7. Scripts operacionais
+# 7. Scripts operacionais + defaults persistentes
 # -------------------------------------------------------------
-cp "$PROJECT_DIR"/server/scripts/{start.sh,backup.sh,setup.sh} "$SERVER_DIR/scripts/"
+cp "$PROJECT_DIR"/server/scripts/{start.sh,backup.sh,export-world.sh,setup.sh} "$SERVER_DIR/scripts/"
 cp "$PROJECT_DIR"/server/scripts/minecraft.service "$SERVER_DIR/scripts/" 2>/dev/null || true
 chmod +x "$SERVER_DIR"/scripts/*.sh
-ok "Scripts copiados para $SERVER_DIR/scripts/."
+
+# start.sh vive no runtime e precisa lembrar os parâmetros usados no
+# setup. O arquivo contém apenas defaults operacionais — nenhum segredo.
+RUNTIME_ENV="$SERVER_DIR/scripts/server.env"
+if [ -f "$RUNTIME_ENV" ] && [ "$FORCE_CONFIG" != "1" ]; then
+    printf '         %-34s (já existe, preservado)\n' "server.env"
+else
+    {
+        printf 'DEFAULT_SERVER_DIR=%q\n' "$SERVER_DIR"
+        printf 'DEFAULT_MC_VERSION=%q\n' "$MC_VERSION"
+        printf 'DEFAULT_PAPER_BUILD=%q\n' "$PAPER_BUILD"
+        printf 'DEFAULT_RAM=%q\n' "$RAM"
+        printf 'DEFAULT_SERVER_FLAVOR=%q\n' "paper"
+    } > "$RUNTIME_ENV"
+    printf '         %-34s criado\n' "server.env"
+fi
+ok "Scripts e defaults instalados em $SERVER_DIR/scripts/."
 
 # -------------------------------------------------------------
 # 8. Compilar e instalar o BigaCore
@@ -256,9 +274,16 @@ echo
 echo "  Servidor : $SERVER_DIR"
 echo "  Jar      : $JAR"
 echo "  Plugin   : $(basename "$PLUGIN_JAR")"
+echo "  RAM      : $RAM (persistida em scripts/server.env)"
 echo
 echo "  Para subir:"
 echo "      cd $SERVER_DIR && bash scripts/start.sh"
+echo
+echo "  Backup privado completo:"
+echo "      cd $SERVER_DIR && bash scripts/backup.sh"
+echo
+echo "  Snapshot público do mundo:"
+echo "      cd $SERVER_DIR && bash scripts/export-world.sh"
 echo
 echo "  Para desligar: digite 'stop' no console. Nunca Ctrl+C."
 echo
