@@ -6,72 +6,78 @@ O objetivo de longo prazo não é "ter um servidor" — é construir um mundo co
 **narrador vivo**, alimentado pela API do Claude, que reage ao que os jogadores
 de fato fazem. Ver [HANDOFF.md](HANDOFF.md), seção 8.
 
+> ## 🆕 Mudando de computador?
+>
+> Comece por **[NOVO-PC.md](NOVO-PC.md)**. Ele cobre Minecraft Launcher, Git,
+> clone, setup, recuperação do mundo, diagnóstico e primeiro boot na ordem certa.
+
 ---
 
 ## 🚀 Instalação
 
-Em qualquer Linux com `sudo`. Leva ~1 minuto.
+O fluxo automático é pensado principalmente para Ubuntu/Debian com `sudo`.
+Em outras distribuições, o script reconhece alguns gerenciadores de pacotes para
+as dependências básicas, mas o JDK 25 pode precisar ser instalado manualmente.
 
 ```bash
-git clone <url-do-repo> minecraft-server
+git clone https://github.com/FelipeBigarelli/minecraft-server.git
 cd minecraft-server
 bash server/scripts/setup.sh
 ```
 
-Pronto. Para subir:
+Antes do primeiro boot, valide sem iniciar o servidor:
+
+```bash
+cd ~/minecraft
+bash scripts/doctor.sh
+```
+
+Para subir:
 
 ```bash
 cd ~/minecraft && bash scripts/start.sh
 ```
 
-Conecte em `localhost`. Para desligar, digite `stop` no console — **nunca Ctrl+C**.
+Conecte em `localhost`. Para desligar, digite `stop` no console — **nunca `kill -9`**.
 
-### 🌍 Levar o mundo junto (opcional)
+### 🌍 Levar o mundo junto
 
 O mundo **não** está no Git — são arquivos binários que mudam a cada save, e o
-histórico do Git guardaria cópias novas a cada commit. Snapshots publicáveis do
-mundo vivem em **GitHub Releases**, fora do histórico.
+histórico do Git guardaria cópias novas a cada commit. Snapshots compartilháveis
+do mundo podem viver em **GitHub Releases**, fora do histórico.
 
 Há dois artefatos diferentes e eles **não podem ser confundidos**:
 
 | Comando | Conteúdo | Pode ir para Release pública? |
 |---|---|---|
 | `bash scripts/backup.sh` | mundo + plugins + configs + listas administrativas | ❌ **NÃO — backup privado** |
-| `bash scripts/export-world.sh` | somente os mundos | ✅ sim |
+| `bash scripts/export-world.sh` | somente os mundos | ✅ com revisão de privacidade |
 
 O `backup.sh` pode conter futuramente senha de RCON, segredo de proxy, banco de
 plugin ou outras credenciais do runtime. **Nunca publique `mc-backup-*.tar.gz`.**
 
-Para publicar um snapshot novo depois de jogar, com o servidor desligado:
+O próprio mundo também pode conter UUIDs, inventários e posições de jogadores;
+por isso `export-world.sh` é compartilhável do ponto de vista de configs/segredos,
+mas uma publicação realmente pública ainda exige decisão consciente de privacidade.
+
+Para gerar um snapshot novo, com o servidor desligado:
 
 ```bash
 cd ~/minecraft
-ARQUIVO=$(bash scripts/export-world.sh | tail -1)
-gh release create mundo-AAAA-MM-DD "$ARQUIVO" \
-   -R FelipeBigarelli/minecraft-server \
-   --title "Mundo — DD/MM/AAAA"
+bash scripts/export-world.sh
 ```
 
-O `export-world.sh` se recusa a rodar com o servidor ligado e gera um
-`mc-world-*.tar.gz` contendo somente `world/` (ou as pastas de mundo equivalentes
-no Spigot).
-
-Para restaurar um snapshot público numa máquina nova:
+Para restaurar qualquer snapshot novo no PC de destino:
 
 ```bash
-# depois do setup.sh, com o servidor DESLIGADO:
-cd ~/minecraft
-gh release download <tag-da-release> -p "mc-world-*.tar.gz" \
-   -R FelipeBigarelli/minecraft-server
-tar xzf mc-world-*.tar.gz && rm mc-world-*.tar.gz
-bash scripts/start.sh
+bash ~/minecraft/scripts/restore-world.sh ~/Downloads/mc-world-AAAA-MM-DD_HHMMSS.tar.gz
 ```
 
-Sem snapshot, o `setup.sh` gera um mundo novo do zero — restaurar é opcional.
+`restore-world.sh` também aceita o backup legado da release `mundo-2026-08-04`,
+mas extrai **somente os mundos**, ignorando plugins, configs, ops, whitelist e
+credenciais que possam existir no arquivo antigo. Veja [NOVO-PC.md](NOVO-PC.md).
 
-> **Release legada `mundo-2026-08-04`:** foi criada antes da separação entre
-> backup privado e snapshot público e usa arquivos `mc-backup-*.tar.gz`. Não use
-> esse formato como modelo para releases futuras.
+Sem snapshot, o **primeiro boot do Paper** gera um mundo novo do zero.
 
 ### Variáveis opcionais
 
@@ -90,17 +96,16 @@ comando ainda tem prioridade, por exemplo `RAM=2G bash scripts/start.sh`.
 ### O que o setup faz
 
 1. Instala o que faltar: `curl`, `tar`, `screen`, `maven`, **OpenJDK 25**
-2. Confere que o `JAVA_HOME` aponta para o JDK 25 (o Maven ignora o
-   `update-alternatives` e obedece só a essa variável)
-3. Baixa o **Paper 26.2 build 92** e **verifica o SHA256** — descarta o arquivo
-   se não bater
-4. Aceita a EULA da Mojang
+2. Confere que o `JAVA_HOME` aponta para o JDK 25
+3. Baixa o **Paper 26.2 build 92** e **verifica o SHA256**
+4. Aceita a EULA da Mojang ao executar o setup
 5. Instala os configs — **sem sobrescrever** nada que já exista
-6. Instala os scripts e grava os defaults persistentes em `scripts/server.env`
-7. Compila o BigaCore e instala em `plugins/`
-8. Opcionalmente resolve seu UUID na Mojang e te define como operador
+6. Instala scripts de start, backup, export, restore e diagnóstico
+7. Grava os defaults persistentes em `scripts/server.env`
+8. Compila o BigaCore e instala em `plugins/`
+9. Opcionalmente resolve seu UUID na Mojang e te define como operador
 
-É **idempotente**: rodar de novo não destrói mundo, config editado nem nada.
+É **idempotente**: rodar de novo não destrói mundo nem config editado.
 
 ---
 
@@ -113,37 +118,41 @@ Duas pastas, propósitos distintos. **Este repositório é só o código-fonte.*
 | `minecraft-server/` (este repo) | Código, scripts, templates de config | ✅ |
 | `~/minecraft/` | O servidor rodando: mundo, logs, jars | ❌ nunca |
 
-```
+```text
 minecraft-server/
+├── NOVO-PC.md                # caminho completo para uma máquina nova
 ├── server/
 │   ├── scripts/
 │   │   ├── setup.sh          # instala tudo do zero (idempotente)
 │   │   ├── start.sh          # sobe o servidor com Aikar's flags
+│   │   ├── doctor.sh         # valida o ambiente sem iniciar o servidor
+│   │   ├── restore-world.sh  # restaura SOMENTE os mundos de um tar.gz
 │   │   ├── backup.sh         # backup PRIVADO completo, rotativo e verificado
-│   │   ├── export-world.sh   # snapshot público SOMENTE dos mundos
-│   │   └── minecraft.service # unit systemd (opcional; não instalada)
-│   └── config/               # templates — o servidor usa cópias
+│   │   ├── export-world.sh   # snapshot SOMENTE dos mundos
+│   │   └── minecraft.service # unit systemd opcional; não instalada
+│   └── config/
 │       ├── server.properties
 │       ├── bukkit.yml
-│       ├── spigot.yml        # timeout-time e restart-script corrigidos
+│       ├── spigot.yml
 │       ├── commands.yml
 │       └── paper/
 │           ├── paper-global.yml
 │           └── paper-world-defaults.yml
-└── plugin/                   # projeto Maven do BigaCore
+└── plugin/
     ├── pom.xml
     └── src/main/
         ├── java/codes/biga/bigacore/
-        │   ├── BigaCore.java        # ciclo de vida do plugin
-        │   ├── BigaCommand.java     # /biga info|reload|voar + tab complete
-        │   └── JogadorListener.java # eventos de join/quit
+        │   ├── BigaCore.java
+        │   ├── BigaCommand.java
+        │   └── JogadorListener.java
         └── resources/
             ├── plugin.yml
             └── config.yml
 ```
 
 No runtime, `scripts/server.env` é gerado pelo setup e guarda os defaults usados
-pelo `start.sh`. Ele não é um arquivo de segredos.
+por `start.sh`, `backup.sh`, `export-world.sh`, `restore-world.sh` e `doctor.sh`.
+Ele não é um arquivo de segredos.
 
 ### 🪤 A armadilha dos dois configs
 
@@ -167,20 +176,17 @@ projeto para não se perder.
 
 ## 🔢 Versões
 
-Desde 2026 a Mojang abandonou o `1.x.y` e adotou **`ano.drop.patch`**:
-`26.2` é o segundo drop de 2026, lançado em 16/06/2026 (*Chaos Cubed*).
+Desde 2026 a Mojang abandonou o `1.x.y` e adotou **`ano.drop.patch`**.
 
 | Componente | Versão | Por que importa |
 |---|---|---|
-| Minecraft / Paper | **26.2 build 92** | O cliente tem que ser exatamente essa |
+| Minecraft / Paper | **26.2 build 92** | O cliente deve usar 26.2 |
 | Java | **25** | A 26.x não sobe em Java < 25 |
 | `api-version` no plugin.yml | `'26.2'` | Sem camada de compatibilidade legada |
 | `maven.compiler.release` | `25` | A API vem em bytecode 25 |
 | `paper-api` no pom | `26.2.build.92-stable` | **Fixa**, casada com o jar |
 
 ⚠️ Qualquer código que faça parsing de versão assumindo prefixo `"1."` quebra.
-
-⚠️ Tutoriais falando em `1.21.x` como "mais recente" estão desatualizados.
 
 ### Atualizar a build do Paper
 
@@ -192,10 +198,6 @@ Três lugares, no mesmo commit:
 # 3. plugin/pom.xml           → <paper.version>
 
 # Depois, FORCE_CONFIG=1 no setup atualiza scripts/server.env no runtime.
-
-# Descobrir a build mais recente:
-curl -s -H "User-Agent: biga-mc-server/1.0" \
-  https://fill.papermc.io/v3/projects/paper/versions/26.2/builds | jq '.[0]'
 ```
 
 ---
@@ -211,108 +213,46 @@ cd ~/minecraft && bash scripts/start.sh
 
 Confirmar no log: `[BigaCore] BigaCore habilitado.`
 
-⚠️ **Não use `/reload confirm`.** Funciona, mas deixa classes antigas na memória
-e pode gerar bugs difíceis de rastrear. Prefira reiniciar o servidor.
+⚠️ **Não use `/reload confirm`.** Prefira reiniciar o servidor.
 
 ### Comandos
 
-```
+```text
 /biga info      versão do plugin e do servidor (com hover e clique)
 /biga reload    recarrega o config.yml           (precisa de OP)
 /biga voar      alterna voo                      (precisa de OP)
 ```
 
-### Decisões de API que valem entender
+### Decisões de API
 
-**`paper-api`, não `spigot-api`.** O `paper-api` é um *superset*: todo
-`org.bukkit.*` continua lá, mais Adventure, Brigadier e as APIs do Paper.
-Custo: o plugin passa a exigir Paper assim que usar a primeira API exclusiva.
-
-**Versão fixa, nunca range.** Um `[26.2.build,)` parece prático e tem três
-defeitos: build não reprodutível, pega pré-release, e quando sair a 26.3 sobe
-sozinho para a API de outra versão do Minecraft — compila liso e quebra em
-runtime.
-
-**`scope=provided`.** A API já existe no servidor. Embutir no jar causa conflito
-de classloader: duas cópias da mesma classe, e o Java trata como tipos
-diferentes.
-
-**Adventure em vez de `ChatColor`.** `ChatColor.AQUA + "texto"` é uma String com
-códigos de controle costurados dentro — 16 cores, nada de interatividade, e está
-deprecado. Um `Component` é um objeto: RGB completo, `hoverEvent`, `clickEvent`,
-inspecionável. É a diferença entre montar HTML concatenando strings e montar uma
-árvore DOM.
-
-**MiniMessage nos configs.** Marcação em texto, com tags que abrem e fecham:
-
-```yaml
-mensagem: "<gradient:dark_purple:gold>A profecia</gradient> <hover:show_text:'12/07'>se cumpre</hover>"
-```
-
-Para o narrador, **não renderize MiniMessage arbitrário vindo da IA**. A resposta
-do Claude será dado externo: passe prosa como texto literal ou por um renderer
-com uma lista restrita de tags permitidas. Tags como `click:run_command` não
-devem ser aceitas da resposta do modelo.
-
-**Placeholders por `Placeholder.unparsed()`, não `String.replace`.** O valor
-entra como texto literal e nunca é interpretado como marcação. Nick de Minecraft
-só aceita `[a-zA-Z0-9_]`, então hoje o risco é teórico — mas no dia em que um
-placeholder vier de texto gerado por IA, deixa de ser.
-
-**`EventPriority.MONITOR`** é para *observar* sem alterar; roda por último. Para
-cancelar ou modificar um evento, use `NORMAL` ou `HIGH`.
+- **`paper-api`, não `spigot-api`**: o projeto decidiu usar APIs atuais do Paper.
+- **Versão fixa, nunca range**: build reprodutível e casada com o servidor.
+- **`scope=provided`**: a API já existe no runtime.
+- **Adventure/MiniMessage** no lugar de `ChatColor`.
+- **`Placeholder.unparsed()`** para dados externos.
+- Texto futuro vindo da IA deve ser tratado como **não confiável** e nunca ganhar
+  tags arbitrárias como `click:run_command`.
 
 ### 🔴 Regras inegociáveis para o narrador com IA
 
-- **Nunca fazer I/O na thread principal.** HTTP, arquivo, banco: tudo em
-  `Bukkit.getScheduler().runTaskAsynchronously()`. Bloquear o tick congela o
-  servidor para todos. É o erro nº1 em plugin que chama API externa.
-- **Voltar à thread principal antes de tocar no mundo.** A API do Bukkit não é
-  thread-safe. Padrão: async para buscar → `runTask()` para aplicar.
-- **API key nunca no código nem no Git.** Variável de ambiente ou arquivo fora
-  do repo. O `.gitignore` já cobre `.env`, `*.key`, `*.pem`, `credentials*`.
-- **Rate limit e cache.** Uma morte não pode virar uma chamada de API por morte.
-- **Degradar com elegância.** API fora do ar não pode derrubar o servidor.
+- **Nunca fazer I/O na thread principal.**
+- **Voltar à thread principal antes de tocar no mundo.**
+- **API key nunca no código nem no Git.**
+- **Rate limit e cache desde o início.**
+- **API fora do ar não pode derrubar o servidor.**
 
 ---
 
 ## 🛠️ Operação
 
 ```bash
+cd ~/minecraft && bash scripts/doctor.sh         # diagnóstico sem boot
 cd ~/minecraft && bash scripts/start.sh          # subir
-SERVER_FLAVOR=spigot bash scripts/start.sh       # rollback pro Spigot*
 RAM=2G bash scripts/start.sh                     # override temporário da RAM
+bash scripts/restore-world.sh arquivo.tar.gz     # restaura só os mundos
 bash scripts/backup.sh                           # backup PRIVADO completo
-bash scripts/export-world.sh                     # snapshot público (servidor desligado)
+bash scripts/export-world.sh                     # snapshot dos mundos (server off)
 tail -f ~/minecraft/logs/latest.log              # log ao vivo
-```
-
-\* O rollback exige restaurar um backup pré-Paper: o Paper migrou a estrutura de
-pastas do mundo para o formato vanilla (`world/dimensions/...`), e o Spigot
-espera `world_nether/` e `world_the_end/` separados. Ver HANDOFF, seção 5.
-
-No console (prompt `>`):
-
-```
-op SeuNick          virar admin           list       quem está online
-stop                desligar (SEMPRE)     tps        performance
-save-all            forçar save           restart    testa o restart-script
-/spark profiler start   profiler — já vem embutido no Paper
-```
-
-### Rodar em background
-
-```bash
-screen -dmS minecraft bash scripts/start.sh
-screen -r minecraft     # entrar no console; Ctrl+A depois D para sair
-```
-
-Ou via systemd (opcional; **não está instalado no setup atual**):
-
-```bash
-sudo cp ~/minecraft/scripts/minecraft.service /etc/systemd/system/
-sudo nano /etc/systemd/system/minecraft.service   # ajuste User= e os paths
-sudo systemctl daemon-reload && sudo systemctl enable --now minecraft
 ```
 
 ### Backup no cron
@@ -322,44 +262,29 @@ crontab -e
 0 4 * * * /bin/bash $HOME/minecraft/scripts/backup.sh >> $HOME/minecraft/backup.log 2>&1
 ```
 
-O `backup.sh` monta a lista de alvos dinamicamente (a estrutura de pastas do
-mundo difere entre Paper e Spigot), verifica o `.tar.gz` com `gzip -t` e **falha
-ruidosamente** se algo der errado — um backup pela metade não pode parecer
-completo. Ele é um **backup privado de disaster recovery** e não deve ser usado
-como asset de uma release pública.
+O backup completo é **privado**. `export-world.sh` existe justamente para não
+confundir disaster recovery com compartilhamento do mundo.
 
 ---
 
 ## 🔒 Segurança
 
-- ✅ `online-mode=true` sempre. Com `false`, qualquer um entra com qualquer nick.
-- ✅ `stop` no console, nunca `kill -9` — corrompe chunk no meio da escrita.
+- ✅ `online-mode=true` sempre.
+- ✅ `stop` no console, nunca `kill -9`.
 - ✅ Backup antes de mexer em mundo ou versão.
-- ✅ Release pública usa `export-world.sh`, nunca `backup.sh`.
+- ✅ Restore de arquivo legado passa por `restore-world.sh` e não repõe configs.
 - ⚠️ Não abrir a porta 25575 (RCON) para a internet.
-- ⚠️ Plugin de terceiro só de SpigotMC, Modrinth ou Hangar. Já houve malware
-  distribuído via contas comprometidas de autores. Prefira open-source.
+- ⚠️ Plugin de terceiro só de fonte oficial.
 
-### 🔴 Dois campos que nunca podem ser preenchidos neste repositório
-
-Os templates em `server/config/` **estão no Git**. Dois campos aceitam segredo e
-hoje estão vazios de propósito:
+### 🔴 Campos secretos nunca entram no repositório
 
 | Arquivo | Campo | Onde preencher, se precisar |
 |---|---|---|
-| `server/config/server.properties` | `rcon.password=` | só em `~/minecraft/server.properties` |
-| `server/config/paper/paper-global.yml` | `velocity.secret` | só em `~/minecraft/config/paper-global.yml` |
+| `server/config/server.properties` | `rcon.password=` | só no runtime |
+| `server/config/paper/paper-global.yml` | `velocity.secret` | só no runtime |
 
-Um segredo commitado fica no histórico do Git **para sempre** — apagar num
-commit seguinte não resolve, é preciso reescrever o histórico e rotacionar a
-credencial. O runtime não é versionado justamente para ser o lugar deles.
-
-O mesmo vale para a **API key do Claude** quando o narrador entrar: variável de
-ambiente ou arquivo fora do repo. O `.gitignore` já bloqueia `.env`, `*.key`,
-`*.pem`, `*.p12`, `*.jks`, `secrets.*` e `credentials*.json`.
-
-Também não publique `mc-backup-*.tar.gz`: esse backup contém arquivos do runtime
-e poderá carregar credenciais mesmo que o `.gitignore` esteja perfeito.
+O mesmo vale para a API key do Claude. E **não publique `mc-backup-*.tar.gz`**:
+o `.gitignore` não protege arquivos enviados manualmente como assets de Release.
 
 ---
 
@@ -367,14 +292,12 @@ e poderá carregar credenciais mesmo que o `.gitignore` esteja perfeito.
 
 | Sintoma | Causa | Solução |
 |---|---|---|
-| `UnsupportedClassVersionError` | Java < 25 | `sudo update-alternatives --config java` |
-| `mvn` usa o JDK errado | Maven ignora o alternatives, lê `JAVA_HOME` | `export JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64` |
-| `session.lock: already locked` | Já há um servidor rodando | `pgrep -af paper` e desligue o outro com `stop` |
-| Servidor fecha na hora | `eula.txt` sem `eula=true` | Rode o `setup.sh` |
-| Mudei o config e nada mudou | Editou o template, não o do servidor | Ver "armadilha dos dois configs" |
-| `RAM=8G setup.sh` e depois aparece 4G | `scripts/server.env` antigo foi preservado | Rode setup com `FORCE_CONFIG=1` ou edite o default do runtime |
-| Tags MiniMessage aparecem como texto | Config em sintaxe antiga (`&b`, `{jogador}`) | Migrar para `<aqua>`, `<jogador>` |
-| Lag spikes periódicos | Autosave ou GC | `/spark profiler start` e meça |
+| `UnsupportedClassVersionError` | Java < 25 | rode `setup.sh`/corrija Java |
+| Maven usa JDK errado | `JAVA_HOME` incorreto | confira `mvn -version` |
+| `session.lock: already locked` | servidor já está rodando | não abra segunda instância |
+| Mundo não aparece após migrar | arquivo não restaurado | use `restore-world.sh` |
+| Tags MiniMessage aparecem como texto | config antiga | use sintaxe MiniMessage |
+| Dúvida se PC novo está pronto | — | rode `scripts/doctor.sh` |
 
 ---
 
@@ -382,18 +305,13 @@ e poderá carregar credenciais mesmo que o `.gitignore` esteja perfeito.
 
 | Arquivo | Para quê |
 |---|---|
-| [HANDOFF.md](HANDOFF.md) | Estado completo do projeto, decisões e armadilhas; leia primeiro |
-| [PLANO-EXECUCAO.md](PLANO-EXECUCAO.md) | Plano faseado: infra → coletor de memória → narrador → conteúdo |
-| [COMO-RODAR.md](COMO-RODAR.md) | Guia operacional do dia a dia |
-| [docs/sessoes/](docs/sessoes/) | Histórico das sessões + prompt para retomar em outra máquina |
+| **[NOVO-PC.md](NOVO-PC.md)** | instalação do Launcher até entrar no servidor em máquina nova |
+| [HANDOFF.md](HANDOFF.md) | estado completo do projeto, decisões e armadilhas; leia primeiro ao desenvolver |
+| [PLANO-EXECUCAO.md](PLANO-EXECUCAO.md) | infra → memória → narrador → conteúdo |
+| [COMO-RODAR.md](COMO-RODAR.md) | guia operacional do dia a dia |
+| [docs/sessoes/](docs/sessoes/) | histórico resumido das sessões |
 
-### 🔄 Retomando o trabalho em outro PC
+### 🔄 Retomando desenvolvimento em outro PC
 
-```bash
-git clone https://github.com/FelipeBigarelli/minecraft-server.git
-cd minecraft-server && bash server/scripts/setup.sh
-```
-
-Depois abra o Claude Code na pasta e cole o prompt de retomada que está em
-[docs/sessoes/README.md](docs/sessoes/README.md) — ele diz o que ler, em que
-ordem, e quais regras valem sempre.
+Primeiro conclua [NOVO-PC.md](NOVO-PC.md). Depois abra o Claude Code na pasta do
+repositório e use o prompt de retomada em [docs/sessoes/README.md](docs/sessoes/README.md).
