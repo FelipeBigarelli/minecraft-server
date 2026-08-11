@@ -8,9 +8,20 @@ como chegamos nele.
 
 ---
 
+## 🆕 PC novo: primeiro monte o ambiente
+
+Se esta é uma máquina recém-formatada ou diferente da anterior, **não comece pelo
+HANDOFF**. Primeiro conclua [../../NOVO-PC.md](../../NOVO-PC.md): Launcher, Git,
+clone, setup, restauração do mundo, doctor e primeiro boot.
+
+Depois volte aqui para retomar desenvolvimento.
+
+---
+
 ## 🚀 Retomar o trabalho em outro PC
 
-Cole isto numa sessão nova do Claude Code, já dentro do projeto clonado:
+Cole isto numa sessão nova do Claude Code, já dentro do projeto clonado e com o
+fluxo de `NOVO-PC.md` concluído:
 
 ```text
 Leia, nesta ordem:
@@ -19,6 +30,9 @@ Leia, nesta ordem:
 2. PLANO-EXECUCAO.md — plano faseado.
 3. README.md e COMO-RODAR.md — operação atual.
 4. docs/sessoes/ — use os resumos recentes se precisar entender como chegamos aqui.
+
+Antes de agir, confira o estado real da máquina com:
+    cd ~/minecraft && bash scripts/doctor.sh
 
 Trate o HANDOFF como hipótese, não como verdade absoluta: audite o estado real
 relevante para a tarefa antes de agir.
