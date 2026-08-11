@@ -6,7 +6,7 @@
 #  Ele inclui plugins, configs, ops/whitelist e pode passar a
 #  conter senhas, bancos ou tokens do runtime no futuro.
 #
-#  Para gerar um snapshot publicável só do mundo, use:
+#  Para gerar um snapshot compartilhável só do mundo, use:
 #      bash scripts/export-world.sh
 #
 #  Agende no cron (todo dia às 4h):
@@ -15,7 +15,13 @@
 # =============================================================
 set -euo pipefail
 
-SERVER_DIR="${SERVER_DIR:-$HOME/minecraft}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/server.env" ]; then
+    # shellcheck disable=SC1091
+    source "$SCRIPT_DIR/server.env"
+fi
+
+SERVER_DIR="${SERVER_DIR:-${DEFAULT_SERVER_DIR:-$HOME/minecraft}}"
 BACKUP_DIR="${BACKUP_DIR:-$HOME/minecraft-backups}"
 KEEP_DAYS="${KEEP_DAYS:-7}"
 
@@ -37,9 +43,7 @@ cd "$SERVER_DIR"
 #  Detecção via 'ps' filtrando pelo EXECUTÁVEL ser java, e não via
 #  'pgrep -f' num padrão solto: o pgrep -f casa contra a linha de
 #  comando inteira de qualquer processo, então um shell que apenas
-#  MENCIONE "paper" (este script sendo editado, um grep, o próprio
-#  cron) vira falso positivo. Testado: os quatro padrões ingênuos
-#  davam positivo com o servidor desligado.
+#  MENCIONE "paper" vira falso positivo.
 servidor_rodando() {
     ps -eo comm= -o args= 2>/dev/null \
         | awk '$1 == "java" && /(paper|spigot)-[^ ]*\.jar/ { encontrado = 1 }
@@ -61,28 +65,15 @@ ARCHIVE="$BACKUP_DIR/mc-backup-$STAMP$SUFIXO.tar.gz"
 
 # -------------------------------------------------------------
 #  O que entra no backup.
-#
-#  A lista é montada dinamicamente porque a estrutura de pastas
-#  do mundo MUDA conforme o servidor:
-#
-#    Spigot/CraftBukkit : world/ + world_nether/ + world_the_end/
-#    Paper (desde 04/08/2026, após a migração automática):
-#                         só world/, com as outras dimensões
-#                         dentro de world/dimensions/
-#
-#  Passar um caminho inexistente faz o tar falhar. A versão
-#  anterior deste script escondia isso com '2>/dev/null || true'
-#  e imprimia "OK" de qualquer jeito — um backup pela metade
-#  parecia um backup completo. Corrigido: incluímos só o que
-#  existe, e erro de tar agora derruba o script.
 # -------------------------------------------------------------
 CANDIDATOS=(
-    world world_nether world_the_end     # mundos (nomes variam por servidor)
-    plugins                              # configs dos plugins
-    config                               # paper-global.yml, paper-world-defaults.yml
+    world world_nether world_the_end
+    plugins
+    config
     server.properties bukkit.yml spigot.yml commands.yml
     ops.json whitelist.json banned-players.json banned-ips.json
     usercache.json
+    scripts/server.env
 )
 
 ALVOS=()
@@ -99,12 +90,6 @@ echo "[backup] Criando $ARCHIVE ..."
 echo "[backup] Incluindo: ${ALVOS[*]}"
 echo "[backup] 🔒 PRIVADO: não publique este arquivo em GitHub Release pública."
 
-# Excluir cache, logs e jars economiza espaço e nada disso é
-# necessário para restaurar: os jars se baixam ou recompilam, e o
-# código do plugin vive no Git.
-#
-# Sem '|| true': se o tar falhar, o 'set -e' derruba o script e
-# você fica sabendo na hora, em vez de descobrir na restauração.
 tar czf "$ARCHIVE" \
     --exclude='./cache' \
     --exclude='./logs' \
@@ -113,8 +98,6 @@ tar czf "$ARCHIVE" \
     --exclude='*.jar' \
     "${ALVOS[@]}"
 
-# Verificação real: um .tar.gz truncado só aparece na hora de
-# restaurar, que é o pior momento possível para descobrir.
 echo "[backup] Verificando integridade..."
 gzip -t "$ARCHIVE"
 
