@@ -19,6 +19,7 @@ public final class BigaCore extends JavaPlugin {
 
     private EconomyCatalog economyCatalog;
     private VaultEconomyBridge economyBridge;
+    private SpawnShopBuilder spawnShopBuilder;
 
     @Override
     public void onEnable() {
@@ -38,6 +39,7 @@ public final class BigaCore extends JavaPlugin {
 
         this.economyCatalog = new EconomyCatalog(this);
         this.economyBridge = new VaultEconomyBridge();
+        this.spawnShopBuilder = new SpawnShopBuilder(this);
 
         // Listeners e comandos ficam em classes próprias para a
         // classe principal não virar um depósito de tudo.
@@ -52,7 +54,10 @@ public final class BigaCore extends JavaPlugin {
             getLogger().severe("Comando 'biga' não declarado no plugin.yml — verifique o arquivo.");
         }
 
-        String economyState = economyBridge.available() ? "economia Vault conectada" : "economia Vault indisponível";
+        String economyState = "economia Vault indisponível";
+        if (economyBridge.available()) {
+            economyState = "economia Vault conectada";
+        }
         getLogger().info("BigaCore habilitado — " + economyState + ".");
     }
 
@@ -62,6 +67,7 @@ public final class BigaCore extends JavaPlugin {
         // estado aqui. O servidor espera este método terminar antes
         // de prosseguir com o shutdown.
         getLogger().info("BigaCore desabilitado.");
+        spawnShopBuilder = null;
         economyCatalog = null;
         economyBridge = null;
         instance = null;
@@ -78,6 +84,10 @@ public final class BigaCore extends JavaPlugin {
 
     public VaultEconomyBridge economyBridge() {
         return economyBridge;
+    }
+
+    public SpawnShopBuilder spawnShopBuilder() {
+        return spawnShopBuilder;
     }
 
     /** Recarrega os dois arquivos que pertencem ao BigaCore. */
