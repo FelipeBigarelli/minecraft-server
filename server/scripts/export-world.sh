@@ -1,17 +1,26 @@
 #!/usr/bin/env bash
 # =============================================================
-#  export-world.sh — Snapshot PUBLICÁVEL somente dos mundos.
+#  export-world.sh — Snapshot compartilhável somente dos mundos.
 #
 #  Diferente de backup.sh, este arquivo NÃO inclui plugins,
-#  configs, ops.json, whitelist, bancos ou qualquer credencial.
-#  É o script certo para gerar assets de GitHub Releases.
+#  configs, ops.json, whitelist, bancos ou credenciais do runtime.
 #
-#  Exige o servidor desligado para evitar publicar um mundo
-#  capturado no meio de uma escrita de chunk.
+#  O mundo ainda pode conter dados de jogo/jogadores (UUIDs,
+#  inventários, posições etc.). Revise isso antes de publicação
+#  pública se privacidade for relevante.
+#
+#  Exige o servidor desligado para evitar capturar um chunk no
+#  meio de uma escrita.
 # =============================================================
 set -euo pipefail
 
-SERVER_DIR="${SERVER_DIR:-$HOME/minecraft}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/server.env" ]; then
+    # shellcheck disable=SC1091
+    source "$SCRIPT_DIR/server.env"
+fi
+
+SERVER_DIR="${SERVER_DIR:-${DEFAULT_SERVER_DIR:-$HOME/minecraft}}"
 EXPORT_DIR="${EXPORT_DIR:-$HOME/minecraft-exports}"
 STAMP=$(date +%Y-%m-%d_%H%M%S)
 
@@ -43,7 +52,7 @@ fi
 
 ARCHIVE="$EXPORT_DIR/mc-world-$STAMP.tar.gz"
 
-echo "[export] Criando snapshot público: $ARCHIVE"
+echo "[export] Criando snapshot de mundo: $ARCHIVE"
 echo "[export] Incluindo SOMENTE: ${MUNDOS[*]}"
 
 tar czf "$ARCHIVE" "${MUNDOS[@]}"
@@ -56,5 +65,6 @@ SHA=$(sha256sum "$ARCHIVE" | cut -d' ' -f1)
 
 echo "[export] OK — $SIZE"
 echo "[export] SHA256: $SHA"
-echo "[export] Seguro para GitHub Release: não contém plugins, configs, ops, whitelist ou credenciais."
+echo "[export] Não inclui plugins/configs/ops/whitelist/credenciais do runtime."
+echo "[export] Lembrete: o próprio mundo pode conter dados de jogadores."
 echo "$ARCHIVE"
