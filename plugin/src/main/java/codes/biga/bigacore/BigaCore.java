@@ -3,6 +3,8 @@ package codes.biga.bigacore;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
+
 /**
  * Ponto de entrada do plugin.
  *
@@ -15,6 +17,9 @@ public final class BigaCore extends JavaPlugin {
 
     private static BigaCore instance;
 
+    private EconomyCatalog economyCatalog;
+    private VaultEconomyBridge economyBridge;
+
     @Override
     public void onEnable() {
         instance = this;
@@ -23,6 +28,16 @@ public final class BigaCore extends JavaPlugin {
         // apenas se ele ainda não existir. Não sobrescreve o que o
         // admin editou.
         saveDefaultConfig();
+
+        // economy.yml fica separado do config de mensagens porque ele
+        // possui dezenas de preços e regras com ciclo de ajuste próprio.
+        File economyFile = new File(getDataFolder(), "economy.yml");
+        if (!economyFile.exists()) {
+            saveResource("economy.yml", false);
+        }
+
+        this.economyCatalog = new EconomyCatalog(this);
+        this.economyBridge = new VaultEconomyBridge();
 
         // Listeners e comandos ficam em classes próprias para a
         // classe principal não virar um depósito de tudo.
@@ -37,7 +52,8 @@ public final class BigaCore extends JavaPlugin {
             getLogger().severe("Comando 'biga' não declarado no plugin.yml — verifique o arquivo.");
         }
 
-        getLogger().info("BigaCore habilitado.");
+        String economyState = economyBridge.available() ? "economia Vault conectada" : "economia Vault indisponível";
+        getLogger().info("BigaCore habilitado — " + economyState + ".");
     }
 
     @Override
@@ -46,12 +62,28 @@ public final class BigaCore extends JavaPlugin {
         // estado aqui. O servidor espera este método terminar antes
         // de prosseguir com o shutdown.
         getLogger().info("BigaCore desabilitado.");
+        economyCatalog = null;
+        economyBridge = null;
         instance = null;
     }
 
     /** Acesso à instância ativa. Retorna null se o plugin estiver desligado. */
     public static BigaCore getInstance() {
         return instance;
+    }
+
+    public EconomyCatalog economyCatalog() {
+        return economyCatalog;
+    }
+
+    public VaultEconomyBridge economyBridge() {
+        return economyBridge;
+    }
+
+    /** Recarrega os dois arquivos que pertencem ao BigaCore. */
+    public void reloadBigaConfigs() {
+        reloadConfig();
+        economyCatalog.reload();
     }
 
     /**
