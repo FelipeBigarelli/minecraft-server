@@ -1,0 +1,123 @@
+name: Economy Smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/economy-smoke.yml'
+      - 'server/scripts/setup.sh'
+      - 'server/scripts/install-economy.sh'
+      - 'server/scripts/doctor.sh'
+      - 'server/config/plugins/**'
+      - 'plugin/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+          cache-dependency-path: plugin/pom.xml
+
+      - name: Rebuild disposable server like a new PC
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORK="$RUNNER_TEMP/bigacore-economy-smoke"
+          rm -rf "$WORK"
+
+          SERVER_DIR="$WORK" RAM=1G bash server/scripts/setup.sh
+          SERVER_DIR="$WORK" bash "$WORK/scripts/doctor.sh"
+
+          test -f "$WORK/plugins/ChestShop-3.13-pre-1.jar"
+          test -f "$WORK/plugins/VaultUnlocked-2.20.2.jar"
+          test -f "$WORK/plugins/EternalEconomy-v1.0.1.jar"
+          grep -Eq '^TAX_AMOUNT:[[:space:]]*4([[:space:]]|$)' "$WORK/plugins/ChestShop/config.yml"
+          grep -Eq '^defaultBalance:[[:space:]]*250([[:space:]]|$)' "$WORK/plugins/EternalEconomy/config.yml"
+
+      - name: Boot Paper and verify economy plugins
+        shell: bash
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          WORK="$RUNNER_TEMP/bigacore-economy-smoke"
+          cd "$WORK"
+
+          # O runner é descartável. Usamos outra porta só para deixar explícito
+          # que este teste nunca deve disputar a porta padrão de uma máquina real.
+          sed -i 's/^server-port=.*/server-port=25566/' server.properties
+
+          mkfifo console.pipe
+          exec 3<>console.pipe
+
+          java -Xms512M -Xmx1G -jar paper-26.2-92.jar nogui \
+              < console.pipe > smoke.log 2>&1 &
+          PID=$!
+
+          cleanup() {
+            if kill -0 "$PID" 2>/dev/null; then
+              printf 'stop\n' >&3 || true
+              sleep 2
+              kill "$PID" 2>/dev/null || true
+            fi
+          }
+          trap cleanup EXIT
+
+          READY=0
+          for _ in $(seq 1 120); do
+            if grep -q 'Done (' smoke.log; then
+              READY=1
+              break
+            fi
+
+            if ! kill -0 "$PID" 2>/dev/null; then
+              echo 'Servidor encerrou antes de ficar pronto.' >&2
+              cat smoke.log >&2
+              exit 1
+            fi
+            sleep 1
+          done
+
+          if [ "$READY" -ne 1 ]; then
+            echo 'Paper não ficou pronto dentro da janela do smoke test.' >&2
+            cat smoke.log >&2
+            exit 1
+          fi
+
+          # Perguntar a versão pelo próprio console prova que cada plugin foi
+          # registrado no servidor, não apenas que um JAR existe em plugins/.
+          printf 'version Vault\n' >&3
+          printf 'version EternalEconomy\n' >&3
+          printf 'version ChestShop\n' >&3
+          printf 'version BigaCore\n' >&3
+          sleep 3
+          printf 'stop\n' >&3
+          wait "$PID"
+          trap - EXIT
+
+          grep -q 'BigaCore habilitado — economia Vault conectada.' smoke.log
+          grep -Eq 'Vault.*2\.20\.2|2\.20\.2.*Vault' smoke.log
+          grep -Eq 'EternalEconomy.*1\.0\.1|1\.0\.1.*EternalEconomy' smoke.log
+          grep -Eq 'ChestShop.*3\.13-pre-1|3\.13-pre-1.*ChestShop' smoke.log
+          grep -Eq 'BigaCore.*1\.0\.0|1\.0\.0.*BigaCore' smoke.log
+
+          if grep -Ei 'Could not load|Failed to load plugin|Error occurred while enabling|UnsupportedClassVersionError' smoke.log; then
+            echo 'Foi encontrado erro de carregamento no smoke test.' >&2
+            cat smoke.log >&2
+            exit 1
+          fi
+
+          echo 'Economy smoke test aprovado.'
