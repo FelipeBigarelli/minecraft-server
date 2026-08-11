@@ -1,0 +1,14 @@
+# =============================================================
+# EternalEconomy 1.0.1 — política monetária BigaCore
+#
+# Okaeri Config completa as demais chaves com os defaults do plugin
+# no primeiro boot. Mantemos aqui apenas decisões econômicas nossas.
+# =============================================================
+
+# Cada conta nova entra no mercado com capital suficiente para começar
+# a negociar, mas não para pular mineração/progressão.
+defaultBalance: 250
+
+# Limite técnico por transferência. Não é faucet diário; apenas evita
+# uma transação individual absurda por erro de digitação/exploit.
+transactionLimit: 100000
