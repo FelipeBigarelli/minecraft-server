@@ -3,7 +3,7 @@
 #  setup.sh — Instala o servidor Paper 26.2 do zero.
 #
 #  Idempotente: pode rodar de novo com segurança. Nada que já
-#  exista é sobrescrito (jar, mundo, configs editados).
+#  exista é sobrescrito sem pedido explícito.
 #
 #  Uso, a partir da raiz do projeto clonado:
 #      bash server/scripts/setup.sh
@@ -13,6 +13,7 @@
 #      RAM=8G             RAM padrão persistida para o start.sh
 #      SERVER_DIR=~/mc    outro diretório de instalação
 #      FORCE_CONFIG=1     sobrescreve configs/defaults existentes
+#      FORCE_PLUGINS=1    reinstala JARs econômicos fixados
 # =============================================================
 set -euo pipefail
 
@@ -21,6 +22,7 @@ PAPER_BUILD="${PAPER_BUILD:-92}"
 RAM="${RAM:-4G}"
 SERVER_DIR="${SERVER_DIR:-$HOME/minecraft}"
 FORCE_CONFIG="${FORCE_CONFIG:-0}"
+FORCE_PLUGINS="${FORCE_PLUGINS:-0}"
 
 PAPER_SHA256_DEFAULT="059d00bbce0fa1707739618b3276f5c80b9655dc0f964306fa799a9c7cb01cc2"
 PAPER_API="https://fill.papermc.io/v3/projects/paper"
@@ -146,7 +148,7 @@ fi
 ok "EULA aceita."
 
 # -------------------------------------------------------------
-# 6. Configs
+# 6. Configs do servidor
 # -------------------------------------------------------------
 copiar_config() {
     local origem="$1" destino="$2"
@@ -173,7 +175,7 @@ ok "Configs instalados."
 # -------------------------------------------------------------
 # 7. Scripts operacionais + defaults persistentes
 # -------------------------------------------------------------
-cp "$PROJECT_DIR"/server/scripts/{start.sh,backup.sh,export-world.sh,restore-world.sh,doctor.sh,setup.sh} "$SERVER_DIR/scripts/"
+cp "$PROJECT_DIR"/server/scripts/{start.sh,backup.sh,export-world.sh,restore-world.sh,doctor.sh,install-economy.sh,setup.sh} "$SERVER_DIR/scripts/"
 cp "$PROJECT_DIR"/server/scripts/minecraft.service "$SERVER_DIR/scripts/" 2>/dev/null || true
 chmod +x "$SERVER_DIR"/scripts/*.sh
 
@@ -195,7 +197,7 @@ ok "Scripts e defaults instalados em $SERVER_DIR/scripts/."
 # -------------------------------------------------------------
 # 8. Compilar e instalar o BigaCore
 # -------------------------------------------------------------
-log "Compilando o plugin..."
+log "Compilando o BigaCore..."
 ( cd "$PROJECT_DIR/plugin" && mvn -q clean package ) || die "Falha ao compilar o BigaCore."
 
 PLUGIN_JAR=$(ls -1 "$PROJECT_DIR"/plugin/target/bigacore-*.jar 2>/dev/null \
@@ -205,7 +207,22 @@ cp "$PLUGIN_JAR" "$SERVER_DIR/plugins/"
 ok "BigaCore instalado: $(basename "$PLUGIN_JAR")"
 
 # -------------------------------------------------------------
-# 9. Operador (opcional)
+# 9. Stack econômica
+#
+#    O script usa versões fixadas e valida os artefatos antes de
+#    colocá-los em plugins/. Ele NÃO inicia o servidor.
+# -------------------------------------------------------------
+log "Instalando stack econômica BigaCore..."
+PROJECT_DIR="$PROJECT_DIR" \
+SERVER_DIR="$SERVER_DIR" \
+FORCE_CONFIG="$FORCE_CONFIG" \
+FORCE_PLUGINS="$FORCE_PLUGINS" \
+bash "$PROJECT_DIR/server/scripts/install-economy.sh" \
+    || die "Falha ao instalar a stack econômica."
+ok "Economia instalada: VaultUnlocked + EternalEconomy + ChestShop."
+
+# -------------------------------------------------------------
+# 10. Operador (opcional)
 # -------------------------------------------------------------
 if [ -n "${MC_OP:-}" ]; then
     if [ -s "$SERVER_DIR/ops.json" ] && grep -q '"name"' "$SERVER_DIR/ops.json" 2>/dev/null; then
@@ -236,7 +253,7 @@ EOF
 fi
 
 # -------------------------------------------------------------
-# 10. Pronto
+# 11. Pronto
 # -------------------------------------------------------------
 echo
 printf '\033[1;32m═══════════════════════════════════════════════════\033[0m\n'
@@ -245,7 +262,8 @@ printf '\033[1;32m════════════════════�
 echo
 echo "  Servidor : $SERVER_DIR"
 echo "  Jar      : $JAR"
-echo "  Plugin   : $(basename "$PLUGIN_JAR")"
+echo "  BigaCore : $(basename "$PLUGIN_JAR")"
+echo "  Economia : ChestShop 3.13-pre-1 + VaultUnlocked 2.20.2 + EternalEconomy 1.0.1"
 echo "  RAM      : $RAM (persistida em scripts/server.env)"
 echo
 echo "  Antes do primeiro boot neste PC, valide:"
@@ -256,6 +274,11 @@ echo "      bash $SERVER_DIR/scripts/restore-world.sh /caminho/arquivo.tar.gz"
 echo
 echo "  Para subir:"
 echo "      cd $SERVER_DIR && bash scripts/start.sh"
+echo
+echo "  Dentro do jogo:"
+echo "      /biga eco"
+echo "      /biga eco saldo"
+echo "      /biga eco preco diamond"
 echo
 echo "  Backup privado completo:"
 echo "      cd $SERVER_DIR && bash scripts/backup.sh"
