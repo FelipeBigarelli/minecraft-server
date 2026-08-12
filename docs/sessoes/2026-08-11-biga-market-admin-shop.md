@@ -98,12 +98,31 @@ bash -n scripts/*.sh ..... OK
 
 ## Limitações conhecidas
 
-- **Placas geradas por código ainda não foram validadas em jogo.** O ChestShop
-  lê a placa no clique, então deve funcionar, mas isso precisa de um teste real
-  antes de considerar o balcão pronto.
-- `player-shop-first-limit: 6` continua decorativo: nada o aplica. Para valer
-  precisa virar permissão `ChestShop.shop.limit.<n>`.
-- `combined-mint-daily-cap: 200` também segue só documentado.
+- ~~Placas geradas por código ainda não validadas em jogo.~~ **Validado em
+  12/08/2026:** o balcão responde ao clique, os nomes em português resolvem pelo
+  `itemAliases.yml` e os itens giram sobre os barris.
+- ~~`ChestShop.shop.limit.<n>`~~ **Premissa errada, corrigida na RODADA 02:**
+  esse permission node não existe no ChestShop 3.13-pre-1. `player-shop-first-limit`
+  passou a PLANEJADO / NÃO APLICADO, com o caminho futuro (`PreShopCreationEvent`)
+  documentado no `economy.yml`.
+- `combined-mint-daily-cap` segue só documentado, renomeado para `-PLANEJADO`.
+
+## Validado em runtime (12/08/2026)
+
+Log do boot, sem nenhum `SEVERE`:
+
+```text
+[teto] Teto de recompra ligado nas placas do Admin Shop.
+[display] 60 item(ns) flutuante(s) removido(s).
+Snapshot da Biga Market salvo: 17980 blocos em loja-snapshot.yml.
+[loja] 968 bloco(s) de árvore/vegetação removidos da footprint.
+[admin-shop] Balcão montado com 60 vaga(s) de 61 disponíveis.
+```
+
+A linha do teto é a que mais importa: ela prova que o hook por reflexão
+encontrou `PreTransactionEvent`, resolveu os quatro métodos e o enum `SELL`, e
+registrou o listener. Como `ativo()` retornou true, as placas nasceram com o
+lado de compra — se tivesse falhado, o fail-closed as teria deixado só de venda.
 
 ---
 
