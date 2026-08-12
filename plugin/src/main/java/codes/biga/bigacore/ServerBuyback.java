@@ -13,7 +13,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Recompra do servidor — o único lugar do BigaCore que cria moeda.
+ * Recompra do servidor — a única torneira RECORRENTE de moeda.
+ *
+ * Existe um segundo faucet no plugin, o {@link StartingBalance}, mas ele é
+ * excepcional: roda uma vez por UUID e só completa o jogador até o saldo
+ * inicial. Este aqui é o que roda todo dia, e por isso é o que precisa de teto.
  *
  * <h2>Por que existe um teto</h2>
  *

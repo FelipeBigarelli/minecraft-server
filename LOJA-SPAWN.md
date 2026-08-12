@@ -141,7 +141,7 @@ Biga Market — validação
 Spawn real: world 176, 71, 64
 Centro X/Z: 204, 64
 Fachada: west
-Footprint: 21x17 (357 colunas)
+Footprint: 31x29 (899 colunas)
 Solo real min/max: 60..66  (desnível 6)
 Topo min/max (com folhagem): 62..89
 Colunas com árvore: 232
@@ -217,7 +217,7 @@ plugins/BigaCore/loja-snapshot.yml
 
 Regras:
 
-- guarda **só** a caixa da loja (21x17 da base do solo ao topo do telhado),
+- guarda **só** a caixa da loja (31x29 da base do solo ao topo do telhado),
   nunca o mundo inteiro;
 - guarda `BlockData` completo, então placa, baú e escada voltam com a orientação
   original;

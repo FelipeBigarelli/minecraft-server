@@ -1052,9 +1052,19 @@ public final class SpawnShopBuilder {
 
         // Linha 3: "B <venda>" compra apenas, ou "B <venda>:<compra> S" nos dois
         // sentidos. O segundo só é ligado com o teto de recompra funcionando.
+        // FAIL CLOSED também aqui: sem o teto registrado, a placa nem ganha
+        // preço de compra. Uma placa que compra sem limite é pior do que uma
+        // placa que só vende.
+        boolean podeComprar = catalog.adminShopSignBuysBack()
+                && plugin.chestShopCapGuard() != null
+                && plugin.chestShopCapGuard().ativo();
+
         String preco = "B " + item.serverSell();
-        if (catalog.adminShopSignBuysBack() && item.serverBuy() != null) {
+        if (podeComprar && item.serverBuy() != null) {
             preco = "B " + item.serverSell() + ":" + item.serverBuy() + " S";
+        } else if (catalog.adminShopSignBuysBack() && item.serverBuy() != null) {
+            plugin.getLogger().warning("[admin-shop] Teto inativo: '" + item.key()
+                    + "' fica só como venda.");
         }
 
         // Linha 4: o ChestShop resolve o nome em português pelo itemAliases.yml.

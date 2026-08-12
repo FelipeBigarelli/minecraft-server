@@ -129,15 +129,48 @@ public final class ChestShopCapGuard implements Listener {
                 return;
             }
 
-            setCancelled.invoke(evento, true);
-            jogador.sendMessage(Component.text(
-                    "Teto de recompra atingido. Restam "
-                            + plugin.economyCatalog().money(restante)
-                            + " hoje — venda o excedente a outros jogadores.",
-                    NamedTextColor.YELLOW));
+            recusar(evento, jogador, "Teto de recompra atingido. Restam "
+                    + plugin.economyCatalog().money(restante)
+                    + " hoje — venda o excedente a outros jogadores.");
         } catch (ReflectiveOperationException erro) {
-            // Falhar aqui em silêncio deixaria a venda passar sem contar no teto.
-            plugin.getLogger().severe("[teto] Falha ao avaliar transação: " + erro.getMessage());
+            // FAIL CLOSED.
+            //
+            // A versão anterior apenas logava e deixava a transação seguir. Num
+            // caminho comum isso seria aceitável; aqui não: esta é a única
+            // torneira recorrente de moeda do servidor. Se não dá para provar
+            // que a venda cabe no teto, a resposta correta é recusar.
+            //
+            // Recusar a mais custa uma venda frustrada e um log. Deixar passar
+            // custa inflação silenciosa que só aparece semanas depois.
+            plugin.getLogger().severe("[teto] Falha ao avaliar transação ("
+                    + erro.getMessage() + "). Venda RECUSADA por segurança.");
+            recusarCegamente(evento);
+        }
+    }
+
+    private void recusar(Object evento, Player jogador, String motivo)
+            throws ReflectiveOperationException {
+        setCancelled.invoke(evento, true);
+        jogador.sendMessage(Component.text(motivo, NamedTextColor.YELLOW));
+    }
+
+    /**
+     * Cancela sem depender de nada que já possa ter falhado.
+     *
+     * Último recurso: se nem isto funcionar, o servidor precisa gritar, porque
+     * a partir daí a recompra está sem teto de verdade.
+     */
+    private void recusarCegamente(Object evento) {
+        try {
+            if (setCancelled != null) {
+                setCancelled.invoke(evento, true);
+                return;
+            }
+            evento.getClass().getMethod("setCancelled", boolean.class).invoke(evento, true);
+        } catch (ReflectiveOperationException falha) {
+            plugin.getLogger().severe("[teto] NÃO foi possível cancelar a transação ("
+                    + falha.getMessage() + "). A RECOMPRA ESTÁ SEM TETO —"
+                    + " desligue admin-shop.placa-compra agora.");
         }
     }
 

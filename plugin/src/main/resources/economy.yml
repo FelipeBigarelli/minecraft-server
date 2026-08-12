@@ -21,7 +21,12 @@ policy:
   shop-refund-price: 10
   admin-buyback-daily-cap: 150
   admin-buyback-weekly-cap: 900
-  combined-mint-daily-cap: 200
+  # PLANEJADO, NÃO APLICADO. Nenhum caminho de código lê esta chave.
+  #
+  # Um teto GLOBAL muda a justiça entre jogadores: quem vender primeiro no dia
+  # consumiria o orçamento dos outros. Isso precisa de decisão própria antes de
+  # virar código. O teto que vale hoje é por jogador (admin-buyback-*-cap).
+  combined-mint-daily-cap-PLANEJADO: 200
   player-shop-first-limit: 6
   allow-partial-transactions: false
   auto-sell-enabled: false

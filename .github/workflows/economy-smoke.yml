@@ -109,6 +109,17 @@ jobs:
           trap - EXIT
 
           grep -q 'BigaCore habilitado — economia Vault conectada.' smoke.log
+
+          # O teto de recompra é a única trava contra farm AFK virar impressora
+          # de dinheiro, e ele depende de um hook por reflexão no ChestShop.
+          # Reflexão quebra em silêncio quando a outra ponta muda de nome, então
+          # o CI precisa PROVAR que o hook subiu — não assumir.
+          if ! grep -q '\[teto\] Teto de recompra ligado' smoke.log; then
+            echo 'O ChestShopCapGuard NAO registrou o hook do teto.' >&2
+            grep -n '\[teto\]' smoke.log >&2 || echo '(nenhuma linha [teto] no log)' >&2
+            exit 1
+          fi
+          echo 'Teto de recompra confirmado ativo.'
           grep -Eq 'Vault.*2\.20\.2|2\.20\.2.*Vault' smoke.log
           grep -Eq 'EternalEconomy.*1\.0\.1|1\.0\.1.*EternalEconomy' smoke.log
           grep -Eq 'ChestShop.*3\.13-pre-1|3\.13-pre-1.*ChestShop' smoke.log

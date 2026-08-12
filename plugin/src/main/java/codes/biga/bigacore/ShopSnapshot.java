@@ -18,7 +18,7 @@ import java.util.UUID;
  * <h2>Escopo deliberadamente pequeno</h2>
  *
  * Salvar o mundo inteiro seria caro e perigoso. Este snapshot guarda apenas o
- * paralelepípedo que o gerador realmente toca: a footprint 21x17 da loja, do
+ * paralelepípedo que o gerador realmente toca: a footprint 31x29 da loja, do
  * solo mais baixo até o topo do telhado. São alguns milhares de blocos, não
  * milhões de chunks.
  *

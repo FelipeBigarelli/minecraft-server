@@ -17,12 +17,12 @@ de progressão continuam vindo de exploração, gameplay e negociação real.
 
 | Regra | Valor |
 |---|---:|
-| Moeda | **Biga (`B$`)** |
+| Moeda | **Biga Coin (`BC$`)** |
 | Casas decimais | **0** |
-| Saldo inicial | **250 B$** (aplicado pelo BigaCore) |
+| Saldo inicial | **250 BC$** (aplicado pelo BigaCore) |
 | Taxa ChestShop P2P | **4%** |
-| Criar uma loja | **50 B$** |
-| Reembolso ao remover | **10 B$** |
+| Criar uma loja | **50 BC$** |
+| Reembolso ao remover | **10 BC$** |
 | Transações parciais | **desativadas** |
 | Auto-sell / sell-all | **não existe** |
 | Admin Shop ilimitada | **ativa, só do lado da venda** |
@@ -39,7 +39,7 @@ Não existe pagamento automático por:
 - mob morto;
 - juros sobre saldo.
 
-Uma farm pode produzir muitos **itens**, mas não imprime B$ automaticamente.
+Uma farm pode produzir muitos **itens**, mas não imprime BC$ automaticamente.
 
 ### ⚠️ O saldo inicial não vinha do plugin de economia
 
@@ -85,10 +85,10 @@ para evitar.
 Passando pelo BigaCore, a vazão máxima de moeda nova é previsível:
 
 ```text
-moeda nova por dia  ≤  jogadores × 150 B$
+moeda nova por dia  ≤  jogadores × 150 BC$
 ```
 
-contra os sinks de 4% de imposto, 50 B$ por loja criada e a venda no varejo.
+contra os sinks de 4% de imposto, 50 BC$ por loja criada e a venda no varejo.
 
 ### O que o servidor vende
 
@@ -124,8 +124,8 @@ Regras:
 - o pagamento sempre arredonda **para baixo**;
 - ao bater o teto, o comando avisa e manda negociar com outros jogadores.
 
-Os tetos são `admin-buyback-daily-cap` (150 B$) e `admin-buyback-weekly-cap`
-(900 B$), que já estavam escritos como política antes de existir código.
+Os tetos são `admin-buyback-daily-cap` (150 BC$) e `admin-buyback-weekly-cap`
+(900 BC$), que já estavam escritos como política antes de existir código.
 
 ---
 
@@ -172,7 +172,7 @@ configuração antes do servidor ser iniciado.
 - possível preço futuro de venda pelo servidor.
 
 O preço P2P é **referência, não obrigação**. Se duas pessoas quiserem vender um
-diamante por 80 B$, 120 B$ ou 200 B$, o mercado continua livre.
+diamante por 80 BC$, 120 BC$ ou 200 BC$, o mercado continua livre.
 
 ---
 
@@ -188,8 +188,8 @@ B <preço-compra> : <preço-venda> S
 <item>
 ```
 
-Exemplo de uma loja de jogador que vende 16 ferros por 175 B$ e compra 16
-ferros por 125 B$:
+Exemplo de uma loja de jogador que vende 16 ferros por 175 BC$ e compra 16
+ferros por 125 BC$:
 
 ```text
 
@@ -200,8 +200,8 @@ IRON_INGOT
 
 Interpretação:
 
-- `B 175`: outro jogador paga 175 B$ para **comprar da loja**;
-- `125 S`: outro jogador recebe 125 B$ para **vender para a loja**.
+- `B 175`: outro jogador paga 175 BC$ para **comprar da loja**;
+- `125 S`: outro jogador recebe 125 BC$ para **vender para a loja**.
 
 A primeira linha é preenchida pelo ChestShop com o dono.
 
@@ -209,7 +209,7 @@ Os jogadores comuns já recebem pelas permissões padrão do ChestShop acesso a
 criar, comprar e vender em lojas. Poderes administrativos continuam restritos a
 OP/staff.
 
-Criar a loja custa **50 B$**. Isso é intencional: evita paredes de placas
+Criar a loja custa **50 BC$**. Isso é intencional: evita paredes de placas
 inúteis e cria um pequeno sink desde o começo.
 
 ---
@@ -232,24 +232,24 @@ Algumas referências iniciais:
 
 | Item | Lote | P2P ref. | Servidor compra* | Servidor vende* |
 |---|---:|---:|---:|---:|
-| Cobblestone | 64 | 20 B$ | 8 B$ | 32 B$ |
-| Stone | 64 | 28 B$ | 10 B$ | 44 B$ |
-| Oak Log | 32 | 48 B$ | 16 B$ | 80 B$ |
-| Coal | 32 | 64 B$ | 20 B$ | 100 B$ |
-| Iron Ingot | 16 | 160 B$ | 80 B$ | 240 B$ |
-| Gold Ingot | 16 | 240 B$ | 96 B$ | 360 B$ |
-| Redstone | 64 | 96 B$ | 24 B$ | 160 B$ |
-| Diamond | 1 | 120 B$ | 55 B$ | 190 B$ |
-| Blaze Rod | 8 | 240 B$ | 32 B$ | 380 B$ |
-| Shulker Shell | 1 | 300 B$ | — | — |
-| Ancient Debris | 1 | 650 B$ | — | — |
-| Netherite Ingot | 1 | 3.000 B$ | — | — |
-| Totem of Undying | 1 | 900 B$ | — | — |
-| Elytra | 1 | 3.200 B$ | — | — |
-| Nether Star | 1 | 3.500 B$ | — | — |
-| Beacon | 1 | 4.000 B$ | — | — |
-| Mace | 1 | 8.000 B$ | — | — |
-| Dragon Egg | 1 | 15.000 B$ | — | — |
+| Cobblestone | 64 | 20 BC$ | 8 BC$ | 32 BC$ |
+| Stone | 64 | 28 BC$ | 10 BC$ | 44 BC$ |
+| Oak Log | 32 | 48 BC$ | 16 BC$ | 80 BC$ |
+| Coal | 32 | 64 BC$ | 20 BC$ | 100 BC$ |
+| Iron Ingot | 16 | 160 BC$ | 80 BC$ | 240 BC$ |
+| Gold Ingot | 16 | 240 BC$ | 96 BC$ | 360 BC$ |
+| Redstone | 64 | 96 BC$ | 24 BC$ | 160 BC$ |
+| Diamond | 1 | 120 BC$ | 55 BC$ | 190 BC$ |
+| Blaze Rod | 8 | 240 BC$ | 32 BC$ | 380 BC$ |
+| Shulker Shell | 1 | 300 BC$ | — | — |
+| Ancient Debris | 1 | 650 BC$ | — | — |
+| Netherite Ingot | 1 | 3.000 BC$ | — | — |
+| Totem of Undying | 1 | 900 BC$ | — | — |
+| Elytra | 1 | 3.200 BC$ | — | — |
+| Nether Star | 1 | 3.500 BC$ | — | — |
+| Beacon | 1 | 4.000 BC$ | — | — |
+| Mace | 1 | 8.000 BC$ | — | — |
+| Dragon Egg | 1 | 15.000 BC$ | — | — |
 
 \* **Não existem Admin Shops de buyback/retail ativas no lançamento.** Esses
 valores já estão catalogados para uma fase posterior, depois de observarmos o
@@ -307,9 +307,9 @@ confundidas com recurso já ativo:
 
 | Política futura | Referência atual | Situação |
 |---|---:|---|
-| Buyback máximo por jogador/dia | 150 B$ | **aplicado** pelo BigaCore |
-| Buyback máximo por jogador/semana | 900 B$ | **aplicado** pelo BigaCore |
-| Teto combinado de moeda nova/dia | 200 B$ | só documentado |
+| Buyback máximo por jogador/dia | 150 BC$ | **aplicado** pelo BigaCore |
+| Buyback máximo por jogador/semana | 900 BC$ | **aplicado** pelo BigaCore |
+| Teto combinado de moeda nova/dia | 200 BC$ | só documentado |
 | Primeiro tier comercial | até 6 lojas | só documentado |
 | Tiers futuros | 12 / 20 lojas | só documentado |
 
@@ -395,7 +395,7 @@ Esse teste **não usa nem inicia o mundo real do Felipe**.
 A primeira fase de jogo é propositalmente simples:
 
 ```text
-250 B$ inicial
+250 BC$ inicial
    ↓
 ChestShops P2P
    ↓
