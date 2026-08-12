@@ -314,8 +314,20 @@ confundidas com recurso já ativo:
 | Tiers futuros | 12 / 20 lojas | só documentado |
 
 O limite de lojas por jogador continua sendo um número decorativo: nada o
-aplica. Para valer de verdade ele precisa virar permissão
-`ChestShop.shop.limit.<n>` no gerenciador de permissões.
+aplica.
+
+**A ideia de aplicá-lo via permissão `ChestShop.shop.limit.<n>` estava errada.**
+Esse node não existe. O enum `Permission` do ChestShop 3.13-pre-1 tem 34 nodes e
+nenhum limita a **quantidade** de lojas — os `NOLIMIT_*` são sobre limite de
+**preço**. Verificado no jar instalado, não na documentação do plugin.
+
+Instalar um gerenciador de permissões esperando que isso funcione seria trabalho
+perdido.
+
+Se um dia virar necessidade real, o caminho é `PreShopCreationEvent` — que
+existe, é cancelável e entrega `getPlayer()`. Antes disso é preciso decidir como
+contar as lojas de um UUID de forma confiável: loja destruída, placa removida
+fora do fluxo normal, mundo restaurado de backup.
 
 Elas só serão ativadas quando existir motivo real. Um servidor entre poucos
 amigos não precisa começar com uma camada de “banco central” complexa antes de

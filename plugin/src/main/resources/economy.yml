@@ -27,6 +27,19 @@ policy:
   # consumiria o orçamento dos outros. Isso precisa de decisão própria antes de
   # virar código. O teto que vale hoje é por jogador (admin-buyback-*-cap).
   combined-mint-daily-cap-PLANEJADO: 200
+  # PLANEJADO / NÃO APLICADO.
+  #
+  # A ideia original era aplicar via permissão ChestShop.shop.limit.<n>.
+  # Esse node NAO EXISTE: o enum Permission do ChestShop 3.13-pre-1 tem 34
+  # nodes e nenhum limita a QUANTIDADE de lojas — os NOLIMIT_* são sobre
+  # limite de PREÇO. Verificado no jar instalado, não na documentação.
+  #
+  # Se um dia virar necessidade real, o caminho é PreShopCreationEvent
+  # (existe e é cancelável, com getPlayer()), contando as lojas do UUID.
+  # Isso exige decidir antes como contar de forma confiável: loja destruída,
+  # placa removida fora do fluxo, mundo restaurado de backup.
+  #
+  # Não instale um gerenciador de permissões esperando que isto funcione.
   player-shop-first-limit: 6
   allow-partial-transactions: false
   auto-sell-enabled: false
@@ -330,3 +343,56 @@ nomes:
   trident: "Tridente"
   tuff: "Tufo"
   wheat: "Trigo"
+
+# =============================================================
+# Receitas usadas pelo teste de arbitragem por transformação.
+#
+# O teste de spread prova que comprar e revender o MESMO item dá prejuízo.
+# Não prova o ciclo: comprar ingrediente -> transformar -> vender o resultado.
+# Esta tabela fecha esse buraco.
+#
+# Só entra ciclo FECHÁVEL: o ingrediente precisa ter server-sell (dá para
+# comprar do servidor) e o resultado precisa ter server-buy (dá para vender ao
+# servidor). Ciclo que não fecha dos dois lados não é exploit.
+#
+# Combustível de fornalha conta como zero, de propósito: se o ciclo já dá
+# prejuízo com lenha grátis, cobrar combustível só o torna mais seguro.
+#
+# AO ADICIONAR ITEM NOVO AO BALCÃO, acrescente aqui as transformações dele.
+# =============================================================
+receitas:
+  - resultado: stone
+    quantidade: 1
+    ingredientes: [{ chave: cobblestone, quantidade: 1 }]
+
+  - resultado: charcoal
+    quantidade: 1
+    ingredientes: [{ chave: oak_log, quantidade: 1 }]
+  - resultado: charcoal
+    quantidade: 1
+    ingredientes: [{ chave: spruce_log, quantidade: 1 }]
+  - resultado: charcoal
+    quantidade: 1
+    ingredientes: [{ chave: birch_log, quantidade: 1 }]
+  - resultado: charcoal
+    quantidade: 1
+    ingredientes: [{ chave: jungle_log, quantidade: 1 }]
+  - resultado: charcoal
+    quantidade: 1
+    ingredientes: [{ chave: acacia_log, quantidade: 1 }]
+  - resultado: charcoal
+    quantidade: 1
+    ingredientes: [{ chave: dark_oak_log, quantidade: 1 }]
+  - resultado: charcoal
+    quantidade: 1
+    ingredientes: [{ chave: mangrove_log, quantidade: 1 }]
+  - resultado: charcoal
+    quantidade: 1
+    ingredientes: [{ chave: cherry_log, quantidade: 1 }]
+
+  # 1 blaze rod -> 2 blaze powder; 2 powder + 2 slime -> 2 magma cream
+  - resultado: magma_cream
+    quantidade: 2
+    ingredientes:
+      - { chave: blaze_rod, quantidade: 1 }
+      - { chave: slime_ball, quantidade: 2 }
