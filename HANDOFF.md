@@ -357,16 +357,37 @@ antigo só para reproduzir essa divergência de teste.
 
 ## 9. 🧩 BigaCore atual
 
-Estrutura pequena de propósito:
-
 ```text
-BigaCore.java
-BigaCommand.java
-JogadorListener.java
+BigaCore.java            ponto de entrada
+BigaCommand.java         /biga e subcomandos
+JogadorListener.java     join/quit
+EconomyCatalog.java      lê economy.yml
+VaultEconomyBridge.java  ponte Vault por reflexão (sem dependência de compilação)
+StartingBalance.java     aplica o saldo inicial da política
+ServerBuyback.java       recompra do servidor com teto diário/semanal
+SpawnShopBuilder.java    analisa terreno e constrói a Biga Market
+ShopPreview.java         preview por partículas
+ShopSnapshot.java        snapshot e rollback da construção
+ShopDisplays.java        item flutuante sobre as bancas
 ```
 
-Não transformar o plugin em uma arquitetura enterprise antes de haver problema
-real para resolver.
+Cresceu junto com a economia e a Biga Market, mas continua sem framework: cada
+classe tem uma responsabilidade e nenhuma depende de plugin de terceiro em
+tempo de compilação. Não transformar em arquitetura enterprise antes de haver
+problema real para resolver.
+
+### Testes
+
+`mvn verify` roda 33 testes que **não precisam de servidor**. Eles existem
+porque cada um corresponde a uma falha que chegou ao runtime:
+
+| Teste | Falha que ele previne |
+|---|---|
+| `PluginDescriptorTest` | plugin.yml inválido derrubando o plugin no boot |
+| `GroundClassificationTest` | grama classificada como construção (Tag.DIRT encolheu na 26.2) |
+| `RoofGeometryTest` | telhado com degrau vazado |
+| `EconomyCatalogTest` | chave de catálogo que nenhum Material casa |
+| `ServerBuybackTest` | aritmética do teto criando moeda a mais |
 
 ### Decisões atuais
 

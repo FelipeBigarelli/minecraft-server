@@ -1,0 +1,96 @@
+# =============================================================
+# GERADO pelo projeto BigaCore a partir de economy.yml -> nomes:
+#
+# Traduz o nome do item nas placas da Biga Market. A linha 4 da
+# placa precisa ser resolvivel pelo ChestShop; sem este arquivo,
+# um nome em portugues NAO seria reconhecido e a loja quebraria.
+#
+# Formato: <MATERIAL>: <apelido mostrado/aceito na placa>
+# Regenerar: python3 server/scripts/gerar-aliases.py
+# =============================================================
+
+ACACIA_LOG: Tronco Acacia
+AMETHYST_SHARD: Ametista
+ANCIENT_DEBRIS: Destrocos Ant
+BAKED_POTATO: Batata Assada
+BAMBOO: Bambu
+BEACON: Sinalizador
+BEETROOT: Beterraba
+BIRCH_LOG: Tronco Betula
+BLAZE_ROD: Vara de Blaze
+BONE: Osso
+BREAD: Pao
+CACTUS: Cacto
+CALCITE: Calcita
+CARROT: Cenoura
+CHARCOAL: Carvao Vegetal
+CHERRY_LOG: Tronco Cereja
+CLAY_BALL: Argila
+COAL: Carvao
+COBBLESTONE: Pedregulho
+COCOA_BEANS: Cacau
+CONDUIT: Conduite
+COOKED_BEEF: Bife Assado
+COOKED_CHICKEN: Frango Assado
+COOKED_MUTTON: Carneiro Assado
+COOKED_PORKCHOP: Porco Assado
+COPPER_INGOT: Cobre
+DARK_OAK_LOG: Tronco Escuro
+DEEPSLATE: Ardosia
+DIAMOND: Diamante
+DIRT: Terra
+DRAGON_EGG: Ovo de Dragao
+DRAGON_HEAD: Cabeca Dragao
+ELYTRA: Elitros
+EMERALD: Esmeralda
+ENCHANTED_GOLDEN_APPLE: Maca Encantada
+ENDER_PEARL: Perola do End
+GHAST_TEAR: Lagrima Ghast
+GLASS: Vidro
+GOLD_INGOT: Ouro
+GRASS_BLOCK: Bloco de Grama
+GRAVEL: Cascalho
+GUNPOWDER: Polvora
+HEART_OF_THE_SEA: Coracao do Mar
+HEAVY_CORE: Nucleo Pesado
+IRON_INGOT: Ferro
+JUNGLE_LOG: Tronco Selva
+KELP: Alga
+LAPIS_LAZULI: Lapis-Lazuli
+LEATHER: Couro
+MACE: Maca de Armas
+MAGMA_CREAM: Creme de Magma
+MANGROVE_LOG: Tronco Mangue
+MELON: Melancia
+MUSIC_DISC_PIGSTEP: Disco Pigstep
+NAME_TAG: Etiqueta
+NAUTILUS_SHELL: Concha Nautilus
+NETHER_STAR: Estrela Nether
+NETHERITE_BLOCK: Bloco Netherite
+NETHERITE_INGOT: Netherite
+NETHERITE_SCRAP: Sucata Nether
+NETHERITE_UPGRADE_SMITHING_TEMPLATE: Molde Netherite
+OAK_LOG: Tronco Carvalho
+OBSIDIAN: Obsidiana
+POTATO: Batata
+PRISMARINE_SHARD: Prismarinho
+PUMPKIN: Abobora
+QUARTZ: Quartzo
+RED_SAND: Areia Vermelha
+REDSTONE: Redstone
+ROTTEN_FLESH: Carne Podre
+SADDLE: Sela
+SAND: Areia
+SHULKER_BOX: Caixa Shulker
+SHULKER_SHELL: Casca Shulker
+SILENCE_ARMOR_TRIM_SMITHING_TEMPLATE: Molde Silencio
+SLIME_BALL: Slime
+SPIDER_EYE: Olho de Aranha
+SPRUCE_LOG: Tronco Pinheiro
+STONE: Pedra
+STRING: Linha
+SUGAR_CANE: Cana de Acucar
+TOTEM_OF_UNDYING: Totem
+TRIDENT: Tridente
+TUFF: Tufo
+WHEAT: Trigo

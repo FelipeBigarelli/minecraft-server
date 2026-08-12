@@ -27,8 +27,10 @@ import java.util.OptionalDouble;
 public final class BigaCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBCOMANDOS = List.of("info", "eco", "loja", "reload", "voar");
-    private static final List<String> ECO_SUBCOMANDOS = List.of("status", "saldo", "preco", "regras");
-    private static final List<String> LOJA_SUBCOMANDOS = List.of("local", "validar", "criar");
+    private static final List<String> ECO_SUBCOMANDOS =
+            List.of("status", "saldo", "preco", "vender", "regras");
+    private static final List<String> LOJA_SUBCOMANDOS =
+            List.of("local", "validar", "preview", "criar", "desfazer");
 
     private final BigaCore plugin;
 
@@ -103,6 +105,7 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
         switch (args[1].toLowerCase(Locale.ROOT)) {
             case "saldo" -> mostrarSaldo(sender);
             case "preco" -> mostrarPreco(sender, label, args);
+            case "vender" -> venderParaServidor(sender, label, args);
             case "regras" -> mostrarRegras(sender);
             default -> enviarAjudaEconomia(sender, label);
         }
@@ -191,6 +194,54 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
                 NamedTextColor.DARK_GRAY));
     }
 
+    /**
+     * Vende ao servidor o item da mão.
+     *
+     * Não é /sellall: o comando nunca toca no resto do inventário. Quem decide
+     * o que sai é a mão do jogador, e quanto entra de moeda nova é o teto
+     * diário do ServerBuyback.
+     */
+    private void venderParaServidor(CommandSender sender, String label, String[] args) {
+        if (!(sender instanceof Player jogador)) {
+            sender.sendMessage(Component.text("Use /biga eco vender dentro do jogo.", NamedTextColor.RED));
+            return;
+        }
+
+        int pedido = Integer.MAX_VALUE;
+        if (args.length >= 3) {
+            try {
+                pedido = Integer.parseInt(args[2]);
+            } catch (NumberFormatException erro) {
+                jogador.sendMessage(Component.text(
+                        "Uso: /" + label + " eco vender [quantidade]", NamedTextColor.YELLOW));
+                return;
+            }
+            if (pedido <= 0) {
+                jogador.sendMessage(Component.text(
+                        "A quantidade precisa ser maior que zero.", NamedTextColor.YELLOW));
+                return;
+            }
+        }
+
+        ServerBuyback buyback = plugin.serverBuyback();
+        ServerBuyback.Resultado resultado = buyback.comprar(jogador, pedido);
+
+        if (!resultado.sucesso()) {
+            jogador.sendMessage(Component.text(resultado.mensagem(), NamedTextColor.RED));
+            return;
+        }
+
+        EconomyCatalog catalog = plugin.economyCatalog();
+        jogador.sendMessage(Component.text("Venda concluída", NamedTextColor.GREEN)
+                .decorate(TextDecoration.BOLD));
+        jogador.sendMessage(linha("Item", resultado.quantidade() + "x " + resultado.item()));
+        jogador.sendMessage(linha("Recebido", catalog.money(resultado.pagamento())));
+        jogador.sendMessage(linha("Teto restante hoje", catalog.money(resultado.restanteHoje())));
+        jogador.sendMessage(Component.text(
+                "O teto existe para farm não virar impressora de dinheiro. Acima dele, venda a outros jogadores.",
+                NamedTextColor.DARK_GRAY));
+    }
+
     private void mostrarRegras(CommandSender sender) {
         EconomyCatalog catalog = plugin.economyCatalog();
 
@@ -226,7 +277,9 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
         switch (args[1].toLowerCase(Locale.ROOT)) {
             case "local" -> mostrarLocalLoja(jogador);
             case "validar" -> validarLoja(jogador);
+            case "preview" -> previewLoja(jogador);
             case "criar" -> criarLoja(jogador, label, args);
+            case "desfazer" -> desfazerLoja(jogador, label, args);
             default -> enviarAjudaLoja(sender, label);
         }
     }
@@ -248,6 +301,13 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
                 NamedTextColor.DARK_GRAY));
     }
 
+    /**
+     * Diagnóstico detalhado.
+     *
+     * Separa "topo" de "solo" de propósito: foi exatamente essa confusão que
+     * fez o centro ser calculado 19 blocos acima do spawn quando a copa de
+     * spruce virou referência de piso.
+     */
     private void validarLoja(Player jogador) {
         SpawnShopBuilder.Analysis analysis = plugin.spawnShopBuilder().analyze(jogador.getWorld());
         if (!analysis.valid()) {
@@ -255,10 +315,31 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        mostrarLocalLoja(jogador);
-        jogador.sendMessage(linha("Altura da superfície", analysis.minSurfaceY() + ".." + analysis.maxSurfaceY()));
-        jogador.sendMessage(linha("Blocos suspeitos na superfície", String.valueOf(analysis.suspiciousSurfaceBlocks())));
-        jogador.sendMessage(linha("Obstruções aéreas", String.valueOf(analysis.obstructionCount())));
+        SpawnShopBuilder.FootprintSurvey survey = analysis.survey();
+
+        jogador.sendMessage(Component.text("Biga Market — validação", NamedTextColor.GOLD)
+                .decorate(TextDecoration.BOLD));
+        jogador.sendMessage(linha("Spawn real", formatLocation(analysis.spawn())));
+        jogador.sendMessage(linha("Centro X/Z",
+                analysis.center().getBlockX() + ", " + analysis.center().getBlockZ()));
+        jogador.sendMessage(linha("Fachada", analysis.facingName()));
+        jogador.sendMessage(linha("Footprint",
+                analysis.footprintWidth() + "x" + analysis.footprintDepth()
+                        + " (" + survey.totalColumns() + " colunas)"));
+        jogador.sendMessage(linha("Solo real min/max",
+                survey.minGroundY() + ".." + survey.maxGroundY()
+                        + "  (desnível " + analysis.slope() + ")"));
+        jogador.sendMessage(linha("Topo min/max (com folhagem)",
+                survey.minTopY() + ".." + survey.maxTopY()));
+        jogador.sendMessage(linha("Colunas com árvore", String.valueOf(survey.treeColumns())));
+        jogador.sendMessage(linha("Colunas com líquido", String.valueOf(survey.liquidColumns())));
+        jogador.sendMessage(linha("Colunas com TileState", String.valueOf(survey.tileStateColumns())));
+        jogador.sendMessage(linha("Blocos de construção",
+                survey.manMadeBlocks() + " (1º: " + survey.firstManMadeName() + ")"));
+        jogador.sendMessage(linha("Colunas sem solo", String.valueOf(survey.columnsWithoutGround())));
+        jogador.sendMessage(linha("Obstruções no volume", String.valueOf(analysis.obstructionCount())));
+        jogador.sendMessage(linha("Aterro necessário", analysis.foundationDepth() + " bloco(s)"));
+        jogador.sendMessage(linha("Piso recomendado", "Y=" + analysis.floorY()));
 
         NamedTextColor color = NamedTextColor.RED;
         String status = "BLOQUEADA";
@@ -267,8 +348,48 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             status = "SEGURA";
         }
 
-        jogador.sendMessage(Component.text("Validação: " + status + " — " + analysis.reason(), color)
+        jogador.sendMessage(Component.text("Status: " + status, color).decorate(TextDecoration.BOLD));
+        jogador.sendMessage(Component.text("Motivo: " + analysis.reason(), NamedTextColor.GRAY));
+
+        if (!analysis.safe()) {
+            jogador.sendMessage(Component.text(
+                    "Ajuste loja-spawn.offset-x/offset-z no config e rode /biga reload.",
+                    NamedTextColor.DARK_GRAY));
+        }
+    }
+
+    private void previewLoja(Player jogador) {
+        SpawnShopBuilder.Analysis analysis = plugin.spawnShopBuilder().analyze(jogador.getWorld());
+        if (!analysis.valid()) {
+            jogador.sendMessage(Component.text(analysis.reason(), NamedTextColor.RED));
+            return;
+        }
+
+        ShopPreview preview = plugin.shopPreview();
+        preview.start(jogador, analysis);
+
+        jogador.sendMessage(Component.text("Biga Market — preview", NamedTextColor.GOLD)
                 .decorate(TextDecoration.BOLD));
+        jogador.sendMessage(linha("Spawn", formatLocation(analysis.spawn())));
+        jogador.sendMessage(linha("Centro X/Z",
+                analysis.center().getBlockX() + ", " + analysis.center().getBlockZ()));
+        jogador.sendMessage(linha("Piso calculado", "Y=" + analysis.floorY()));
+        jogador.sendMessage(linha("Fachada", analysis.facingName()));
+        jogador.sendMessage(linha("Footprint",
+                analysis.footprintWidth() + "x" + analysis.footprintDepth()));
+
+        String status = "BLOQUEADA";
+        if (analysis.safe()) {
+            status = "SEGURA";
+        }
+        jogador.sendMessage(linha("Status", status));
+        jogador.sendMessage(Component.text(
+                "Verde = perímetro | laranja = fachada | branco = cantos e entrada | azul = centro.",
+                NamedTextColor.DARK_GRAY));
+        jogador.sendMessage(Component.text(
+                "Nenhum bloco foi alterado. O preview some em ~"
+                        + preview.durationSeconds() + "s.",
+                NamedTextColor.DARK_GRAY));
     }
 
     private void criarLoja(Player jogador, String label, String[] args) {
@@ -282,18 +403,58 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        SpawnShopBuilder.BuildResult result = plugin.spawnShopBuilder().build(jogador.getWorld());
+        SpawnShopBuilder.BuildResult result = plugin.spawnShopBuilder()
+                .build(jogador.getWorld(), plugin.shopSnapshot());
+
         NamedTextColor color = NamedTextColor.RED;
         if (result.success()) {
             color = NamedTextColor.GREEN;
         }
         jogador.sendMessage(Component.text(result.message(), color).decorate(TextDecoration.BOLD));
 
-        if (!result.success()) {
+        if (result.success()) {
             jogador.sendMessage(Component.text(
-                    "Ajuste loja-spawn.offset-x/offset-z no config e rode /biga reload antes de tentar novamente.",
+                    "Snapshot salvo. Para reverter: /" + label + " loja desfazer CONFIRMAR",
                     NamedTextColor.GRAY));
+            return;
         }
+
+        jogador.sendMessage(Component.text(
+                "Ajuste loja-spawn.offset-x/offset-z no config e rode /biga reload antes de tentar novamente.",
+                NamedTextColor.GRAY));
+    }
+
+    private void desfazerLoja(Player jogador, String label, String[] args) {
+        if (!plugin.shopSnapshot().exists()) {
+            jogador.sendMessage(Component.text(
+                    "Não existe snapshot da Biga Market para desfazer.", NamedTextColor.YELLOW));
+            return;
+        }
+
+        if (args.length < 3 || !args[2].equalsIgnoreCase("CONFIRMAR")) {
+            jogador.sendMessage(Component.text(
+                    "Isto restaura os blocos originais e apaga a loja construída.",
+                    NamedTextColor.YELLOW));
+            jogador.sendMessage(Component.text(
+                    "Para desfazer: /" + label + " loja desfazer CONFIRMAR",
+                    NamedTextColor.GOLD));
+            return;
+        }
+
+        // Snapshot cobre blocos. Item flutuante é entidade — se não for removido
+        // aqui, a loja some e os itens ficam boiando sobre o mato.
+        int displays = plugin.shopDisplays().removeAll(jogador.getWorld());
+
+        ShopSnapshot.RestoreResult result = plugin.shopSnapshot().restore(jogador.getWorld());
+
+        if (displays > 0) {
+            jogador.sendMessage(linha("Itens flutuantes removidos", String.valueOf(displays)));
+        }
+        NamedTextColor color = NamedTextColor.RED;
+        if (result.success()) {
+            color = NamedTextColor.GREEN;
+        }
+        jogador.sendMessage(Component.text(result.message(), color).decorate(TextDecoration.BOLD));
     }
 
     private String formatLocation(Location location) {
@@ -371,10 +532,13 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
 
     private void enviarAjudaLoja(CommandSender sender, String label) {
         sender.sendMessage(Component.text(
-                "Uso: /" + label + " loja <local|validar|criar>",
+                "Uso: /" + label + " loja <local|validar|preview|criar|desfazer>",
                 NamedTextColor.YELLOW));
         sender.sendMessage(Component.text(
-                "Ordem segura: local -> validar -> criar CONFIRMAR",
+                "Ordem segura: local -> validar -> preview -> criar CONFIRMAR",
+                NamedTextColor.GRAY));
+        sender.sendMessage(Component.text(
+                "Reverter a última construção: desfazer CONFIRMAR",
                 NamedTextColor.GRAY));
     }
 
@@ -399,7 +563,9 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             if (args.length == 2) {
                 return filtrar(LOJA_SUBCOMANDOS, args[1]);
             }
-            if (args.length == 3 && args[1].equalsIgnoreCase("criar")) {
+            boolean pedeConfirmacao = args[1].equalsIgnoreCase("criar")
+                    || args[1].equalsIgnoreCase("desfazer");
+            if (args.length == 3 && pedeConfirmacao) {
                 return filtrar(List.of("CONFIRMAR"), args[2]);
             }
             return List.of();

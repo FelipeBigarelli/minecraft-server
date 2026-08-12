@@ -58,6 +58,21 @@ public final class JogadorListener implements Listener {
 
         jogador.sendMessage(mensagem);
 
+        // Saldo inicial: aplicado pelo BigaCore, não pelo plugin de economia.
+        //
+        // Um tick depois do join de propósito. Durante o próprio PlayerJoinEvent
+        // o jogador ainda está entrando e outros plugins de economia podem não
+        // ter criado a conta; adiar um tick evita disputar a criação com eles.
+        //
+        // Não usa hasPlayedBefore(): quem já entrou antes da correção existir
+        // continua com saldo zero e precisa ser contemplado também.
+        plugin.getServer().getScheduler().runTaskLater(plugin,
+                () -> {
+                    if (jogador.isOnline()) {
+                        plugin.startingBalance().concederSeNecessario(jogador);
+                    }
+                }, 20L);
+
         // Primeira vez que este jogador entra no servidor.
         if (!jogador.hasPlayedBefore()) {
             // Component.text(texto, cor) monta o objeto direto, sem

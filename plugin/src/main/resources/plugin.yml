@@ -21,7 +21,9 @@ softdepend: [Vault, EternalEconomy, ChestShop]
 commands:
   biga:
     description: Comando principal do BigaCore
-    usage: /biga <info|eco|loja|reload|voar>
+    # Aspas obrigatórias: o "loja:" no meio da frase faria o YAML tratar a
+    # linha como um mapa aninhado e o Paper recusaria o plugin.yml inteiro.
+    usage: "/biga <info|eco|loja|reload|voar> — eco: status|saldo|preco|vender|regras"
     aliases: [bc]
     permission: bigacore.use
 

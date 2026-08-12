@@ -19,6 +19,7 @@ public final class VaultEconomyBridge {
 
     private Object provider;
     private Method getBalance;
+    private Method depositPlayer;
 
     public boolean available() {
         if (provider != null && getBalance != null) {
@@ -43,6 +44,45 @@ public final class VaultEconomyBridge {
         }
     }
 
+    /**
+     * Credita o jogador.
+     *
+     * Único ponto do BigaCore que CRIA moeda. Todo caminho até aqui precisa
+     * passar pelo teto diário do {@link ServerBuyback} — é o que separa uma
+     * recompra controlada de uma impressora de dinheiro ligada a uma farm AFK.
+     */
+    public boolean deposit(OfflinePlayer player, double amount) {
+        if (amount <= 0 || !available() || depositPlayer == null) {
+            return false;
+        }
+
+        try {
+            Object resposta = depositPlayer.invoke(provider, player, amount);
+            return transacaoDeuCerto(resposta);
+        } catch (IllegalAccessException | InvocationTargetException exception) {
+            return false;
+        }
+    }
+
+    /**
+     * O Vault devolve um EconomyResponse. Como não compilamos contra o Vault,
+     * o sucesso é lido por reflexão; se o formato mudar, o padrão é considerar
+     * que NÃO deu certo, para nunca dar item por dinheiro que não entrou.
+     */
+    private boolean transacaoDeuCerto(Object resposta) {
+        if (resposta == null) {
+            return false;
+        }
+
+        try {
+            Method sucesso = resposta.getClass().getMethod("transactionSuccess");
+            Object valor = sucesso.invoke(resposta);
+            return valor instanceof Boolean marcado && marcado;
+        } catch (ReflectiveOperationException exception) {
+            return false;
+        }
+    }
+
     @SuppressWarnings({"rawtypes", "unchecked"})
     private boolean discover() {
         try {
@@ -56,6 +96,8 @@ public final class VaultEconomyBridge {
 
             this.provider = registration.getProvider();
             this.getBalance = economyType.getMethod("getBalance", OfflinePlayer.class);
+            this.depositPlayer = economyType.getMethod(
+                    "depositPlayer", OfflinePlayer.class, double.class);
             return true;
         } catch (ClassNotFoundException | NoSuchMethodException exception) {
             return false;

@@ -54,14 +54,60 @@ mensagem-boas-vindas: "<aqua>Bem-vindo ao servidor, <white><jogador></white>! <g
 #  Antes de construir, use:
 #    /biga loja local
 #    /biga loja validar
+#    /biga loja preview
 #
 #  A construção só acontece com confirmação explícita:
 #    /biga loja criar CONFIRMAR
 #
+#  E pode ser revertida com:
+#    /biga loja desfazer CONFIRMAR
+#
 #  Se a validação acusar árvore, água, construção ou relevo ruim,
 #  altere os offsets, rode /biga reload e valide novamente.
+#
+#  IMPORTANTE: o BigaCore mede SOLO REAL, não a copa das árvores.
+#  Folha, tronco, grama e neve nunca contam como piso.
+#
+#  ATENÇÃO AO CONFIG JÁ EXISTENTE EM RUNTIME
+#  Chaves novas adicionadas aqui NÃO aparecem sozinhas em
+#  plugins/BigaCore/config.yml. Se a sua instalação é antiga, as
+#  chaves ausentes usam o padrão embutido no código, que é o mesmo
+#  valor mostrado abaixo. Copie-as à mão só se quiser outro valor.
 # -------------------------------------------------------------
 loja-spawn:
+  # Deslocamento em relação ao spawn REAL do mundo.
   offset-x: 28
   offset-z: 0
+
+  # Diferença máxima aceita entre o solo mais baixo e o mais alto
+  # da footprint. Acima disso a validação bloqueia.
   max-desnivel: 3
+
+  # Quantos blocos de aterro a fundação pode empilhar. O piso é
+  # sempre o solo MAIS ALTO da footprint, então este número só
+  # aperta o limite quando for MENOR que max-desnivel. Existe para
+  # impedir que a loja vire um paredão de pedra sobre o terreno.
+  max-fundacao: 3
+
+  # Quantos blocos "de construção" (ruína, pedregulho, casa de
+  # aldeia, pedra lavrada) são tolerados dentro da footprint.
+  # 0 = qualquer estrutura existente bloqueia a validação.
+  max-blocos-construidos: 0
+
+  # -----------------------------------------------------------
+  #  Derrubar árvore dentro da footprint
+  #
+  #  A loja tem 31x29. Numa floresta de spruce como a do spawn
+  #  atual, NENHUM ponto num raio de 140 blocos comporta isso sem
+  #  derrubar árvore — a varredura do mundo confirmou.
+  #
+  #  false = árvore BLOQUEIA a validação (padrão, conservador).
+  #  true  = a construção derruba folha e tronco da footprint.
+  #
+  #  Mesmo ligado, isto NUNCA derruba nada fora da footprint, não
+  #  cava abaixo do solo, e não afeta líquido, baú/placa nem
+  #  estrutura existente: esses continuam bloqueando sempre.
+  #
+  #  A madeira derrubada não vira drop. É terraplanagem.
+  # -----------------------------------------------------------
+  limpar-arvores: false

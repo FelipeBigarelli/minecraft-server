@@ -71,6 +71,92 @@ public final class EconomyCatalog {
         return config.getBoolean("policy.admin-buyback-enabled-at-launch", false);
     }
 
+    // ------------------------------------------------------------------
+    //  Biga Market como loja do servidor
+    // ------------------------------------------------------------------
+
+    public boolean adminShopEnabled() {
+        return config.getBoolean("admin-shop.enabled", false);
+    }
+
+    /** Recompra ligada. Separado de adminShopEnabled: dá para vender sem comprar. */
+    public boolean adminBuybackEnabled() {
+        return config.getBoolean("admin-shop.buyback-enabled", false);
+    }
+
+    /**
+     * Nome do dono nas placas.
+     *
+     * Precisa bater com ADMIN_SHOP_NAME do ChestShop. Se divergir, a placa vira
+     * loja de um jogador inexistente e nenhuma compra funciona.
+     */
+    public String adminShopSignOwner() {
+        return config.getString("admin-shop.sign-owner", "Admin Shop");
+    }
+
+    /** A placa do balcão também compra do jogador. */
+    public boolean adminShopSignBuysBack() {
+        return config.getBoolean("admin-shop.placa-compra", false);
+    }
+
+    /** Usa nomes em português na linha do item da placa. */
+    public boolean adminShopPortugueseNames() {
+        return config.getBoolean("admin-shop.nomes-em-portugues", false);
+    }
+
+    /**
+     * Nome em português do item, ou a própria chave quando não houver.
+     *
+     * Cai para a chave de propósito: um item sem tradução aparece em inglês,
+     * mas a loja continua funcionando.
+     */
+    public String displayName(String key) {
+        return config.getString("nomes." + key, key.toUpperCase(Locale.ROOT));
+    }
+
+    /** Todos os pares chave -> nome em português, para gerar o itemAliases.yml. */
+    public java.util.Map<String, String> allDisplayNames() {
+        ConfigurationSection nomes = config.getConfigurationSection("nomes");
+        if (nomes == null) {
+            return java.util.Map.of();
+        }
+        java.util.Map<String, String> mapa = new java.util.LinkedHashMap<>();
+        for (String chave : nomes.getKeys(false)) {
+            String valor = nomes.getString(chave);
+            if (valor != null && !valor.isBlank()) {
+                mapa.put(chave, valor);
+            }
+        }
+        return java.util.Map.copyOf(mapa);
+    }
+
+    /** Itens da parede de venda, já filtrados: só entra quem tem server-sell. */
+    public List<PriceEntry> adminShopWall(int maxSlots) {
+        List<PriceEntry> vitrine = new ArrayList<>();
+
+        for (String chave : config.getStringList("admin-shop.wall")) {
+            Optional<PriceEntry> entrada = find(chave);
+            if (entrada.isEmpty()) {
+                plugin.getLogger().warning(
+                        "[admin-shop] '" + chave + "' não está no catalog e foi ignorado.");
+                continue;
+            }
+            if (entrada.get().serverSell() == null) {
+                plugin.getLogger().warning(
+                        "[admin-shop] '" + chave + "' não tem server-sell e foi ignorado.");
+                continue;
+            }
+            if (vitrine.size() >= maxSlots) {
+                plugin.getLogger().warning("[admin-shop] A parede tem " + maxSlots
+                        + " vagas; '" + chave + "' e os seguintes ficaram de fora.");
+                break;
+            }
+            vitrine.add(entrada.get());
+        }
+
+        return List.copyOf(vitrine);
+    }
+
     public Optional<PriceEntry> find(String input) {
         if (input == null || input.isBlank()) {
             return Optional.empty();

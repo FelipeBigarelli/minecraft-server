@@ -10,8 +10,8 @@
 version: 1
 
 currency:
-  name: "Biga"
-  symbol: "B$"
+  name: "Biga Coin"
+  symbol: "BC$"
   decimals: 0
   starting-balance: 250
 
@@ -27,6 +27,116 @@ policy:
   auto-sell-enabled: false
   admin-buyback-enabled-at-launch: false
 
+# =============================================================
+# Biga Market como loja DO SERVIDOR (Admin Shop)
+#
+# Os dois lados do balcão têm riscos opostos:
+#
+#   servidor VENDE  -> jogador paga -> moeda SAI de circulação -> sink, seguro
+#   servidor COMPRA -> jogador ganha -> moeda ENTRA             -> faucet, perigoso
+#
+# Por isso eles são implementados de formas diferentes:
+#
+#   venda   = placas ChestShop "Admin Shop" na parede da loja, estoque infinito
+#   compra  = /biga eco vender, com TETO DIÁRIO por jogador no BigaCore
+#
+# O ChestShop não sabe aplicar teto por jogador. Se a recompra fosse placa,
+# uma farm de cobblestone AFK viraria impressora de dinheiro. Os tetos usados
+# são os admin-buyback-*-cap acima, que já existiam como política escrita.
+# =============================================================
+admin-shop:
+  # Liga as placas de venda da Biga Market.
+  enabled: true
+
+  # Liga /biga eco vender. Sem isso o servidor não compra nada de ninguém.
+  buyback-enabled: true
+
+  # A placa do balcão também COMPRA do jogador (linha "B x : y S").
+  #
+  # Este é o lado que cria moeda. Só ligue com o teto funcionando: o
+  # ChestShopCapGuard cancela a venda que passar do limite diário. Se o console
+  # avisar que o teto NÃO pôde ser ligado, desligue isto imediatamente.
+  placa-compra: true
+
+  # Usa os nomes em português da seção "nomes" na linha do item da placa.
+  # O ChestShop resolve pelo itemAliases.yml gerado junto.
+  # false = a placa mostra o nome do Material em inglês (sempre funciona).
+  nomes-em-portugues: true
+
+  # Nome do dono nas placas. PRECISA ser igual ao ADMIN_SHOP_NAME do
+  # plugins/ChestShop/config.yml, senão a placa vira loja de um jogador
+  # chamado "Admin Shop" — que não existe — e ninguém consegue comprar.
+  sign-owner: "Loja do Servidor"
+
+  # Itens que o SERVIDOR VENDE, na ordem em que aparecem na parede do fundo.
+  # O preço vem de catalog.<item>.server-sell; item sem esse campo é ignorado.
+  # As vagas vêm da geometria da loja (fundo + duas laterais). O que passar
+  # disso é descartado com aviso no console.
+  #
+  # De propósito só material de construção e consumo básico. Item de
+  # progressão (diamante, elytra, netherite, totem) fica fora: se o servidor
+  # vendesse isso, exploração e negociação deixariam de valer a pena.
+  wall:
+    - cobblestone
+    - stone
+    - dirt
+    - grass_block
+    - gravel
+    - sand
+    - red_sand
+    - glass
+    - clay_ball
+    - deepslate
+    - tuff
+    - calcite
+    - oak_log
+    - spruce_log
+    - birch_log
+    - jungle_log
+    - acacia_log
+    - dark_oak_log
+    - mangrove_log
+    - cherry_log
+    - bamboo
+    - coal
+    - charcoal
+    - wheat
+    - carrot
+    - potato
+    - beetroot
+    - pumpkin
+    - melon
+    - sugar_cane
+    - cocoa_beans
+    - cactus
+    - kelp
+    - bread
+    - cooked_beef
+    - cooked_porkchop
+    - cooked_chicken
+    - cooked_mutton
+    - baked_potato
+    - iron_ingot
+    - copper_ingot
+    - gold_ingot
+    - redstone
+    - lapis_lazuli
+    - quartz
+    - amethyst_shard
+    - obsidian
+    - leather
+    - gunpowder
+    - slime_ball
+    - ender_pearl
+    - prismarine_shard
+    - bone
+    - string
+    - blaze_rod
+    - ghast_tear
+    - magma_cream
+    - nautilus_shell
+    - name_tag
+    - saddle
 # tier é uma classificação ECONÔMICA do BigaCore, não a rarity oficial.
 # Campos ausentes server-buy/server-sell significam P2P somente naquele lado.
 catalog:
@@ -78,7 +188,10 @@ catalog:
   gold_ingot: { tier: UNCOMMON, lot: 16, p2p: 240, server-buy: 96, server-sell: 360 }
   redstone: { tier: UNCOMMON, lot: 64, p2p: 96, server-buy: 24, server-sell: 160 }
   lapis_lazuli: { tier: UNCOMMON, lot: 64, p2p: 128, server-buy: 32, server-sell: 200 }
-  nether_quartz: { tier: UNCOMMON, lot: 32, p2p: 160, server-buy: 48, server-sell: 240 }
+  # A chave precisa ser o nome do Material. O item do Nether é Material.QUARTZ,
+  # não "nether_quartz": com a chave errada o /biga eco vender não achava preço
+  # e dizia que o servidor não compra quartzo.
+  quartz: { tier: UNCOMMON, lot: 32, p2p: 160, server-buy: 48, server-sell: 240 }
   amethyst_shard: { tier: UNCOMMON, lot: 32, p2p: 128, server-buy: 24, server-sell: 200 }
   obsidian: { tier: UNCOMMON, lot: 16, p2p: 160, server-buy: 40, server-sell: 240 }
 
@@ -123,3 +236,92 @@ catalog:
   silence_armor_trim_smithing_template: { tier: LEGENDARY, lot: 1, p2p: 4500 }
   dragon_head: { tier: LEGENDARY, lot: 1, p2p: 3500 }
   netherite_block: { tier: LEGENDARY, lot: 1, p2p: 27000 }
+
+# Nome em português mostrado na placa e no item flutuante.
+# Precisa caber em uma linha de placa (~15 caracteres).
+nomes:
+  acacia_log: "Tronco Acacia"
+  amethyst_shard: "Ametista"
+  ancient_debris: "Destrocos Ant"
+  baked_potato: "Batata Assada"
+  bamboo: "Bambu"
+  beacon: "Sinalizador"
+  beetroot: "Beterraba"
+  birch_log: "Tronco Betula"
+  blaze_rod: "Vara de Blaze"
+  bone: "Osso"
+  bread: "Pao"
+  cactus: "Cacto"
+  calcite: "Calcita"
+  carrot: "Cenoura"
+  charcoal: "Carvao Vegetal"
+  cherry_log: "Tronco Cereja"
+  clay_ball: "Argila"
+  coal: "Carvao"
+  cobblestone: "Pedregulho"
+  cocoa_beans: "Cacau"
+  conduit: "Conduite"
+  cooked_beef: "Bife Assado"
+  cooked_chicken: "Frango Assado"
+  cooked_mutton: "Carneiro Assado"
+  cooked_porkchop: "Porco Assado"
+  copper_ingot: "Cobre"
+  dark_oak_log: "Tronco Escuro"
+  deepslate: "Ardosia"
+  diamond: "Diamante"
+  dirt: "Terra"
+  dragon_egg: "Ovo de Dragao"
+  dragon_head: "Cabeca Dragao"
+  elytra: "Elitros"
+  emerald: "Esmeralda"
+  enchanted_golden_apple: "Maca Encantada"
+  ender_pearl: "Perola do End"
+  ghast_tear: "Lagrima Ghast"
+  glass: "Vidro"
+  gold_ingot: "Ouro"
+  grass_block: "Bloco de Grama"
+  gravel: "Cascalho"
+  gunpowder: "Polvora"
+  heart_of_the_sea: "Coracao do Mar"
+  heavy_core: "Nucleo Pesado"
+  iron_ingot: "Ferro"
+  jungle_log: "Tronco Selva"
+  kelp: "Alga"
+  lapis_lazuli: "Lapis-Lazuli"
+  leather: "Couro"
+  mace: "Maca de Armas"
+  magma_cream: "Creme de Magma"
+  mangrove_log: "Tronco Mangue"
+  melon: "Melancia"
+  music_disc_pigstep: "Disco Pigstep"
+  name_tag: "Etiqueta"
+  nautilus_shell: "Concha Nautilus"
+  nether_star: "Estrela Nether"
+  netherite_block: "Bloco Netherite"
+  netherite_ingot: "Netherite"
+  netherite_scrap: "Sucata Nether"
+  netherite_upgrade_smithing_template: "Molde Netherite"
+  oak_log: "Tronco Carvalho"
+  obsidian: "Obsidiana"
+  potato: "Batata"
+  prismarine_shard: "Prismarinho"
+  pumpkin: "Abobora"
+  quartz: "Quartzo"
+  red_sand: "Areia Vermelha"
+  redstone: "Redstone"
+  rotten_flesh: "Carne Podre"
+  saddle: "Sela"
+  sand: "Areia"
+  shulker_box: "Caixa Shulker"
+  shulker_shell: "Casca Shulker"
+  silence_armor_trim_smithing_template: "Molde Silencio"
+  slime_ball: "Slime"
+  spider_eye: "Olho de Aranha"
+  spruce_log: "Tronco Pinheiro"
+  stone: "Pedra"
+  string: "Linha"
+  sugar_cane: "Cana de Acucar"
+  totem_of_undying: "Totem"
+  trident: "Tridente"
+  tuff: "Tufo"
+  wheat: "Trigo"

@@ -19,14 +19,14 @@ de progressão continuam vindo de exploração, gameplay e negociação real.
 |---|---:|
 | Moeda | **Biga (`B$`)** |
 | Casas decimais | **0** |
-| Saldo inicial | **250 B$** |
+| Saldo inicial | **250 B$** (aplicado pelo BigaCore) |
 | Taxa ChestShop P2P | **4%** |
 | Criar uma loja | **50 B$** |
 | Reembolso ao remover | **10 B$** |
 | Transações parciais | **desativadas** |
-| Auto-sell / sell-all | **não existe no lançamento** |
-| Admin Shop ilimitada | **desativada** |
-| Buyback do servidor | **desativado no lançamento** |
+| Auto-sell / sell-all | **não existe** |
+| Admin Shop ilimitada | **ativa, só do lado da venda** |
+| Buyback do servidor | **ativo, com teto diário por jogador** |
 
 Os 4% de imposto não vão para outra conta: saem de circulação. Portanto são um
 **money sink real**, não apenas dinheiro movido para uma tesouraria.
@@ -40,6 +40,92 @@ Não existe pagamento automático por:
 - juros sobre saldo.
 
 Uma farm pode produzir muitos **itens**, mas não imprime B$ automaticamente.
+
+### ⚠️ O saldo inicial não vinha do plugin de economia
+
+O `defaultBalance: '250'` do EternalEconomy estava correto e mesmo assim a
+primeira conta real nasceu zerada:
+
+```text
+('261ba52f-…', 'zBigaBiga', 0)
+```
+
+A promessa estava escrita em dois arquivos e não valia em lugar nenhum, porque
+dependia do comportamento de um plugin de terceiro no instante exato em que a
+conta é criada — e ela pode nascer por um caminho que ignora esse default (uma
+consulta de saldo via Vault costuma criar a conta zerada).
+
+Agora quem aplica a política é o BigaCore (`StartingBalance.java`), no login,
+com duas travas: o UUID é marcado em `plugins/BigaCore/saldo-inicial.yml`, e o
+crédito é um **complemento até** 250, nunca uma soma. Quem já tem 250 ou mais
+não recebe nada, mesmo que o arquivo de controle seja apagado.
+
+---
+
+## 🏪 A Biga Market é a loja do servidor
+
+Decisão do dono do servidor: a Biga Market é um **Admin Shop**, não um conjunto
+de bancas de jogador.
+
+Os dois lados do balcão têm riscos opostos, e por isso são implementados de
+formas diferentes:
+
+| Lado | Efeito na moeda | Como é feito | Limite |
+|---|---|---|---|
+| Servidor **vende** | sai de circulação → **sink** | placas ChestShop `Admin Shop`, estoque infinito | nenhum |
+| Servidor **compra** | entra em circulação → **faucet** | `/biga eco vender` no BigaCore | **teto diário por jogador** |
+
+### Por que a recompra não é uma placa
+
+O ChestShop não sabe aplicar teto por jogador. Se a recompra fosse uma placa de
+Admin Shop ilimitada, uma farm de cobblestone ligada a noite inteira viraria uma
+impressora de dinheiro — exatamente o cenário que o resto deste documento existe
+para evitar.
+
+Passando pelo BigaCore, a vazão máxima de moeda nova é previsível:
+
+```text
+moeda nova por dia  ≤  jogadores × 150 B$
+```
+
+contra os sinks de 4% de imposto, 50 B$ por loja criada e a venda no varejo.
+
+### O que o servidor vende
+
+**60 itens** — praticamente todo o catálogo vendável — distribuídos em 61 vagas
+na parede do fundo e nas duas laterais do salão. A lista fica em
+`admin-shop.wall` no `economy.yml`.
+
+Cada vaga é um barril, uma placa ChestShop e um **item flutuando** acima do
+balcão, para dar para ver o que está à venda sem ler placa por placa.
+
+**Item de progressão fica fora de propósito.** Diamante, elytra, netherite,
+totem, shulker shell e afins continuam vindo de exploração ou de negociação
+entre jogadores. Existe um teste automatizado que falha o build se algum deles
+aparecer na parede da loja.
+
+### O que o servidor compra
+
+Qualquer item que tenha `server-buy` no catálogo, pelo preço de lá — sempre bem
+abaixo do preço de venda, para que negociar com outro jogador continue valendo
+mais a pena do que despachar no balcão.
+
+```text
+/biga eco vender              vende o que está na mão
+/biga eco vender 32           vende no máximo 32
+```
+
+Regras:
+
+- vende **apenas o item na mão**, nunca o inventário — não é um `/sellall`
+  disfarçado;
+- item com encantamento, nome ou dano é recusado: preço de tabela não vale para
+  item único;
+- o pagamento sempre arredonda **para baixo**;
+- ao bater o teto, o comando avisa e manda negociar com outros jogadores.
+
+Os tetos são `admin-buyback-daily-cap` (150 B$) e `admin-buyback-weekly-cap`
+(900 B$), que já estavam escritos como política antes de existir código.
 
 ---
 
@@ -72,6 +158,8 @@ configuração antes do servidor ser iniciado.
 /biga eco saldo
 /biga eco preco diamond
 /biga eco preco iron_ingot
+/biga eco vender
+/biga eco vender 32
 /biga eco regras
 ```
 
@@ -217,13 +305,17 @@ configs econômicos críticos incorretos ou JARs duplicados.
 As seguintes ideias estão registradas em `economy.yml`, porém não devem ser
 confundidas com recurso já ativo:
 
-| Política futura | Referência atual |
-|---|---:|
-| Buyback máximo por jogador/dia | 150 B$ |
-| Buyback máximo por jogador/semana | 900 B$ |
-| Teto combinado de moeda nova/dia | 200 B$ |
-| Primeiro tier comercial | até 6 lojas |
-| Tiers futuros | 12 / 20 lojas |
+| Política futura | Referência atual | Situação |
+|---|---:|---|
+| Buyback máximo por jogador/dia | 150 B$ | **aplicado** pelo BigaCore |
+| Buyback máximo por jogador/semana | 900 B$ | **aplicado** pelo BigaCore |
+| Teto combinado de moeda nova/dia | 200 B$ | só documentado |
+| Primeiro tier comercial | até 6 lojas | só documentado |
+| Tiers futuros | 12 / 20 lojas | só documentado |
+
+O limite de lojas por jogador continua sendo um número decorativo: nada o
+aplica. Para valer de verdade ele precisa virar permissão
+`ChestShop.shop.limit.<n>` no gerenciador de permissões.
 
 Elas só serão ativadas quando existir motivo real. Um servidor entre poucos
 amigos não precisa começar com uma camada de “banco central” complexa antes de

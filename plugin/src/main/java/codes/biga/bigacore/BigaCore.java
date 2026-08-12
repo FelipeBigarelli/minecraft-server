@@ -20,6 +20,12 @@ public final class BigaCore extends JavaPlugin {
     private EconomyCatalog economyCatalog;
     private VaultEconomyBridge economyBridge;
     private SpawnShopBuilder spawnShopBuilder;
+    private ShopPreview shopPreview;
+    private ShopSnapshot shopSnapshot;
+    private ServerBuyback serverBuyback;
+    private StartingBalance startingBalance;
+    private ShopDisplays shopDisplays;
+    private ChestShopCapGuard chestShopCapGuard;
 
     @Override
     public void onEnable() {
@@ -40,6 +46,17 @@ public final class BigaCore extends JavaPlugin {
         this.economyCatalog = new EconomyCatalog(this);
         this.economyBridge = new VaultEconomyBridge();
         this.spawnShopBuilder = new SpawnShopBuilder(this);
+        this.shopPreview = new ShopPreview(this);
+        this.shopSnapshot = new ShopSnapshot(this);
+        this.serverBuyback = new ServerBuyback(this);
+        this.startingBalance = new StartingBalance(this);
+        this.shopDisplays = new ShopDisplays(this);
+        this.shopDisplays.start();
+
+        // Precisa vir depois do ChestShop no softdepend, senão o plugin ainda
+        // não está registrado e o hook do teto não encontra a classe do evento.
+        this.chestShopCapGuard = new ChestShopCapGuard(this);
+        this.chestShopCapGuard.register();
 
         // Listeners e comandos ficam em classes próprias para a
         // classe principal não virar um depósito de tudo.
@@ -67,6 +84,18 @@ public final class BigaCore extends JavaPlugin {
         // estado aqui. O servidor espera este método terminar antes
         // de prosseguir com o shutdown.
         getLogger().info("BigaCore desabilitado.");
+        if (shopPreview != null) {
+            shopPreview.stopAll();
+        }
+        if (shopDisplays != null) {
+            shopDisplays.stop();
+        }
+        shopPreview = null;
+        shopSnapshot = null;
+        serverBuyback = null;
+        startingBalance = null;
+        shopDisplays = null;
+        chestShopCapGuard = null;
         spawnShopBuilder = null;
         economyCatalog = null;
         economyBridge = null;
@@ -90,10 +119,36 @@ public final class BigaCore extends JavaPlugin {
         return spawnShopBuilder;
     }
 
+    public ShopPreview shopPreview() {
+        return shopPreview;
+    }
+
+    public ShopSnapshot shopSnapshot() {
+        return shopSnapshot;
+    }
+
+    public ServerBuyback serverBuyback() {
+        return serverBuyback;
+    }
+
+    public StartingBalance startingBalance() {
+        return startingBalance;
+    }
+
+    public ShopDisplays shopDisplays() {
+        return shopDisplays;
+    }
+
+    public ChestShopCapGuard chestShopCapGuard() {
+        return chestShopCapGuard;
+    }
+
     /** Recarrega os dois arquivos que pertencem ao BigaCore. */
     public void reloadBigaConfigs() {
         reloadConfig();
         economyCatalog.reload();
+        serverBuyback.reload();
+        startingBalance.reload();
     }
 
     /**

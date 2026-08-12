@@ -9,14 +9,24 @@
 TURN_OFF_UPDATES: true
 
 # Usa a linguagem do cliente quando possível; inglês é o fallback seguro.
-DEFAULT_LANGUAGE: "en"
+DEFAULT_LANGUAGE: "pt_BR"
 USE_CLIENT_LOCALE: true
 
-# Admin Shops continuam disponíveis, mas NÃO serão ilimitados por padrão.
-# A criação dos poucos Admin Shops autorizados será manual e seguirá
-# server/economy/catalog.yml.
-ADMIN_SHOP_NAME: "Admin Shop"
-FORCE_UNLIMITED_ADMIN_SHOP: false
+# A Biga Market é a loja DO SERVIDOR: as placas do balcão do fundo são Admin
+# Shops de estoque infinito, geradas pelo BigaCore a partir de economy.yml.
+#
+# ADMIN_SHOP_NAME precisa ser IDÊNTICO a admin-shop.sign-owner do
+# plugins/BigaCore/economy.yml. Se divergir, a placa vira loja de um jogador
+# inexistente e ninguém consegue comprar.
+#
+# As placas VENDEM e COMPRAM (linha "B <venda>:<compra> S"). O ChestShop não
+# sabe aplicar teto por jogador, então quem protege o lado da compra é o
+# BigaCore: ChestShopCapGuard escuta PreTransactionEvent e cancela a venda que
+# passar do teto diário. Sem esse hook, uma farm AFK viraria impressora de
+# dinheiro — se o console avisar que o teto não subiu, desligue
+# admin-shop.placa-compra no economy.yml.
+ADMIN_SHOP_NAME: "Loja do Servidor"
+FORCE_UNLIMITED_ADMIN_SHOP: true
 
 # Vazio de propósito: os 4% abaixo são retirados de circulação (money sink),
 # em vez de irem para uma conta que poderia voltar a gastar a mesma moeda.

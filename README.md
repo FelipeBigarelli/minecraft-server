@@ -142,12 +142,21 @@ minecraft-server/
     ├── pom.xml
     └── src/main/
         ├── java/codes/biga/bigacore/
-        │   ├── BigaCore.java
-        │   ├── BigaCommand.java
-        │   └── JogadorListener.java
+        │   ├── BigaCore.java          # ponto de entrada
+        │   ├── BigaCommand.java       # /biga e subcomandos
+        │   ├── JogadorListener.java   # join/quit
+        │   ├── EconomyCatalog.java    # lê economy.yml
+        │   ├── VaultEconomyBridge.java# ponte Vault por reflexão
+        │   ├── StartingBalance.java   # aplica o saldo inicial
+        │   ├── ServerBuyback.java     # recompra com teto diário
+        │   ├── SpawnShopBuilder.java  # analisa terreno e constrói a loja
+        │   ├── ShopPreview.java       # preview por partículas
+        │   ├── ShopSnapshot.java      # snapshot e rollback
+        │   └── ShopDisplays.java      # item flutuante sobre as bancas
         └── resources/
             ├── plugin.yml
-            └── config.yml
+            ├── config.yml
+            └── economy.yml
 ```
 
 No runtime, `scripts/server.env` é gerado pelo setup e guarda os defaults usados
@@ -218,10 +227,20 @@ Confirmar no log: `[BigaCore] BigaCore habilitado.`
 ### Comandos
 
 ```text
-/biga info      versão do plugin e do servidor (com hover e clique)
-/biga reload    recarrega o config.yml           (precisa de OP)
-/biga voar      alterna voo                      (precisa de OP)
+/biga info                      versão do plugin e do servidor
+/biga eco status|saldo|regras   política econômica e seu saldo
+/biga eco preco <item>          consulta o catálogo
+/biga eco vender [qtd]          vende ao servidor o item da mão (com teto diário)
+/biga loja local|validar        onde a Biga Market ficará e se a área é segura
+/biga loja preview              desenha a loja com partículas, sem tocar em bloco
+/biga loja criar CONFIRMAR      constrói                          (precisa de OP)
+/biga loja desfazer CONFIRMAR   reverte a última construção       (precisa de OP)
+/biga reload                    recarrega config.yml e economy.yml (precisa de OP)
+/biga voar                      alterna voo                        (precisa de OP)
 ```
+
+Detalhes da economia em [ECONOMIA.md](ECONOMIA.md) e da loja em
+[LOJA-SPAWN.md](LOJA-SPAWN.md).
 
 ### Decisões de API
 
@@ -309,7 +328,10 @@ o `.gitignore` não protege arquivos enviados manualmente como assets de Release
 | [HANDOFF.md](HANDOFF.md) | estado completo do projeto, decisões e armadilhas; leia primeiro ao desenvolver |
 | [PLANO-EXECUCAO.md](PLANO-EXECUCAO.md) | infra → memória → narrador → conteúdo |
 | [COMO-RODAR.md](COMO-RODAR.md) | guia operacional do dia a dia |
+| [ECONOMIA.md](ECONOMIA.md) | moeda, catálogo, Admin Shop e recompra |
+| [LOJA-SPAWN.md](LOJA-SPAWN.md) | a Biga Market: detecção de terreno, preview e rollback |
 | [docs/sessoes/](docs/sessoes/) | histórico resumido das sessões |
+| [rodadas/](rodadas/) | canal de trabalho entre Felipe, ChatGPT e Claude Code |
 
 ### 🔄 Retomando desenvolvimento em outro PC
 

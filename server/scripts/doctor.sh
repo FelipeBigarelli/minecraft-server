@@ -137,7 +137,11 @@ fi
 
 ETERNAL_CONFIG="$SERVER_DIR/plugins/EternalEconomy/config.yml"
 if [ -f "$ETERNAL_CONFIG" ]; then
-    if grep -Eq '^defaultBalance:[[:space:]]*250(\.0+)?([[:space:]]|$)' "$ETERNAL_CONFIG"; then
+    # As aspas são obrigatórias no padrão: ao gravar o próprio config no
+    # primeiro boot, o EternalEconomy normaliza o número para string e escreve
+    # defaultBalance: '250'. Sem aceitar isso, o doctor reprovava um servidor
+    # perfeitamente configurado e bloqueava o boot.
+    if grep -Eq "^defaultBalance:[[:space:]]*['\"]?250(\.0+)?['\"]?[[:space:]]*$" "$ETERNAL_CONFIG"; then
         ok "EternalEconomy: saldo inicial = 250 B$."
     else
         err "EternalEconomy: defaultBalance não está em 250."
