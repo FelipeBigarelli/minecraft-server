@@ -223,7 +223,9 @@ catalog:
   rotten_flesh: { tier: COMMON, lot: 64, p2p: 24, server-buy: 2, server-sell: 40 }
   spider_eye: { tier: UNCOMMON, lot: 16, p2p: 48, server-buy: 6, server-sell: 76 }
 
-  diamond: { tier: RARE, lot: 1, p2p: 120, server-buy: 55, server-sell: 190 }
+  # Progressão: negociada entre jogadores, nunca comprada/vendida pelo servidor
+  # (mesmo padrão do emerald abaixo). Sem server-buy/server-sell de propósito.
+  diamond: { tier: RARE, lot: 1, p2p: 120 }
   emerald: { tier: RARE, lot: 8, p2p: 160 }
   blaze_rod: { tier: RARE, lot: 8, p2p: 240, server-buy: 32, server-sell: 380 }
   ghast_tear: { tier: RARE, lot: 4, p2p: 320, server-buy: 64, server-sell: 500 }

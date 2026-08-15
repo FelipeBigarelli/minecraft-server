@@ -621,12 +621,6 @@ public final class SpawnShopBuilder {
     }
 
     /**
-     * Limpa só vegetação dentro do salão.
-     *
-     * Árvore, líquido, TileState e construção nunca chegam aqui: a validação
-     * bloqueia antes. A limpeza é deliberadamente conservadora.
-     */
-    /**
      * Limpa vegetação dentro do salão.
      *
      * Árvore, líquido, TileState e construção nunca chegam aqui quando

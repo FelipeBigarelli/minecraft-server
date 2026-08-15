@@ -15,9 +15,9 @@ import java.util.UUID;
  *
  * O `economy.yml` promete 250 B$ para conta nova, e o
  * `plugins/EternalEconomy/config.yml` traz `defaultBalance: '250'`. Mesmo assim
- * a primeira conta criada no servidor real ficou assim:
+ * a primeira conta criada no servidor real nasceu com saldo zero:
  *
- * <pre>('261ba52f-…', 'zBigaBiga', 0)</pre>
+ * <pre>(conta_nova, saldo = 0)</pre>
  *
  * Saldo zero. A promessa estava escrita em dois arquivos e não valia em lugar
  * nenhum, porque dependia inteiramente do comportamento de um plugin de

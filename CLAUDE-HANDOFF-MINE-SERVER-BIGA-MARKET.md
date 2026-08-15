@@ -1,5 +1,18 @@
 # HANDOFF PARA CLAUDE — MINE SERVER / BIGA MARKET
 
+> ⚠️ **DOCUMENTO LEGADO — reflete o desenho ANTERIOR do projeto.** Foi o prompt
+> da auditoria que originou a Biga Market e já foi superado em pontos-chave. Não
+> use os números/decisões abaixo como verdade atual; a fonte corrente é
+> [ECONOMIA.md](ECONOMIA.md), [LOJA-SPAWN.md](LOJA-SPAWN.md) e [README.md](README.md).
+>
+> O que mudou desde este documento:
+> - **Moeda:** hoje é **Biga Coin (BC$)**, não "Biga (B$)".
+> - **Biga Market:** os baús **passaram a ser Admin Shop** (venda infinita do
+>   servidor, money sink). Este doc ainda afirma o contrário.
+> - **Tamanho da loja:** footprint atual é **31×29**, não 21×17.
+> - **Caminho do repositório:** o real é `~/Desktop/Projetos/minecraft-server`
+>   (este doc aponta para `~/Desktop/minecraft-server`).
+
 ## Auditoria completa + continuação segura do servidor Minecraft
 
 > **Leia este documento inteiro antes de alterar qualquer arquivo.**

@@ -108,21 +108,27 @@ public final class ShopPreview {
             marcar(player, world, layout, half, maxV, floorY + y, Particle.END_ROD);
         }
 
-        // Linha da fachada (parede da frente fica em v = 2).
-        for (int u = -8; u <= 8; u++) {
-            marcar(player, world, layout, u, 2, floorY + 1, Particle.FLAME);
+        // Linha da fachada, na parede da frente. Referencia as constantes do
+        // builder para nunca mais dessincronizar da geometria real quando a
+        // loja mudar de tamanho (foi o que gerou o preview antigo em v = 2).
+        int wallHalf = SpawnShopBuilder.WALL_HALF;
+        int frontV = SpawnShopBuilder.FRONT_V;
+        for (int u = -wallHalf; u <= wallHalf; u++) {
+            marcar(player, world, layout, u, frontV, floorY + 1, Particle.FLAME);
         }
 
-        // Vão da entrada.
-        for (int u = -2; u <= 2; u++) {
+        // Vão da entrada, centrado na parede da frente.
+        int doorHalf = SpawnShopBuilder.DOOR_HALF;
+        for (int u = -doorHalf; u <= doorHalf; u++) {
             for (int y = 1; y <= 4; y++) {
-                marcar(player, world, layout, u, 2, floorY + y, Particle.END_ROD);
+                marcar(player, world, layout, u, frontV, floorY + y, Particle.END_ROD);
             }
         }
 
         // Eixo central: mostra onde o centro proposto realmente cai.
+        int centerV = SpawnShopBuilder.CENTER_V;
         for (int y = 1; y <= 6; y++) {
-            marcar(player, world, layout, 0, 7, floorY + y, Particle.SOUL_FIRE_FLAME);
+            marcar(player, world, layout, 0, centerV, floorY + y, Particle.SOUL_FIRE_FLAME);
         }
     }
 

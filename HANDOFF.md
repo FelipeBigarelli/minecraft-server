@@ -1,6 +1,8 @@
 # 🤖 HANDOFF — Servidor Minecraft do Felipe
 
-> **Atualizado em 11/08/2026.** Este arquivo registra o estado conhecido do
+> **Atualizado em 11/08/2026** (última auditoria: 14/08/2026 — o plugin tem
+> **12 classes** e **37 testes**; para o estado corrente da economia veja
+> [ECONOMIA.md](ECONOMIA.md)). Este arquivo registra o estado conhecido do
 > projeto, decisões que não devem ser revertidas por acidente e as regras para
 > continuar o trabalho. O runtime (`~/minecraft`) pode ter mudado fora do Git;
 > portanto, **audite antes de assumir que o estado da máquina continua igual**.
@@ -378,7 +380,7 @@ problema real para resolver.
 
 ### Testes
 
-`mvn verify` roda 33 testes que **não precisam de servidor**. Eles existem
+`mvn verify` roda 37 testes que **não precisam de servidor**. Eles existem
 porque cada um corresponde a uma falha que chegou ao runtime:
 
 | Teste | Falha que ele previne |

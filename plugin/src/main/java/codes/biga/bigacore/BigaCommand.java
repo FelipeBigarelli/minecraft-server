@@ -526,7 +526,7 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
 
     private void enviarAjudaEconomia(CommandSender sender, String label) {
         sender.sendMessage(Component.text(
-                "Uso: /" + label + " eco <status|saldo|preco|regras>",
+                "Uso: /" + label + " eco <status|saldo|preco|vender|regras>",
                 NamedTextColor.YELLOW));
     }
 
