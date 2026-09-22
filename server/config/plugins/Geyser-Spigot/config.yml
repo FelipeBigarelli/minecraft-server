@@ -1,0 +1,30 @@
+# Perfil direto Paper + Geyser + Floodgate, validado na build fixada no lock.
+# Este template não contém chaves. Configs já existentes nunca são sobrescritas.
+bedrock:
+  address: 0.0.0.0
+  port: 19132
+  transport: raknet
+  clone-remote-port: false
+  signaling:
+    mode: none
+java:
+  auth-type: floodgate
+motd:
+  passthrough-motd: true
+  passthrough-player-counts: true
+gameplay:
+  server-name: biga.codes
+saved-user-logins: []
+notify-on-new-bedrock-update: true
+advanced:
+  # Mesmo Paper: Geyser obtém a chave do Floodgate automaticamente.
+  floodgate-key-file: key.pem
+  java:
+    use-direct-connection: true
+    use-haproxy-protocol: false
+  bedrock:
+    validate-bedrock-login: true
+    use-haproxy-protocol: false
+    use-waterdogpe-forwarding: false
+debug-mode: false
+config-version: 8

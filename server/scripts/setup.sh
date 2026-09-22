@@ -14,6 +14,7 @@
 #      SERVER_DIR=~/mc    outro diretório de instalação
 #      FORCE_CONFIG=1     sobrescreve configs/defaults existentes
 #      FORCE_PLUGINS=1    reinstala JARs econômicos fixados
+#      INSTALL_CROSSPLAY=0 omite Geyser/Floodgate (não desinstala)
 # =============================================================
 set -euo pipefail
 
@@ -23,6 +24,7 @@ RAM="${RAM:-4G}"
 SERVER_DIR="${SERVER_DIR:-$HOME/minecraft}"
 FORCE_CONFIG="${FORCE_CONFIG:-0}"
 FORCE_PLUGINS="${FORCE_PLUGINS:-0}"
+INSTALL_CROSSPLAY="${INSTALL_CROSSPLAY:-1}"
 
 PAPER_SHA256_DEFAULT="059d00bbce0fa1707739618b3276f5c80b9655dc0f964306fa799a9c7cb01cc2"
 PAPER_API="https://fill.papermc.io/v3/projects/paper"
@@ -34,6 +36,12 @@ log()  { printf '\033[1;36m[setup]\033[0m %s\n' "$*"; }
 ok()   { printf '\033[1;32m[  ok ]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[aviso]\033[0m %s\n' "$*"; }
 die()  { printf '\033[1;31m[erro]\033[0m %s\n' "$*" >&2; exit 1; }
+
+case "$INSTALL_CROSSPLAY" in
+    0|1) ;;
+    *) die "INSTALL_CROSSPLAY deve ser 0 ou 1." ;;
+esac
+[ -f "$PROJECT_DIR/plugin/pom.xml" ] || die "Execute setup.sh a partir do clone do repositório, não da cópia no runtime."
 
 log "Projeto  : $PROJECT_DIR"
 log "Servidor : $SERVER_DIR"
@@ -49,6 +57,7 @@ for cmd in curl tar screen; do
     command -v "$cmd" >/dev/null 2>&1 || FALTANDO+=("$cmd")
 done
 command -v mvn >/dev/null 2>&1 || FALTANDO+=("maven")
+command -v flock >/dev/null 2>&1 || FALTANDO+=("util-linux")
 
 if [ ${#FALTANDO[@]} -gt 0 ]; then
     log "Instalando: ${FALTANDO[*]}"
@@ -63,6 +72,27 @@ if [ ${#FALTANDO[@]} -gt 0 ]; then
         die "Gerenciador de pacotes não reconhecido. Instale manualmente: ${FALTANDO[*]}"
     fi
 fi
+# Python + PyYAML são usados no instalador/diagnóstico seguro de crossplay.
+# Pacotes da distribuição evitam pip global e ambientes Python inconsistentes.
+if ! python3 -c 'import yaml; import sys; assert sys.version_info >= (3, 10)' >/dev/null 2>&1; then
+    if command -v apt-get >/dev/null 2>&1; then
+        sudo apt-get update -qq
+        sudo apt-get install -y python3 python3-yaml
+    elif command -v dnf >/dev/null 2>&1; then
+        sudo dnf install -y python3 python3-pyyaml
+    elif command -v pacman >/dev/null 2>&1; then
+        sudo pacman -S --noconfirm python python-yaml
+    else
+        die "Instale Python 3.10+ e PyYAML antes de continuar."
+    fi
+fi
+python3 -c 'import yaml; import sys; assert sys.version_info >= (3, 10)' \
+    || die "Python 3.10+ com PyYAML não está disponível no PATH."
+
+# Recusa alterações em um runtime em uso, inclusive instalações antigas sem flock.
+python3 "$PROJECT_DIR/server/scripts/crossplay.py" stopped \
+    --server-dir "$SERVER_DIR" --config-root "$PROJECT_DIR/server/config" \
+    || die "Pare o servidor antes de executar o setup."
 ok "Dependências presentes."
 
 # -------------------------------------------------------------
@@ -221,6 +251,18 @@ bash "$PROJECT_DIR/server/scripts/install-economy.sh" \
     || die "Falha ao instalar a stack econômica."
 ok "Economia instalada: VaultUnlocked + EternalEconomy + ChestShop."
 
+# Crossplay é adicional: não troca o Paper nem converte os mundos.
+# O instalador preserva configs existentes e ignora FORCE_CONFIG deliberadamente.
+if [ "$INSTALL_CROSSPLAY" = "1" ]; then
+    log "Instalando crossplay Geyser + Floodgate..."
+    SERVER_DIR="$SERVER_DIR" MC_VERSION="$MC_VERSION" \
+        bash "$PROJECT_DIR/server/scripts/install-crossplay.sh" \
+        || die "Crossplay não instalado. Revise o erro; não inicie antes do doctor."
+else
+    warn "Crossplay omitido por INSTALL_CROSSPLAY=0. Instalações existentes não foram removidas."
+fi
+
+
 # -------------------------------------------------------------
 # 10. Operador (opcional)
 # -------------------------------------------------------------
@@ -265,6 +307,10 @@ echo "  Jar      : $JAR"
 echo "  BigaCore : $(basename "$PLUGIN_JAR")"
 echo "  Economia : ChestShop 3.13-pre-1 + VaultUnlocked 2.20.2 + EternalEconomy 1.0.1"
 echo "  RAM      : $RAM (persistida em scripts/server.env)"
+if [ "$INSTALL_CROSSPLAY" = "1" ]; then
+    echo "  Crossplay: Geyser + Floodgate, Bedrock UDP 19132 por padrão"
+    echo "  Switch   : veja CROSSPLAY.md no repositório; o console exige ajuste próprio"
+fi
 echo
 echo "  Antes do primeiro boot neste PC, valide:"
 echo "      cd $SERVER_DIR && bash scripts/doctor.sh"

@@ -61,3 +61,12 @@ banned-*.json
 # e um 'git add .' no momento errado captura o temporário.
 .claude/*
 !.claude/settings.json
+
+# --- Crossplay: credenciais, backups privados e arquivos transitórios ---
+saved-refresh-tokens.json
+.crossplay-backups/
+.crossplay-stage-*/
+.crossplay-write-*
+.crossplay.lock
+__pycache__/
+*.pyc
