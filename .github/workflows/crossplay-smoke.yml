@@ -1,0 +1,84 @@
+name: Crossplay smoke
+
+on:
+  push:
+    branches: [feat/switch-crossplay]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  crossplay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - name: Inspect official Geyser and Floodgate builds
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/crossplay"
+          cd "$RUNNER_TEMP/crossplay"
+          for project in geyser floodgate; do
+            curl --fail --silent --show-error --location --retry 3 --max-time 60 \
+              "https://download.geysermc.org/v2/projects/$project/versions/latest/builds/latest" \
+              -o "$project.json"
+            cat "$project.json"
+            echo
+            version=$(jq -er '.version' "$project.json")
+            build=$(jq -er '.build' "$project.json")
+            curl --fail --silent --show-error --location --retry 3 --max-time 300 \
+              "https://download.geysermc.org/v2/projects/$project/versions/$version/builds/$build/downloads/spigot" \
+              -o "$project.jar"
+            expected=$(jq -er '.downloads.spigot.sha256' "$project.json")
+            printf '%s  %s.jar\n' "$expected" "$project" | sha256sum -c -
+            unzip -p "$project.jar" plugin.yml || true
+            unzip -p "$project.jar" config.yml || true
+          done
+      - name: Set up Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Boot isolated compatibility server
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/crossplay"
+          sha=059d00bbce0fa1707739618b3276f5c80b9655dc0f964306fa799a9c7cb01cc2
+          curl --fail --silent --show-error --location --retry 3 --max-time 300 \
+            "https://fill-data.papermc.io/v1/objects/$sha/paper-26.2-92.jar" -o paper.jar
+          printf '%s  paper.jar\n' "$sha" | sha256sum -c -
+          mkdir plugins
+          cp geyser.jar floodgate.jar plugins/
+          printf 'eula=true\n' > eula.txt
+          printf 'online-mode=true\nserver-ip=127.0.0.1\nserver-port=25566\nview-distance=2\nsimulation-distance=2\n' > server.properties
+          python3 - <<'PY'
+          import pathlib, subprocess, threading
+          root = pathlib.Path.cwd()
+          process = subprocess.Popen(['java', '-Xms512M', '-Xmx2G', '-jar', 'paper.jar', '--nogui'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+          timer = threading.Timer(240, process.kill)
+          timer.start()
+          ready = False
+          try:
+              with open('boot.log', 'w') as log:
+                  for line in process.stdout:
+                      print(line, end='', flush=True)
+                      log.write(line)
+                      if 'Done (' in line and not ready:
+                          ready = True
+                          process.stdin.write('geyser version\nstop\n')
+                          process.stdin.flush()
+              result = process.wait(timeout=30)
+          finally:
+              timer.cancel()
+              if process.poll() is None:
+                  process.kill()
+          for path in sorted(root.glob('plugins/*/config.yml')):
+              if path.parent.name.lower() in ('floodgate', 'geyser-spigot'):
+                  print('\nCONFIG:', path.relative_to(root))
+                  print(path.read_text())
+          if not ready or result != 0:
+              raise SystemExit('Compatibility boot did not finish cleanly')
+          PY
