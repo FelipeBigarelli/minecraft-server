@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "minecraft": "26.2",
+  "verified_at": "2026-09-21",
+  "source": "https://download.geysermc.org/v2/projects",
+  "plugins": [
+    {
+      "project": "geyser",
+      "version": "2.11.3",
+      "build": 1245,
+      "filename": "Geyser-Spigot.jar",
+      "plugin_name": "Geyser-Spigot",
+      "sha256": "d9a3b8eef599726243a3f03cc76cc3387127d2ad48daae00b860c0189995277a"
+    },
+    {
+      "project": "floodgate",
+      "version": "2.2.5",
+      "build": 141,
+      "filename": "floodgate-spigot.jar",
+      "plugin_name": "floodgate",
+      "sha256": "21570aff9ce17d6983928e8552777760e1ede5050026b04c686b0ae112e6fd7e"
+    }
+  ]
+}

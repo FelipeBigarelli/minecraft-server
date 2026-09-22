@@ -1,0 +1,20 @@
+# key.pem é gerado somente no runtime. Nunca publique a chave ou backups.
+key-file-name: key.pem
+# Não remova este prefixo: evita colisão entre nomes Java e Bedrock.
+username-prefix: "."
+replace-spaces: true
+default-locale: en_US
+disconnect:
+  invalid-key: "Conecte pelo Geyser deste servidor."
+  invalid-arguments-length: "Conexão incompatível. Verifique a versão do Geyser."
+player-link:
+  enabled: true
+  require-link: false
+  enable-own-linking: false
+  allowed: true
+  link-code-timeout: 300
+  type: sqlite
+  enable-global-linking: true
+metrics:
+  enabled: false
+config-version: 3

@@ -46,6 +46,13 @@ RAM="${RAM:-${DEFAULT_RAM:-4G}}"
 
 cd "$SERVER_DIR"
 
+# Compartilhado com install-crossplay.sh. O descritor permanece aberto no Java.
+# Impede instalação simultânea e segunda instância iniciada por este script.
+command -v flock >/dev/null 2>&1 || { echo "[erro] Instale util-linux (flock)." >&2; exit 1; }
+[ ! -L .crossplay.lock ] || { echo "[erro] Lock não pode ser link simbólico." >&2; exit 1; }
+exec 9<>.crossplay.lock
+flock -n 9 || { echo "[erro] Servidor/instalador já está usando este runtime." >&2; exit 1; }
+
 case "$SERVER_FLAVOR" in
     paper)  JAR="paper-$MC_VERSION-$PAPER_BUILD.jar" ;;
     spigot) JAR="spigot-$MC_VERSION.jar" ;;

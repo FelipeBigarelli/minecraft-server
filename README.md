@@ -2,6 +2,12 @@
 
 Servidor Minecraft com plugin próprio em Java. Clone, rode um script, jogue.
 
+> **PC + Nintendo Switch:** o setup agora integra Geyser e Floodgate com builds
+> fixadas e verificação SHA256, mantendo Paper, mundo e autenticação Java.
+> Leia **[CROSSPLAY.md](CROSSPLAY.md)** para aplicar no runtime existente,
+> configurar o Switch e entender a mudança de chat assinado. Não basta `git pull`.
+> O console real e sua rede ainda precisam de validação manual.
+
 O objetivo de longo prazo não é "ter um servidor" — é construir um mundo com um
 **narrador vivo**, alimentado pela API do Claude, que reage ao que os jogadores
 de fato fazem. Ver [HANDOFF.md](HANDOFF.md), seção 8.
@@ -95,7 +101,7 @@ comando ainda tem prioridade, por exemplo `RAM=2G bash scripts/start.sh`.
 
 ### O que o setup faz
 
-1. Instala o que faltar: `curl`, `tar`, `screen`, `maven`, **OpenJDK 25**
+1. Instala o que faltar: `curl`, `tar`, `screen`, `maven`, **OpenJDK 25**, Python 3.10+/PyYAML e `flock`
 2. Confere que o `JAVA_HOME` aponta para o JDK 25
 3. Baixa o **Paper 26.2 build 92** e **verifica o SHA256**
 4. Aceita a EULA da Mojang ao executar o setup
@@ -103,9 +109,13 @@ comando ainda tem prioridade, por exemplo `RAM=2G bash scripts/start.sh`.
 6. Instala scripts de start, backup, export, restore e diagnóstico
 7. Grava os defaults persistentes em `scripts/server.env`
 8. Compila o BigaCore e instala em `plugins/`
-9. Opcionalmente resolve seu UUID na Mojang e te define como operador
+9. Instala Geyser + Floodgate, preserva configs e ajusta somente o perfil assinado
+   no runtime para o chat Bedrock, mantendo `online-mode=true`
+10. Opcionalmente resolve seu UUID na Mojang e te define como operador
 
-É **idempotente**: rodar de novo não destrói mundo nem config editado.
+É **idempotente**: rodar de novo não destrói mundo nem config editado. O crossplay
+recusa configs incompatíveis em vez de substituí-las silenciosamente.
+`INSTALL_CROSSPLAY=0` omite essa etapa sem desinstalar plugins existentes.
 
 ---
 
@@ -324,6 +334,7 @@ o `.gitignore` não protege arquivos enviados manualmente como assets de Release
 
 | Arquivo | Para quê |
 |---|---|
+| [CROSSPLAY.md](CROSSPLAY.md) | PC Java + Switch, instalação segura, DNS, diagnóstico e testes |
 | **[NOVO-PC.md](NOVO-PC.md)** | instalação do Launcher até entrar no servidor em máquina nova |
 | [HANDOFF.md](HANDOFF.md) | estado completo do projeto, decisões e armadilhas; leia primeiro ao desenvolver |
 | [PLANO-EXECUCAO.md](PLANO-EXECUCAO.md) | infra → memória → narrador → conteúdo |
