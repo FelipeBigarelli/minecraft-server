@@ -2,11 +2,13 @@
 
 Servidor Minecraft com plugin próprio em Java. Clone, rode um script, jogue.
 
-> **PC + Nintendo Switch:** o setup agora integra Geyser e Floodgate com builds
+> **PC + Nintendo Switch:** o setup integra Geyser e Floodgate com builds
 > fixadas e verificação SHA256, mantendo Paper, mundo e autenticação Java.
+> **Login real pelo Switch confirmado em 22/09/2026**, por DNS local no próprio
+> PC — sem BedrockConnect e sem expor nada à internet.
 > Leia **[CROSSPLAY.md](CROSSPLAY.md)** para aplicar no runtime existente,
-> configurar o Switch e entender a mudança de chat assinado. Não basta `git pull`.
-> O console real e sua rede ainda precisam de validação manual.
+> configurar o console e entender a mudança de chat assinado. Não basta
+> `git pull`.
 
 O objetivo de longo prazo não é "ter um servidor" — é construir um mundo com um
 **narrador vivo**, alimentado pela API do Claude, que reage ao que os jogadores

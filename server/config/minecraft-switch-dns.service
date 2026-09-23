@@ -1,0 +1,32 @@
+# DNS local que faz um console Bedrock (Nintendo Switch) alcançar este servidor.
+#
+# O console não tem campo para digitar endereço: a aba Servidores só lista os
+# parceiros da Mojang. Esta unidade responde pelos dois domínios do The Hive
+# apontando-os para esta máquina, e encaminha todo o resto — a internet do
+# console segue normal. Veja CROSSPLAY.md.
+#
+# Instalar:
+#   sed -i 's/SEU_IP/192.168.18.3/g' minecraft-switch-dns.service   # o IP real
+#   sudo cp minecraft-switch-dns.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now minecraft-switch-dns
+#
+# Requer dnsmasq e a porta 53 livre na interface da LAN. No Ubuntu o
+# systemd-resolved ocupa apenas 127.0.0.53, então não há conflito.
+# O IP precisa ser estável: use reserva de DHCP ou endereço fixo.
+
+[Unit]
+Description=DNS local: faz o console Bedrock alcançar o servidor Minecraft (Geyser)
+Documentation=https://github.com/FelipeBigarelli/minecraft-server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=forking
+PIDFile=/run/minecraft-switch-dns.pid
+ExecStart=/usr/sbin/dnsmasq --port=53 --listen-address=SEU_IP --bind-interfaces --address=/hivebedrock.network/SEU_IP --address=/hivebedrock.cloud/SEU_IP --server=1.1.1.1 --server=8.8.8.8 --no-resolv --no-hosts --pid-file=/run/minecraft-switch-dns.pid
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
