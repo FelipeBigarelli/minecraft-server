@@ -62,11 +62,7 @@ banned-*.json
 .claude/*
 !.claude/settings.json
 
-# --- Crossplay: credenciais, backups privados e arquivos transitórios ---
-saved-refresh-tokens.json
-.crossplay-backups/
-.crossplay-stage-*/
-.crossplay-write-*
-.crossplay.lock
+# --- Runtime: lock de instância e artefatos transitórios ---
+.servidor.lock
 __pycache__/
 *.pyc

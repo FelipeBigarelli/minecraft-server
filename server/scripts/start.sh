@@ -46,11 +46,12 @@ RAM="${RAM:-${DEFAULT_RAM:-4G}}"
 
 cd "$SERVER_DIR"
 
-# Compartilhado com install-crossplay.sh. O descritor permanece aberto no Java.
-# Impede instalação simultânea e segunda instância iniciada por este script.
+# O descritor 9 permanece aberto dentro do Java pelo tempo de vida do servidor.
+# Impede uma segunda instância iniciada por este script e instalações em cima
+# de um runtime no ar.
 command -v flock >/dev/null 2>&1 || { echo "[erro] Instale util-linux (flock)." >&2; exit 1; }
-[ ! -L .crossplay.lock ] || { echo "[erro] Lock não pode ser link simbólico." >&2; exit 1; }
-exec 9<>.crossplay.lock
+[ ! -L .servidor.lock ] || { echo "[erro] Lock não pode ser link simbólico." >&2; exit 1; }
+exec 9<>.servidor.lock
 flock -n 9 || { echo "[erro] Servidor/instalador já está usando este runtime." >&2; exit 1; }
 
 case "$SERVER_FLAVOR" in
@@ -97,6 +98,12 @@ JAVA_FLAGS=(
   -Dusing.aikars.flags=https://mcflags.emc.gs
   -Daikars.new.flags=true
 )
+
+# Console colorido: ativa sozinho se log4j2.xml existir no diretório do servidor.
+# Afeta apenas a saída no terminal; logs/latest.log continua sem cor.
+if [ -f "$SERVER_DIR/log4j2.xml" ]; then
+    JAVA_FLAGS+=(-Dlog4j.configurationFile="$SERVER_DIR/log4j2.xml")
+fi
 
 echo "[start] Subindo $JAR com ${RAM} de RAM..."
 exec java "${JAVA_FLAGS[@]}" -jar "$JAR" nogui

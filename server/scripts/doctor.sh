@@ -168,23 +168,16 @@ else
     ok "RCON não está habilitado."
 fi
 
-# Java-only continua válido. Se houver qualquer parte de crossplay, exige
-# instalação completa e confere hashes, autenticação e os schemas reais.
-if [ -f "$SERVER_DIR/plugins/Geyser-Spigot/config.yml" ] \
-    || [ -f "$SERVER_DIR/plugins/Geyser-Spigot.jar" ] \
-    || [ -f "$SERVER_DIR/plugins/floodgate-spigot.jar" ] \
-    || [ -f "$SERVER_DIR/scripts/crossplay-config/crossplay.lock.json" ]; then
-    if [ -f "$SCRIPT_DIR/install-crossplay.sh" ]; then
-        if SERVER_DIR="$SERVER_DIR" MC_VERSION="$MC_VERSION" bash "$SCRIPT_DIR/install-crossplay.sh" --check; then
-            ok "Crossplay instalado e consistente. Login real no Switch ainda exige teste."
-        else
-            err "Crossplay incompleto/inconsistente. Revise CROSSPLAY.md antes de iniciar."
-        fi
-    else
-        err "Crossplay detectado, mas o diagnóstico está desatualizado. Atualize os scripts pelo setup."
-    fi
+# O crossplay com Bedrock/Switch saiu do projeto em 28/10/2026. Se sobrou
+# algum resto de uma instalação antiga, avisa: Geyser carregado sem o restante
+# da stack abre uma porta UDP que ninguém mais mantém.
+if [ -e "$SERVER_DIR/plugins/Geyser-Spigot.jar" ] \
+    || [ -e "$SERVER_DIR/plugins/floodgate-spigot.jar" ] \
+    || [ -d "$SERVER_DIR/plugins/Geyser-Spigot" ] \
+    || [ -d "$SERVER_DIR/plugins/floodgate" ]; then
+    warn "Resíduo de crossplay em plugins/. O projeto não usa mais Geyser/Floodgate; mova para fora de plugins/."
 else
-    ok "Crossplay não instalado (servidor somente Java)."
+    ok "Sem resíduo de crossplay (servidor somente Java)."
 fi
 
 MUNDOS=()

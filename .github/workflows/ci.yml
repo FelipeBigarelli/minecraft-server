@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, feat/switch-crossplay]
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -23,11 +23,8 @@ jobs:
         run: |
           for script in server/scripts/*.sh; do bash -n "$script"; done
 
-      - name: Crossplay regression tests (offline)
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y python3-yaml
-          python3 -m unittest discover -s server/tests -p 'test_*.py' -v
+      - name: Server scripts unit tests
+        run: python3 -m unittest discover -s server/tests -p 'test_*.py' -v
 
       - name: Test safe world restore
         shell: bash

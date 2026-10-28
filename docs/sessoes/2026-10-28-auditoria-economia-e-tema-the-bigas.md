@@ -323,12 +323,115 @@ Os três workflows verdes em `28f4e0c`: CI, Economy Smoke e Crossplay smoke.
 
 ---
 
+## 🎨 Correção: cada plugin fala um dialeto de cor diferente
+
+A primeira aplicação do tema usou `&x&R&R&G&G&B&B` em todos os arquivos. Isso
+renderizou lixo literal (`&x` visível, as seis letras do hex virando cores
+soltas) em parte dos plugins. Não existe formato universal — foi preciso ler o
+bytecode de cada jar:
+
+| Plugin | Formato que o parser aceita | Evidência no jar |
+|---|---|---|
+| EssentialsX 2.22 `motd.txt` | `&#RRGGBB` | regex `(&)?&#([0-9a-fA-F]{6})` |
+| EssentialsX `message-colors` | `#RRGGBB` puro | `message-colors.primary` |
+| BigaCore | MiniMessage | plugin próprio |
+| GravesX | `&#RRGGBB` | `&#[A-Fa-f0-9]{6}` + `convertLegacyToMiniMessage` |
+| AdvancedPortals | `&#RRGGBB` ou `&x…` | regex próprio, documentado no lang |
+| ChestShop | `&x&R&R&G&G&B&B` | chama `translateAlternateColorCodes` |
+| CreativePlots | `&x…` + `<gradient:#a:#b>` | `ChatColor` + `GRADIENT_PATTERN` |
+| WorldGuard | legado simples, **sem hex** | nenhum parser de hex no jar |
+
+O `ALL_CODES` do Bukkit (`0123456789AaBbCcDdEeFfKkLlMmNnOoRrXx`) inclui `Xx`,
+então `&x` só funciona onde o plugin delega ao `translateAlternateColorCodes`.
+Onde o plugin tem parser próprio, `&x` é texto.
+
+Como `&#RRGGBB` não tem tag de gradiente, o degradê do MOTD do EssentialsX é
+feito caractere a caractere, com o hex interpolado por `▬` e por letra.
+
+---
+
+## 🌐 Tradução das mensagens para português
+
+| Fonte | Como |
+|---|---|
+| EssentialsX | `locale: pt_BR` — locale embutido, 1620 de 1634 chaves, e usa `<primary>`/`<secondary>` em 488 lugares, então o tema sobrevive |
+| ChestShop | já estava em `pt_BR`; só o prefixo virou `[Loja]` |
+| AdvancedPortals | 150 strings traduzidas à mão em `en_GB.lang` |
+| GravesX | 166 strings: mensagens, holograma, obituário, cabeça, GUI e as 43 causas de morte |
+| CreativePlots | 17 mensagens de `Message-Settings` |
+| `spigot.yml` | as 6 mensagens de kick/whitelist/comando desconhecido |
+| `config/paper-global.yml` | `connection-throttle` e `no-permission` (o resto é `<lang:…>`, traduzido pelo cliente) |
+| BigaCore | já estava em português |
+
+Backups ao lado de cada arquivo em `.bak-ingles` e `.bak-formato-*`.
+
+---
+
+## 🔌 Crossplay com Switch: removido
+
+O serviço `minecraft-switch-dns.service` estava **habilitado e em laço de falha
+com 22.365 reinícios** — o dnsmasq não conseguia fazer bind em `192.168.18.3`.
+O crossplay não era mais usado, então saiu inteiro.
+
+### O que foi preciso salvar antes de apagar
+
+O `crossplay.py` guardava `ensure_stopped()`, que **não é de crossplay**: é a
+trava que recusa rodar o `setup.sh` em cima de um runtime no ar. Ela foi
+extraída para `server/scripts/servidor_parado.py` antes da remoção.
+
+A trava usa dois sinais independentes, porque nenhum cobre tudo sozinho: um
+processo `java` cujo `cwd` é o runtime, e o `session.lock` do mundo preso por
+outro processo. O segundo pega instalações antigas iniciadas sem o `flock` do
+`start.sh`; o primeiro pega um servidor que subiu mas ainda não abriu mundo.
+
+O `.crossplay.lock` do `start.sh` virou `.servidor.lock` — mesmo mecanismo,
+nome honesto.
+
+### Armadilha encontrada ao testar a trava
+
+A primeira versão do teste prendia o `session.lock` no próprio processo e
+concluía que a trava não funcionava. `fcntl.lockf` é **de posse do processo**,
+não do descritor: quem já segura o lock pega de novo sem bloquear. O teste
+precisa de um processo separado segurando o arquivo. Está documentado dentro de
+`server/tests/test_servidor_parado.py` para não se repetir.
+
+### Efeito colateral bom
+
+O instalador de crossplay deixava `enforce-secure-profile=false` no runtime,
+necessário porque o Bedrock não assina chat. Era isso que produzia o aviso
+amarelo *"Não é possível verificar as mensagens"* no topo da tela. Voltou a
+`true`.
+
+### Arquivos removidos
+
+`CROSSPLAY.md`, `.github/workflows/crossplay-smoke.yml`,
+`server/config/crossplay.lock.json`, `server/config/minecraft-switch-dns.service`,
+`server/config/plugins/Geyser-Spigot/`, `server/config/plugins/floodgate/`,
+`server/scripts/crossplay.py`, `server/scripts/install-crossplay.sh`,
+`server/tests/smoke_crossplay.py`, `server/tests/test_crossplay.py`, e os
+equivalentes em `~/minecraft/scripts/`.
+
+O `doctor.sh` mantém uma verificação invertida: se sobrar Geyser ou Floodgate em
+`plugins/`, ele avisa — um Geyser carregado sem o resto da stack abre uma porta
+UDP que ninguém mais mantém.
+
+### Porte aproveitado
+
+O `start.sh` do runtime tinha uma melhoria que nunca voltou para o repositório:
+o console colorido via `log4j2.xml`. Foi portada antes de sobrescrever.
+
+---
+
 ## ⏭️ Pendências
 
-- [ ] **Restart** para o GravesX carregar (o boot de 13:24 foi antes da instalação)
-- [ ] **Restart** para as cores de ChestShop e AdvancedPortals; o resto pega com
-      `/ess reload`, `/cp reload`, `/biga reload`, `/wg reload`
+- [ ] **Restart** para o GravesX carregar, para `enforce-secure-profile=true`
+      e para as cores de ChestShop e AdvancedPortals; o resto pega com
+      `/ess reload`, `/cp reload`, `/biga reload`, `/wg reload`, `/graves reload`
 - [ ] Decidir o modelo de economia a partir desta auditoria
+- [ ] Decidir o modelo de Admin Shop (ver a divergência de template acima)
 - [ ] `/worldedit reload` — a varinha de navegação virou relógio, mas a config
       ainda não foi recarregada
-- [ ] Gerar o mundo de plots
+- [ ] Regerar o mundo de plots com o tema (os blocos só são lidos na geração;
+      os 100 plots estão `available`, então nada se perde)
+- [ ] **Precisa de sudo:** desabilitar e remover o `minecraft-switch-dns.service`
+- [ ] Decidir o destino dos 54 MB de Geyser/Floodgate em `plugins-desativados/`
