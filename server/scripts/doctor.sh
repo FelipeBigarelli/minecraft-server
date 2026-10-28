@@ -97,6 +97,14 @@ if [ -n "$PLUGIN_JAR" ]; then
     ok "BigaCore encontrado: $(basename "$PLUGIN_JAR")"
     if jar tf "$PLUGIN_JAR" 2>/dev/null | grep -qx 'economy.yml'; then
         ok "BigaCore contém economy.yml."
+        # A política de preços mora no economy.yml. Guardar cópia dos números
+        # aqui fazia o doctor reprovar o servidor toda vez que a política mudava
+        # — foi exatamente o que derrubou o Economy Smoke em 28/10/2026. Agora
+        # ele lê do JAR e compara os plugins contra a fonte, não contra memória.
+        POLITICA_TMP="$(mktemp -d)"
+        if (cd "$POLITICA_TMP" && jar xf "$PLUGIN_JAR" economy.yml >/dev/null 2>&1); then
+            POLITICA="$POLITICA_TMP/economy.yml"
+        fi
     else
         err "O JAR do BigaCore não contém economy.yml. Recompile pelo setup.sh."
     fi
@@ -106,25 +114,55 @@ fi
 
 verificar_duplicatas_plugin '*bigacore-*.jar' 'BigaCore'
 verificar_jar_plugin "$VAULT_JAR" "VaultUnlocked"
-verificar_jar_plugin "$ETERNAL_JAR" "EternalEconomy"
+
+# Quem paga o Vault é o EssentialsX no servidor real e o EternalEconomy numa
+# máquina recém-montada pelo setup.sh. Exigir o JAR do EternalEconomy reprovava
+# o servidor real, que trocou de provedor de propósito. O que importa é existir
+# UM provedor; os dois ao mesmo tempo é que brigariam pelo Vault.
+if [ -n "$(find "$SERVER_DIR/plugins" -maxdepth 1 -type f -iname 'EssentialsX-*.jar' 2>/dev/null)" ]; then
+    ok "Provedor de economia: EssentialsX."
+elif [ -f "$SERVER_DIR/plugins/$ETERNAL_JAR" ]; then
+    ok "Provedor de economia: $ETERNAL_JAR"
+else
+    err "Nenhum provedor de economia em plugins/ (EssentialsX ou $ETERNAL_JAR)."
+fi
+
 verificar_jar_plugin "$CHESTSHOP_JAR" "ChestShop"
 verificar_duplicatas_plugin '*Vault*.jar' 'Vault/VaultUnlocked'
 verificar_duplicatas_plugin '*EternalEconomy*.jar' 'EternalEconomy'
 verificar_duplicatas_plugin '*ChestShop*.jar' 'ChestShop'
 
+# Lê um escalar simples do economy.yml. Serve para as chaves de política
+# (um nível, sem lista), que é tudo que o doctor precisa comparar.
+politica() {
+    [ -n "${POLITICA:-}" ] && [ -f "$POLITICA" ] || return 1
+    grep -Em1 "^[[:space:]]*$1:[[:space:]]" "$POLITICA" \
+        | sed -E "s/^[^:]*:[[:space:]]*//; s/[[:space:]]*#.*$//; s/^['\"]//; s/['\"]$//; s/[[:space:]]*$//"
+}
+
+conferir_politica() {
+    # $1 chave no economy.yml, $2 arquivo do plugin, $3 chave no plugin, $4 rótulo
+    local esperado
+    esperado="$(politica "$1")" || { err "Não consegui ler '$1' do economy.yml."; return; }
+    if [ -z "$esperado" ]; then
+        err "Chave '$1' ausente no economy.yml."
+        return
+    fi
+    if grep -Eq "^$3:[[:space:]]*['\"]?${esperado}(\\.0+)?['\"]?[[:space:]]*(#.*)?$" "$2"; then
+        ok "$4 = $esperado (bate com o economy.yml)."
+    else
+        err "$4 diverge do economy.yml, que pede $esperado."
+    fi
+}
+
 CHESTSHOP_CONFIG="$SERVER_DIR/plugins/ChestShop/config.yml"
 if [ -f "$CHESTSHOP_CONFIG" ]; then
-    if grep -Eq '^TAX_AMOUNT:[[:space:]]*4([[:space:]]|$)' "$CHESTSHOP_CONFIG"; then
-        ok "ChestShop: taxa P2P = 4%."
-    else
-        err "ChestShop: TAX_AMOUNT não está em 4."
-    fi
-
-    if grep -Eq '^SHOP_CREATION_PRICE:[[:space:]]*50([[:space:]]|$)' "$CHESTSHOP_CONFIG"; then
-        ok "ChestShop: criação de loja = 50 B$."
-    else
-        err "ChestShop: SHOP_CREATION_PRICE não está em 50."
-    fi
+    conferir_politica chestshop-tax-percent "$CHESTSHOP_CONFIG" TAX_AMOUNT \
+        "ChestShop: taxa P2P"
+    conferir_politica shop-creation-price "$CHESTSHOP_CONFIG" SHOP_CREATION_PRICE \
+        "ChestShop: criação de loja"
+    conferir_politica shop-refund-price "$CHESTSHOP_CONFIG" SHOP_REFUND_PRICE \
+        "ChestShop: reembolso de loja"
 
     if grep -Eq '^ALLOW_PARTIAL_TRANSACTIONS:[[:space:]]*false([[:space:]]|$)' "$CHESTSHOP_CONFIG"; then
         ok "ChestShop: transações parciais desativadas."
@@ -135,19 +173,24 @@ else
     err "Config do ChestShop não encontrado: $CHESTSHOP_CONFIG"
 fi
 
+# O provedor de economia mudou de EternalEconomy para EssentialsX no servidor
+# real, mas o setup.sh ainda instala o EternalEconomy numa máquina nova. Os dois
+# são válidos; o que não pode é o saldo inicial divergir da política. Então o
+# doctor confere quem estiver presente, em vez de exigir um plugin específico.
+ESSENTIALS_CONFIG="$SERVER_DIR/plugins/Essentials/config.yml"
 ETERNAL_CONFIG="$SERVER_DIR/plugins/EternalEconomy/config.yml"
-if [ -f "$ETERNAL_CONFIG" ]; then
+if [ -f "$ESSENTIALS_CONFIG" ]; then
+    conferir_politica starting-balance "$ESSENTIALS_CONFIG" starting-balance \
+        "EssentialsX: saldo inicial"
+elif [ -f "$ETERNAL_CONFIG" ]; then
     # As aspas são obrigatórias no padrão: ao gravar o próprio config no
     # primeiro boot, o EternalEconomy normaliza o número para string e escreve
     # defaultBalance: '250'. Sem aceitar isso, o doctor reprovava um servidor
     # perfeitamente configurado e bloqueava o boot.
-    if grep -Eq "^defaultBalance:[[:space:]]*['\"]?250(\.0+)?['\"]?[[:space:]]*$" "$ETERNAL_CONFIG"; then
-        ok "EternalEconomy: saldo inicial = 250 B$."
-    else
-        err "EternalEconomy: defaultBalance não está em 250."
-    fi
+    conferir_politica starting-balance "$ETERNAL_CONFIG" defaultBalance \
+        "EternalEconomy: saldo inicial"
 else
-    err "Config do EternalEconomy não encontrado: $ETERNAL_CONFIG"
+    err "Nenhum provedor de economia encontrado (nem EssentialsX nem EternalEconomy)."
 fi
 
 if grep -q '^eula=true$' "$SERVER_DIR/eula.txt" 2>/dev/null; then

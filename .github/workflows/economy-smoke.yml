@@ -45,8 +45,10 @@ jobs:
           test -f "$WORK/plugins/ChestShop-3.13-pre-1.jar"
           test -f "$WORK/plugins/VaultUnlocked-2.20.2.jar"
           test -f "$WORK/plugins/EternalEconomy-v1.0.1.jar"
-          grep -Eq '^TAX_AMOUNT:[[:space:]]*4([[:space:]]|$)' "$WORK/plugins/ChestShop/config.yml"
-          grep -Eq '^defaultBalance:[[:space:]]*250([[:space:]]|$)' "$WORK/plugins/EternalEconomy/config.yml"
+          # Taxa, preço de placa e saldo inicial não são conferidos aqui de
+          # propósito: o doctor.sh acima já compara cada um com o economy.yml
+          # de dentro do BigaCore. Repetir o número neste arquivo foi o que
+          # quebrou o CI quando a política mudou.
 
       - name: Boot Paper and verify economy plugins
         shell: bash

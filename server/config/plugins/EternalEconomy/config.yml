@@ -7,7 +7,7 @@
 
 # Cada conta nova entra no mercado com capital suficiente para começar
 # a negociar, mas não para pular mineração/progressão.
-defaultBalance: 250
+defaultBalance: 2000
 
 # Limite técnico por transferência. Não é faucet diário; apenas evita
 # uma transação individual absurda por erro de digitação/exploit.

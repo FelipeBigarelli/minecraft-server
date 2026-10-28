@@ -31,7 +31,7 @@ FORCE_UNLIMITED_ADMIN_SHOP: true
 # Vazio de propósito: os 4% abaixo são retirados de circulação (money sink),
 # em vez de irem para uma conta que poderia voltar a gastar a mesma moeda.
 SERVER_ECONOMY_ACCOUNT: ""
-TAX_AMOUNT: 4
+TAX_AMOUNT: 0
 SERVER_TAX_AMOUNT: 0
 
 # Abrir loja precisa ter custo para impedir spam e funcionar como sink.
