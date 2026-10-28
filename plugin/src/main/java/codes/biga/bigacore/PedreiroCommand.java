@@ -31,6 +31,23 @@ import java.util.Locale;
  */
 public final class PedreiroCommand implements CommandExecutor, TabCompleter {
 
+    /**
+     * Estudar, construir, desfazer e varrer região — op por padrão.
+     *
+     * São os subcomandos que mexem no mundo: {@code construir} levanta
+     * centenas de blocos onde o jogador estiver.
+     */
+    public static final String PERM_OBRA = "bigacore.pedreiro";
+
+    /**
+     * Arrumar o baú mirado — liberado para todo mundo.
+     *
+     * Organizar não cria nem destrói bloco: reordena o que já está dentro de
+     * um recipiente, com a conta conferida antes de escrever. O pior caso é
+     * alguém arrumar um baú que você preferia bagunçado.
+     */
+    public static final String PERM_ORGANIZAR = "bigacore.organizar";
+
     private static final List<String> SUBCOMANDOS = Arrays.asList(
             "p1", "p2", "estudar", "obras", "construir", "parar", "desfazer", "amostra", "organizar");
 
@@ -54,6 +71,12 @@ public final class PedreiroCommand implements CommandExecutor, TabCompleter {
 
         Pedreiro pedreiro = plugin.pedreiro();
         String sub = args[0].toLowerCase(Locale.ROOT);
+
+        if (!liberado(jogador, sub)) {
+            diz(jogador, "<red>Você não tem permissão para <white>/pedreiro "
+                    + sub + "</white>.</red>");
+            return true;
+        }
 
         switch (sub) {
             case "p1", "p2" -> {
@@ -199,6 +222,14 @@ public final class PedreiroCommand implements CommandExecutor, TabCompleter {
                 recipientes.add(mirado);
             }
             case "tudo" -> {
+                // Varrer região depende de p1/p2, que já é op; e um passe só
+                // reordena até 200 recipientes de uma vez, inclusive os dos
+                // outros. Fica no mesmo nó do resto do comando.
+                if (!jogador.hasPermission(PERM_OBRA)) {
+                    diz(jogador, "<red>Só op pode varrer a região inteira."
+                            + " Mire num baú e use <white>/pedreiro organizar</white>.</red>");
+                    return;
+                }
                 Location a = pedreiro.canto(jogador, 1);
                 Location b = pedreiro.canto(jogador, 2);
                 if (a == null || b == null) {
@@ -326,7 +357,20 @@ public final class PedreiroCommand implements CommandExecutor, TabCompleter {
         diz(jogador, "<gray>O canto mínimo é onde você está. /pedreiro desfazer volta tudo.</gray>");
     }
 
+    /** O subcomando está liberado para este jogador? */
+    private boolean liberado(Player jogador, String sub) {
+        if (jogador.hasPermission(PERM_OBRA)) {
+            return true;
+        }
+        return sub.equals("organizar") && jogador.hasPermission(PERM_ORGANIZAR);
+    }
+
     private void ajuda(Player jogador) {
+        if (!jogador.hasPermission(PERM_OBRA)) {
+            diz(jogador, "<aqua>/pedreiro organizar</aqua> <gray>— arruma o baú que você está mirando</gray>");
+            diz(jogador, "<gray>Junta as pilhas soltas do mesmo item e põe tudo em ordem. Nada se perde.</gray>");
+            return;
+        }
         diz(jogador, "<aqua>/pedreiro</aqua> <gray>— estuda uma construção e refaz em outro lugar</gray>");
         diz(jogador, "<white>p1</white> <gray>/</gray> <white>p2</white> <gray>marca os cantos onde você está</gray>");
         diz(jogador, "<white>estudar <nome></white> <gray>guarda a região marcada</gray>");
@@ -344,14 +388,22 @@ public final class PedreiroCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(@NotNull CommandSender remetente, @NotNull Command comando,
                                       @NotNull String rotulo, String[] args) {
+        if (!(remetente instanceof Player jogador)) {
+            return Collections.emptyList();
+        }
         if (args.length == 1) {
             List<String> saida = new ArrayList<>();
             for (String sub : SUBCOMANDOS) {
-                if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
+                if (sub.startsWith(args[0].toLowerCase(Locale.ROOT)) && liberado(jogador, sub)) {
                     saida.add(sub);
                 }
             }
             return saida;
+        }
+        if (!jogador.hasPermission(PERM_OBRA)) {
+            return args.length == 2 && args[0].equalsIgnoreCase("organizar")
+                    ? Collections.singletonList("bau")
+                    : Collections.emptyList();
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("construir")) {
             return plugin.pedreiro().listar();

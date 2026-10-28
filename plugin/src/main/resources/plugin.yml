@@ -30,12 +30,21 @@ commands:
   pedreiro:
     description: Estuda uma construcao existente e refaz em outro lugar
     usage: "/pedreiro <p1|p2|estudar|obras|construir|parar|desfazer|amostra|organizar>"
-    permission: bigacore.pedreiro
+    # Sem permission aqui de proposito. Um no unico no comando barraria o
+    # /pedreiro inteiro antes do executor rodar, e os subcomandos nao tem o
+    # mesmo peso: organizar so mexe na ordem de um bau, construir levanta
+    # centenas de blocos. Quem decide e o PedreiroCommand, subcomando a
+    # subcomando.
 
 permissions:
   bigacore.pedreiro:
     description: Permite estudar e levantar construcoes
     default: op
+    children:
+      bigacore.organizar: true
+  bigacore.organizar:
+    description: Permite arrumar o bau mirado com /pedreiro organizar
+    default: true
   bigacore.use:
     description: Permite usar /biga e consultar a economia
     default: true

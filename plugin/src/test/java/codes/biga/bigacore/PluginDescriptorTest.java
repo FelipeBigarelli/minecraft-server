@@ -8,6 +8,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -56,8 +57,36 @@ class PluginDescriptorTest {
 
         assertTrue(descricao.getCommands().containsKey("pedreiro"),
                 "O /pedreiro precisa estar no plugin.yml, senão o setExecutor acha null.");
-        assertEquals("bigacore.pedreiro",
-                descricao.getCommands().get("pedreiro").get("permission"));
+    }
+
+    /**
+     * O /pedreiro não pode ter nó de permissão no comando.
+     *
+     * Um nó ali é verificado pelo Paper ANTES do executor rodar e barraria o
+     * comando inteiro — inclusive o organizar, que é liberado para todos. A
+     * decisão é por subcomando, dentro do {@link PedreiroCommand}, então o
+     * descritor precisa deixar o comando aberto. Este teste existe porque
+     * repor a linha "permission: bigacore.pedreiro" no plugin.yml parece
+     * uma correção óbvia e tiraria o organizar dos jogadores em silêncio.
+     */
+    @Test
+    void pedreiroDecidePermissaoPorSubcomando() throws Exception {
+        PluginDescriptionFile descricao = carregar();
+
+        assertNull(descricao.getCommands().get("pedreiro").get("permission"),
+                "com nó no comando o Paper barra o /pedreiro organizar do jogador comum");
+
+        Map<?, ?> permissoes = permissoesDeclaradas(descricao);
+        assertTrue(permissoes.containsKey(PedreiroCommand.PERM_OBRA),
+                PedreiroCommand.PERM_OBRA + " precisa estar declarado");
+        assertTrue(permissoes.containsKey(PedreiroCommand.PERM_ORGANIZAR),
+                PedreiroCommand.PERM_ORGANIZAR + " precisa estar declarado");
+    }
+
+    private static Map<?, ?> permissoesDeclaradas(PluginDescriptionFile descricao) {
+        Map<String, Object> indice = new java.util.HashMap<>();
+        descricao.getPermissions().forEach(permissao -> indice.put(permissao.getName(), permissao));
+        return indice;
     }
 
     @Test
