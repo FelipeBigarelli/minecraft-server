@@ -22,7 +22,7 @@
 
         <!-- ⚠️ VERSÃO FIXA, NUNCA UM RANGE ABERTO.
 
-             Esta build (92) é a MESMA do jar em ~/minecraft/paper-26.2-92.jar.
+             Esta build (167) é a MESMA do jar em ~/minecraft/paper-26.3-167.jar.
              Compilar contra uma API diferente da que roda no servidor é
              como programar contra uma versão de biblioteca e instalar
              outra: compila e explode em runtime.
@@ -35,7 +35,7 @@
 
              Ao atualizar o Paper: troque este número E o PAPER_BUILD do
              start.sh no mesmo commit. Os dois andam juntos. -->
-        <paper.version>26.2.build.92-stable</paper.version>
+        <paper.version>26.3.build.167-beta</paper.version>
     </properties>
 
     <repositories>

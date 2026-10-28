@@ -3,12 +3,12 @@ version: '${project.version}'
 main: codes.biga.bigacore.BigaCore
 author: Felipe
 website: https://biga.codes
-description: Plugin base para Paper 26.2
+description: Plugin base para Paper 26.3
 
 # Valores aceitos vão de 1.13 até 26.2. Declarar a versão mais
 # recente diz ao servidor para NÃO aplicar camadas de
 # compatibilidade legada — é o que você quer num plugin novo.
-api-version: '26.2'
+api-version: '26.3'
 
 # STARTUP carrega antes do mundo; POSTWORLD (default) depois.
 load: POSTWORLD
@@ -27,7 +27,15 @@ commands:
     aliases: [bc]
     permission: bigacore.use
 
+  pedreiro:
+    description: Estuda uma construcao existente e refaz em outro lugar
+    usage: "/pedreiro <p1|p2|estudar|obras|construir|parar|desfazer|amostra|organizar>"
+    permission: bigacore.pedreiro
+
 permissions:
+  bigacore.pedreiro:
+    description: Permite estudar e levantar construcoes
+    default: op
   bigacore.use:
     description: Permite usar /biga e consultar a economia
     default: true

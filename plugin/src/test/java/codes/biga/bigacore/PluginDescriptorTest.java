@@ -46,7 +46,18 @@ class PluginDescriptorTest {
 
         assertEquals("BigaCore", descricao.getName());
         assertEquals("codes.biga.bigacore.BigaCore", descricao.getMain());
-        assertEquals("26.2", descricao.getAPIVersion());
+        // Acompanha o servidor: o jar em ~/minecraft é o paper-26.3-167.
+        assertEquals("26.3", descricao.getAPIVersion());
+    }
+
+    @Test
+    void comandoPedreiroEstaDeclarado() throws Exception {
+        PluginDescriptionFile descricao = carregar();
+
+        assertTrue(descricao.getCommands().containsKey("pedreiro"),
+                "O /pedreiro precisa estar no plugin.yml, senão o setExecutor acha null.");
+        assertEquals("bigacore.pedreiro",
+                descricao.getCommands().get("pedreiro").get("permission"));
     }
 
     @Test
