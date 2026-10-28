@@ -422,16 +422,131 @@ o console colorido via `log4j2.xml`. Foi portada antes de sobrescrever.
 
 ---
 
+---
+
+## 🏙️ Mundo de plots: quatro defeitos, três deles do plugin
+
+Regerado como `228 / 32 / 6` → **36 terrenos de 32x32** no lugar de 100 de 16x16.
+Paleta nova: rua `DEEPSLATE_TILES`, meio-fio `POLISHED_BLACKSTONE_SLAB` quando
+livre e `WAXED_CUT_COPPER_SLAB` quando ocupado — livre some no escuro, ocupado
+acende em laranja.
+
+### `/cp delete` não apaga nada
+
+O `DeleteWorld` monta o caminho com `getWorldContainer() + nome`, ou seja procura
+`~/minecraft/plots`. Mas o Paper guarda esse mundo como **dimensão**, em
+`world/dimensions/minecraft/plots`. O plugin apaga o vazio e segue sem erro.
+
+Sintoma: a grade nova é pintada **por cima** da antiga e as duas aparecem
+sobrepostas, com passos diferentes (38 contra 20). A varredura dos `.mca`
+mostrava os dois jogos de bloco ao mesmo tempo.
+
+Conserto: `rm -rf` da pasta da dimensão com o servidor parado, antes do
+`/cp generate`.
+
+### A barreira ignora o `NW-Offset`
+
+O `WorldManager` chama `setCenter(dconst_0, dconst_0)` — **centro zero cravado no
+bytecode** — mas desloca a grade pelo `NW-Offset`. As duas coisas não conversam,
+então a última fileira de terrenos nasce fora da barreira, com
+`damage_per_block: 0.2`.
+
+Medido: offset 20 → grade centrada em +21; offset 0 → centrada em **+41**. O
+comentário do plugin estava certo e eu li ao contrário na primeira tentativa.
+Valor correto para `228/32/6`: **`NW-Offset: 41`**.
+
+O `setCenter` só roda na geração, então `/worldborder center` à mão é permanente.
+
+### O escuro não era hora, era altura
+
+`Surface-Y: -61` colocava o chão **123 blocos abaixo do horizonte**, que o
+Minecraft crava em y=63. Abaixo dele o cliente desenha o disco escuro do void na
+metade de baixo do céu: luz 15 no chão e cara de noite permanente. É o mesmo
+visual de qualquer superflat moderno.
+
+Corrigido para `Surface-Y: 64`. Custa altura de construção (255 em vez de 380).
+
+Antes de achar isso, perdi três tentativas no sistema de tempo — que também
+mudou no 26.3 e vale registrar:
+
+- gamerules foram renomeados: `doDaylightCycle` → **`advance_time`**,
+  `doWeatherCycle` → **`advance_weather`**, `doMobSpawning` → **`spawn_mobs`**;
+- existe um registro de **relógios nomeados** (`data/minecraft/world_clock/`) e
+  **timelines** (`timeline/day.json`) que interpolam luz, cor do céu e ângulo do
+  sol contra esse relógio;
+- `Do-Daylight-Cycle: false` faz o mundo nascer com `advance_time: 0`, congelado
+  no tick da geração. Se calhar de ser noite, fica noite para sempre, e o `/time`
+  não destrava. Por isso o config agora nasce com **`true`**;
+- o `/time` do EssentialsX **não aceita `day`**. Os apelidos são `sunrise`,
+  `dawn`, `daystart`, `morning`, `midday`, `noon`, `afternoon`, `sunset`, `dusk`,
+  `sundown`, `nightfall`, `nightstart`, `night`, `midnight`. `day` cai em 0 ticks,
+  que é o nascer do sol — o momento mais fraco do dia.
+
+### O `ConfigUpdater` apaga comentário
+
+O CreativePlots reescreve o próprio `config.yml` na geração e **remove todo
+comentário acrescentado à mão**. Os valores sobrevivem, a explicação não. Por
+isso o porquê de cada escolha mora aqui, não lá.
+
+---
+
+## 🛒 Economia: o teto limitava o valor, não o esforço
+
+Ver `docs/economia-balanceamento.md`, seção 6-bis, para o raciocínio completo.
+
+Em resumo: uma gold farm batia o teto diário em **4 minutos** enquanto minerar
+pedra na mão levava ~3 h pelo mesmo dinheiro. O teto nunca foi furado — ele
+virou mesada para quem montou a farm.
+
+Aplicado: **50 preços de compra** reancorados na mediana de BC$/hora (29 para
+baixo, 21 para cima), saldo inicial 250 → 2.000, teto 150 → 800, imposto e taxa
+de loja zerados, `saldo-inicial.yml` destravado e a contradição do
+`admin-buyback-enabled-at-launch` resolvida para `true`.
+
+Uma trava nova impede que a fórmula crie arbitragem: **compra nunca passa de um
+terço da venda**. Ela pegou 12 itens, incluindo um caso em que minha própria
+fórmula sugeriu pagar 560 por algo que o servidor vende por 500.
+
+Os 43 testes passam, `TransformationArbitrageTest` incluído.
+
+---
+
+## 🧺 ClickVillagers
+
+Instalado `ClickVillagers-paper-1.6.3` (Modrinth, GPL-3.0). A API do Modrinth
+lista **26.3** entre as versões suportadas e o `plugin.yml` traz
+`api-version: '1.21'` com `folia-supported: true`. SHA1 conferido contra o que a
+API publica.
+
+Não entrou no `install-economy.sh`: aquele script cobre a stack econômica
+fixada, e este plugin é conforto. Está no mesmo caso de GravesX, AdvancedPortals,
+CreativePlots e FancyHolograms, todos instalados à mão.
+
+Não cria moeda: o servidor não compra esmeralda, então facilitar hall de aldeão
+não vira BC$. Acelera acesso a encantamento, o que é escolha de jogo, não de
+economia.
+
 ## ⏭️ Pendências
 
-- [ ] **Restart** para o GravesX carregar, para `enforce-secure-profile=true`
-      e para as cores de ChestShop e AdvancedPortals; o resto pega com
-      `/ess reload`, `/cp reload`, `/biga reload`, `/wg reload`, `/graves reload`
-- [ ] Decidir o modelo de economia a partir desta auditoria
-- [ ] Decidir o modelo de Admin Shop (ver a divergência de template acima)
-- [ ] `/worldedit reload` — a varinha de navegação virou relógio, mas a config
-      ainda não foi recarregada
-- [ ] Regerar o mundo de plots com o tema (os blocos só são lidos na geração;
-      os 100 plots estão `available`, então nada se perde)
+Feito nesta sessão: mundo de plots regerado e tematizado, crossplay removido,
+mensagens traduzidas, economia reprecificada e aplicada.
+
+- [ ] **Restart** — falta para o GravesX e o ClickVillagers carregarem, para
+      `enforce-secure-profile=true`, para as cores de ChestShop e
+      AdvancedPortals e para os preços novos do BigaCore
+- [ ] Depois do restart: `/worldedit reload` (a varinha de navegação virou
+      relógio, mas a config não foi recarregada)
+- [ ] **Decidir o modelo de Admin Shop** — placa de estoque infinito ou catálogo
+      curado. Os dois estão escritos em lugares diferentes do projeto e são
+      incompatíveis; o `server/economy/catalog.yml` que o config ao vivo promete
+      **não existe**
+- [ ] `Prevent-Interaction` do CreativePlots: hoje bloqueia o clique em placa de
+      loja em terreno alheio. Enquanto estiver `true`, loja dentro de terreno
+      não vende
+- [ ] `//setbiome` no mundo de plots — o mosaico de 12 biomas deixa a grama
+      manchada. Precisa do FAWE para não travar o servidor
 - [ ] **Precisa de sudo:** desabilitar e remover o `minecraft-switch-dns.service`
 - [ ] Decidir o destino dos 54 MB de Geyser/Floodgate em `plugins-desativados/`
+- [ ] `EternalEconomy` ainda aparece no `setup.sh` e em
+      `server/config/plugins/EternalEconomy/` — o provedor real é o EssentialsX
+      desde a migração. Config morto, a limpar

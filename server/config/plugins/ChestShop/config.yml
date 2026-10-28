@@ -35,8 +35,8 @@ TAX_AMOUNT: 4
 SERVER_TAX_AMOUNT: 0
 
 # Abrir loja precisa ter custo para impedir spam e funcionar como sink.
-SHOP_CREATION_PRICE: 50
-SHOP_REFUND_PRICE: 10
+SHOP_CREATION_PRICE: 0
+SHOP_REFUND_PRICE: 0
 
 # Biga (B$) trabalha com valores inteiros na política inicial.
 PRICE_PRECISION: 0

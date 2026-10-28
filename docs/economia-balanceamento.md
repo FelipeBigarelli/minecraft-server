@@ -319,6 +319,84 @@ depois que entrou é o que dá trabalho.
 
 ---
 
+## 6-bis. Aplicado em 28/10/2026 — o esforço, não só o valor
+
+Esta seção substitui a conclusão da seção 3.3, que dizia que o teto diário
+"resolve isso completamente". Ele resolve metade.
+
+### O que faltava ver
+
+O teto limita **quanto dinheiro entra**. Ele não diz nada sobre **quanto esforço
+custa tirá-lo**. Com os preços originais e um teto de 800 BC$:
+
+| Item | Como se obtém | BC$/hora | Bate o teto em | vs. trabalho manual |
+|---|---|---:|---:|---:|
+| Ouro | Gold farm no Nether | 12000 | 4 min | 46x |
+| Perola do End | Farm de enderman | 2400 | 20 min | 9x |
+| Slime | Farm de slime | 1800 | 27 min | 7x |
+| Ferro | Iron farm | 1750 | 27 min | 7x |
+| Vara de Blaze | Spawner de blaze | 1600 | 30 min | 6x |
+
+Minerar pedra na mão leva ~3 h para o mesmo dinheiro. Uma gold farm chegava ao
+teto em **4 minutos**. O teto não estava sendo furado — estava sendo atingido
+por quem não jogou, e virou mesada para quem montou a farm uma vez.
+
+### A regra nova
+
+> O servidor paga o mesmo **por hora de jogo**, não por item.
+
+Para cada item, `server-buy` por unidade = alvo de BC$/hora ÷ velocidade de
+obtenção. A âncora é a **mediana** do que o catálogo já pagava
+(562 BC$/h), não o item mais lento: ancorar embaixo faria o
+servidor pagar menos por quase tudo e empurraria a loja de volta para a
+irrelevância, que é o modo de falha histórico deste servidor.
+
+Item de farm 100% automática leva mais um corte de 50%, porque igualar BC$/hora
+ainda premia quem dorme ao lado da máquina.
+
+### A trava que pegou um erro meu
+
+A fórmula sugeriu comprar concha de náutilo por **560**, sendo que o servidor a
+vende por **500** — eu estaria criando exatamente a arbitragem que este
+documento manda evitar. A causa: pesca AFK rende pouco por hora, então a fórmula
+manda pagar muito; mas como é AFK, o certo é pagar pouco.
+
+Daí a trava: **nenhuma compra pode passar de um terço da venda**. Ela corrigiu
+12 itens.
+
+Lição que vale para o método inteiro: a fórmula iguala *taxa*, não *atenção*.
+Onde ela brigar com o bom senso, o bom senso ganha.
+
+### Mudanças aplicadas
+
+| O quê | De | Para |
+|---|---:|---:|
+| Preços de compra ajustados | — | **50 itens** (29 para baixo, 21 para cima) |
+| `currency.starting-balance` | 250 | **2.000** |
+| `admin-buyback-daily-cap` | 150 | **800** |
+| `admin-buyback-weekly-cap` | 900 | **4.000** |
+| `chestshop-tax-percent` | 4 | **0** |
+| `shop-creation-price` / `refund` | 50 / 10 | **0 / 0** |
+| `admin-buyback-enabled-at-launch` | false | **true** (resolve a contradição da seção 5) |
+| EssentialsX `starting-balance` | 0 | **2.000** |
+| EssentialsX `currency-symbol` | `$` | **`BC$`** |
+| ChestShop `SHOP_CREATION_PRICE` | 50 | **0** |
+| `saldo-inicial.yml` | 3 UUIDs travados | **zerado** |
+
+Zerar o `saldo-inicial.yml` é seguro: o `StartingBalance` credita o que **falta**
+para chegar ao alvo, nunca soma. Quem já tiver 2.000 não recebe nada.
+
+### Verificações feitas
+
+- As 10 receitas modeladas continuam dando prejuízo ao atacante.
+- Nenhum item ficou com spread abaixo de 3x.
+- Os 43 testes do BigaCore passam, incluindo `TransformationArbitrageTest`.
+
+O levantamento completo item a item saiu como PDF e CSV, gerados a partir do
+`economy.yml` real.
+
+---
+
 ## Fontes
 
 Princípios gerais de faucet/sink e de escala de SMP vieram de:
