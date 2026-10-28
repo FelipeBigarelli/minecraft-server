@@ -1,16 +1,16 @@
 {
   "schema": 1,
-  "minecraft": "26.2",
-  "verified_at": "2026-09-21",
+  "minecraft": "26.3",
+  "verified_at": "2026-10-28",
   "source": "https://download.geysermc.org/v2/projects",
   "plugins": [
     {
       "project": "geyser",
-      "version": "2.11.3",
-      "build": 1245,
+      "version": "2.12.1",
+      "build": 1276,
       "filename": "Geyser-Spigot.jar",
       "plugin_name": "Geyser-Spigot",
-      "sha256": "d9a3b8eef599726243a3f03cc76cc3387127d2ad48daae00b860c0189995277a"
+      "sha256": "d747d9f0b74370fae40e1c329193cf178bcb3fc3b2adc51cbe618ad4cfaf8945"
     },
     {
       "project": "floodgate",

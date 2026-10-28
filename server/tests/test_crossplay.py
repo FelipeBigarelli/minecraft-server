@@ -59,7 +59,7 @@ class CrossplayTests(unittest.TestCase):
 
     def install(self, replace=False):
         with patch.object(cp, "download", side_effect=self.fake_download):
-            cp.install(self.server, self.config, "26.2", replace)
+            cp.install(self.server, self.config, "26.3", replace)
 
     def config_objects(self):
         return [cp.read_yaml((self.config / f"plugins/{n}/config.yml").read_bytes()) for n in cp.CONFIGS]
@@ -72,13 +72,13 @@ class CrossplayTests(unittest.TestCase):
         self.assertEqual(len(backups), 1)
         self.assertEqual(backups[0].read_bytes(), self.original)
         self.assertEqual((self.server / ".crossplay-backups").stat().st_mode & 0o777, 0o700)
-        cp.check(self.server, self.config, "26.2")
+        cp.check(self.server, self.config, "26.3")
 
     def test_idempotent_without_network_or_new_backup(self):
         self.install()
         files = {p: p.read_bytes() for p in self.server.rglob("*") if p.is_file()}
         with patch.object(cp, "download", side_effect=AssertionError("Não deveria baixar")):
-            cp.install(self.server, self.config, "26.2")
+            cp.install(self.server, self.config, "26.3")
         self.assertEqual(files, {p: p.read_bytes() for p in self.server.rglob("*") if p.is_file()})
 
     def test_concurrent_config_edit_is_not_overwritten(self):
@@ -86,7 +86,7 @@ class CrossplayTests(unittest.TestCase):
             self.fake_download(plugin, path)
             self.props.write_bytes(self.original + b"# alterado durante download\n")
         with patch.object(cp, "download", side_effect=edit), self.assertRaises(cp.CrossplayError):
-            cp.install(self.server, self.config, "26.2")
+            cp.install(self.server, self.config, "26.3")
         self.assertTrue(self.props.read_bytes().endswith(b"# alterado durante download\n"))
         self.assertFalse((self.server / "plugins/Geyser-Spigot.jar").exists())
 
@@ -96,7 +96,7 @@ class CrossplayTests(unittest.TestCase):
                 raise cp.CrossplayError("Rede indisponível")
             self.fake_download(plugin, path)
         with patch.object(cp, "download", side_effect=fail), self.assertRaises(cp.CrossplayError):
-            cp.install(self.server, self.config, "26.2")
+            cp.install(self.server, self.config, "26.3")
         self.assertEqual(self.props.read_bytes(), self.original)
         self.assertFalse(list(self.server.glob("plugins/*.jar")))
         self.assertFalse(list(self.server.glob(".crossplay-stage-*")))
@@ -217,7 +217,7 @@ class CrossplayTests(unittest.TestCase):
     def test_runtime_assets_support_readonly_check(self):
         self.install()
         root = self.server / "scripts/crossplay-config"
-        cp.check(self.server, root, "26.2")
+        cp.check(self.server, root, "26.3")
         self.assertEqual(cp.read_lock(root), self.lock)
 
 
