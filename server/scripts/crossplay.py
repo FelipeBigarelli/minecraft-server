@@ -130,8 +130,8 @@ def chat_properties(content: bytes) -> bytes:
 
 
 def validate_configs(geyser: dict, floodgate: dict) -> tuple[str, int]:
-    require(geyser.get("config-version") == 8 and "remote" not in geyser,
-            "Geyser: esperado schema 8 com java.auth-type. Revise a config existente; não foi sobrescrita.")
+    require(geyser.get("config-version") == 11 and "remote" not in geyser,
+            "Geyser: esperado schema 11 com java.auth-type. Revise a config existente; não foi sobrescrita.")
     require(nested(geyser, "java", "auth-type") == "floodgate", "Geyser: java.auth-type deve ser floodgate.")
     require(nested(geyser, "bedrock", "clone-remote-port", default=False) is False,
             "Geyser: clone-remote-port deve ser false neste setup.")

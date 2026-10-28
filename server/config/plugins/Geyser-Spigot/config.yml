@@ -29,4 +29,4 @@ advanced:
     use-haproxy-protocol: false
     use-waterdogpe-forwarding: false
 debug-mode: false
-config-version: 8
+config-version: 11
