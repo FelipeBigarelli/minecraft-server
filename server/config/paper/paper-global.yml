@@ -69,11 +69,11 @@ item-validation:
 messages:
   kick:
     authentication-servers-down: <lang:multiplayer.disconnect.authservers_down>
-    connection-throttle: Connection throttled! Please wait before reconnecting.
+    connection-throttle: Conexões demais! Aguarde um momento antes de entrar de novo.
     flying-player: <lang:multiplayer.disconnect.flying>
     flying-vehicle: <lang:multiplayer.disconnect.flying>
-  no-permission: <red>I'm sorry, but you do not have permission to perform this command.
-    Please contact the server administrators if you believe that this is in error.
+  no-permission: <red>Você não tem permissão para usar este comando. Fale com um
+    administrador do servidor se achar que isso é um engano.
   use-display-name-in-quit-message: false
 misc:
   catchup-ticks: default

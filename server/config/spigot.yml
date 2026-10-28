@@ -170,12 +170,12 @@ world-settings:
     nerf-spawner-mobs: false
     end-portal-sound-radius: 0
 messages:
-  whitelist: You are not whitelisted on this server!
-  unknown-command: Unknown command. Type "/help" for help.
-  server-full: The server is full!
-  outdated-client: Outdated client! Please use {0}
-  outdated-server: Outdated server! I'm still on {0}
-  restart: Server is restarting
+  whitelist: Você não está na lista de permitidos deste servidor!
+  unknown-command: Comando desconhecido. Digite "/help" para ver a ajuda.
+  server-full: O servidor está cheio!
+  outdated-client: Cliente desatualizado! Use a versão {0}
+  outdated-server: Servidor desatualizado! Ele ainda está na versão {0}
+  restart: O servidor está reiniciando
 config-version: 13
 stats:
   disable-saving: false
