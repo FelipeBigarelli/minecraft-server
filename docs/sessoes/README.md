@@ -50,6 +50,7 @@ Regras que valem sempre:
 
 | Data | Arquivo | O que aconteceu |
 |---|---|---|
+| 28/10/2026 | [2026-10-28-auditoria-economia-e-tema-the-bigas.md](2026-10-28-auditoria-economia-e-tema-the-bigas.md) | Auditoria da economia (o provedor virou EssentialsX, o saldo inicial ficou órfão e ninguém nunca teve 1 BC$), paleta The Bigas em todos os plugins, GravesX instalado, mundo de plots tematizado, ovo do dragão reabilitado e portal da Fortaleza resetado |
 | 11/08/2026 | [2026-08-11-biga-market-admin-shop.md](2026-08-11-biga-market-admin-shop.md) | Biga Market vira loja do servidor: venda por placa ChestShop e recompra com teto diário no BigaCore, correção de seis defeitos da construção real e do falso positivo do doctor |
 | 11/08/2026 | [2026-08-11-biga-market-deteccao-de-solo.md](2026-08-11-biga-market-deteccao-de-solo.md) | Origem do piso em Y=90 (copa de spruce virando chão), scanner de coluna que separa solo de vegetação/árvore/líquido/estrutura, `/biga loja preview` e `/biga loja desfazer` |
 | 11/08/2026 | [2026-08-11-auditoria-correcoes-github.md](2026-08-11-auditoria-correcoes-github.md) | Auditoria do repositório atual, separação de backup privado/snapshot do mundo, persistência de RAM/path, correção do plano SQLite/scanner e CI |

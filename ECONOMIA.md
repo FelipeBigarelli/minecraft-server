@@ -1,5 +1,21 @@
 # 💰 Economia BigaCore v1
 
+> ### ⚠️ Este documento está desatualizado em pontos críticos (auditado em 28/10/2026)
+>
+> O provedor de economia **não é mais o EternalEconomy** — ele foi movido para
+> `plugins-desativados/`. Quem responde hoje é o **EssentialsX Economy**, com
+> `starting-balance: 0`. O saldo inicial de 250 BC$ descrito abaixo **nunca foi
+> entregue a ninguém**, porque o BigaCore já marcou os três UUIDs como
+> "recebido" ainda na era do plugin antigo.
+>
+> Resultado: os dois jogadores estão com saldo **0** e o `ChestShop.log` tem
+> **duas transações em toda a história do servidor**, ambas de 12/08/2026.
+>
+> Antes de usar este arquivo como verdade, leia:
+>
+> - [docs/sessoes/2026-10-28-auditoria-economia-e-tema-the-bigas.md](docs/sessoes/2026-10-28-auditoria-economia-e-tema-the-bigas.md) — o estado real, com evidências
+> - [docs/economia-balanceamento.md](docs/economia-balanceamento.md) — estudo de balanceamento para servidor de 2 a 10 amigos e os números recomendados
+
 Economia do servidor survival entre amigos. O objetivo é criar um mercado útil
 sem transformar farms ou uma loja infinita do servidor em atalho para toda a
 progressão do Minecraft.
