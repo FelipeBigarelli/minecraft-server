@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================
-#  setup.sh — Instala o servidor Paper 26.2 do zero.
+#  setup.sh — Instala o servidor Paper 26.3 do zero.
 #
 #  Idempotente: pode rodar de novo com segurança. Nada que já
 #  exista é sobrescrito sem pedido explícito.
@@ -18,15 +18,15 @@
 # =============================================================
 set -euo pipefail
 
-MC_VERSION="${MC_VERSION:-26.2}"
-PAPER_BUILD="${PAPER_BUILD:-92}"
+MC_VERSION="${MC_VERSION:-26.3}"
+PAPER_BUILD="${PAPER_BUILD:-167}"
 RAM="${RAM:-4G}"
 SERVER_DIR="${SERVER_DIR:-$HOME/minecraft}"
 FORCE_CONFIG="${FORCE_CONFIG:-0}"
 FORCE_PLUGINS="${FORCE_PLUGINS:-0}"
 INSTALL_CROSSPLAY="${INSTALL_CROSSPLAY:-1}"
 
-PAPER_SHA256_DEFAULT="059d00bbce0fa1707739618b3276f5c80b9655dc0f964306fa799a9c7cb01cc2"
+PAPER_SHA256_DEFAULT="35a6c650e2f7f540e8f62e947ff00614242c25ec68befbc54a5f668b2fbecbdb"
 PAPER_API="https://fill.papermc.io/v3/projects/paper"
 UA="biga-mc-server/1.0"
 
@@ -140,12 +140,12 @@ JAR="paper-$MC_VERSION-$PAPER_BUILD.jar"
 if [ -f "$SERVER_DIR/$JAR" ]; then
     ok "$JAR já existe — pulando download."
 else
-    if [ "$PAPER_BUILD" = "92" ]; then
+    if [ "$PAPER_BUILD" = "167" ]; then
         SHA="$PAPER_SHA256_DEFAULT"
         URL="https://fill-data.papermc.io/v1/objects/$SHA/$JAR"
     else
         log "Consultando a API do PaperMC para a build $PAPER_BUILD..."
-        command -v jq >/dev/null 2>&1 || die "jq é necessário para builds != 92. Instale-o ou use PAPER_BUILD=92."
+        command -v jq >/dev/null 2>&1 || die "jq é necessário para builds != 167. Instale-o ou use PAPER_BUILD=167."
         RESP=$(curl -fsS --max-time 30 -H "User-Agent: $UA" \
                "$PAPER_API/versions/$MC_VERSION/builds/$PAPER_BUILD") \
                || die "Build $PAPER_BUILD não encontrada para o Minecraft $MC_VERSION."

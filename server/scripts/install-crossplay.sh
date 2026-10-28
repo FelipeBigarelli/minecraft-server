@@ -30,7 +30,7 @@ if [ ! -f "$CONFIG_ROOT/crossplay.lock.json" ]; then
     CONFIG_ROOT="$SCRIPT_DIR/crossplay-config"
 fi
 ARGS=("$MODE" --server-dir "$SERVER_DIR" --config-root "$CONFIG_ROOT"
-      --minecraft "${MC_VERSION:-${DEFAULT_MC_VERSION:-26.2}}")
+      --minecraft "${MC_VERSION:-${DEFAULT_MC_VERSION:-26.3}}")
 case "${CROSSPLAY_REPLACE_JARS:-0}" in
     0) ;;
     1) ARGS+=(--replace-jars) ;;

@@ -24,7 +24,7 @@ if [ -f "$SCRIPT_DIR/server.env" ]; then
     source "$SCRIPT_DIR/server.env"
 fi
 
-MC_VERSION="${MC_VERSION:-${DEFAULT_MC_VERSION:-26.2}}"
+MC_VERSION="${MC_VERSION:-${DEFAULT_MC_VERSION:-26.3}}"
 SERVER_DIR="${SERVER_DIR:-${DEFAULT_SERVER_DIR:-$HOME/minecraft}}"
 
 # Qual servidor subir: 'paper' (padrão desde 03/08/2026) ou 'spigot'.
@@ -34,8 +34,8 @@ SERVER_FLAVOR="${SERVER_FLAVOR:-${DEFAULT_SERVER_FLAVOR:-paper}}"
 # O Paper versiona por build dentro da mesma versão do Minecraft.
 # Manter o número aqui e no nome do jar torna óbvio, em qualquer log
 # ou 'ps aux', qual build está no ar — informação que some se o
-# arquivo se chamar só 'paper-26.2.jar'.
-PAPER_BUILD="${PAPER_BUILD:-${DEFAULT_PAPER_BUILD:-92}}"
+# arquivo se chamar só 'paper-26.3.jar'.
+PAPER_BUILD="${PAPER_BUILD:-${DEFAULT_PAPER_BUILD:-167}}"
 
 # RAM dedicada ao servidor. Regra prática:
 #   deixe pelo menos 1-2 GB livres para o SO.

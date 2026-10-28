@@ -63,7 +63,7 @@ jobs:
           mkfifo console.pipe
           exec 3<>console.pipe
 
-          java -Xms512M -Xmx1G -jar paper-26.2-92.jar nogui \
+          java -Xms512M -Xmx1G -jar paper-26.3-167.jar nogui \
               < console.pipe > smoke.log 2>&1 &
           PID=$!
 

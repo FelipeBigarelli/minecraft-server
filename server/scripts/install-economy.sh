@@ -2,7 +2,7 @@
 # =============================================================
 #  install-economy.sh — Instala a stack econômica do BigaCore.
 #
-#  Stack validada para Paper/Minecraft 26.2:
+#  Stack validada para Paper/Minecraft 26.3:
 #    - VaultUnlocked 2.20.2
 #    - EternalEconomy 1.0.1
 #    - ChestShop 3.13-pre-1
