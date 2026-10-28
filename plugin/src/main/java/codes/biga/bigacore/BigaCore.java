@@ -26,6 +26,7 @@ public final class BigaCore extends JavaPlugin {
     private StartingBalance startingBalance;
     private ShopDisplays shopDisplays;
     private ChestShopCapGuard chestShopCapGuard;
+    private Pedreiro pedreiro;
 
     @Override
     public void onEnable() {
@@ -62,6 +63,17 @@ public final class BigaCore extends JavaPlugin {
         // classe principal não virar um depósito de tudo.
         getServer().getPluginManager().registerEvents(new JogadorListener(this), this);
 
+        this.pedreiro = new Pedreiro(this);
+
+        var cmdPedreiro = getCommand("pedreiro");
+        if (cmdPedreiro != null) {
+            var executorPedreiro = new PedreiroCommand(this);
+            cmdPedreiro.setExecutor(executorPedreiro);
+            cmdPedreiro.setTabCompleter(executorPedreiro);
+        } else {
+            getLogger().severe("Comando 'pedreiro' não declarado no plugin.yml — verifique o arquivo.");
+        }
+
         var cmd = getCommand("biga");
         if (cmd != null) {
             var executor = new BigaCommand(this);
@@ -90,6 +102,10 @@ public final class BigaCore extends JavaPlugin {
         if (shopDisplays != null) {
             shopDisplays.stop();
         }
+        if (pedreiro != null) {
+            pedreiro.desligar();
+        }
+        pedreiro = null;
         shopPreview = null;
         shopSnapshot = null;
         serverBuyback = null;
@@ -113,6 +129,10 @@ public final class BigaCore extends JavaPlugin {
 
     public VaultEconomyBridge economyBridge() {
         return economyBridge;
+    }
+
+    public Pedreiro pedreiro() {
+        return pedreiro;
     }
 
     public SpawnShopBuilder spawnShopBuilder() {
