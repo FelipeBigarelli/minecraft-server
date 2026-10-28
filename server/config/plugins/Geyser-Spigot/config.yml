@@ -3,10 +3,12 @@
 bedrock:
   address: 0.0.0.0
   port: 19132
+  # "raknet" e o metodo antigo e e o que o Switch usa hoje. A 2.12 passou a
+  # default para "nethernet" e removeu o antigo "signaling: mode: none" — com
+  # ele presente a 2.12 nao le o config inteiro e nao abre listener nenhum.
+  # Com transport raknet o bloco signaling nao e usado, entao sai daqui.
   transport: raknet
   clone-remote-port: false
-  signaling:
-    mode: none
 java:
   auth-type: floodgate
 motd:
