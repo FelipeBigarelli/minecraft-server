@@ -260,6 +260,69 @@ Não é mais o `{"Name": …, "Properties": …}` de sempre. Além disso `TAG_By
 
 ---
 
+## 🔧 O CI quebrou no merge e levou a dois achados reais
+
+Os dois smoke tests ficaram vermelhos ao subir o `/pedreiro`, com a mesma
+mensagem: `Evidência ausente no log: BigaCore habilitado`. Consertar isso
+destravou um efeito dominó que vale registrar, porque dois degraus afetam o
+servidor de verdade, não só o CI.
+
+### 1. O projeto tinha ficado para trás do servidor
+
+O commit `a2330c4` subiu o `pom.xml` para a API 26.3 e deixou o `setup.sh`
+instalando Paper **26.2**. O CI passou a compilar o plugin contra uma API e
+bootar noutra, e o plugin não habilitava.
+
+Detalhe de diagnóstico: o passo roda com `set -e`, e o `grep -q` da evidência
+falha **sem imprimir nada**. O log do GitHub vinha vazio, o que dá a impressão
+errada de infraestrutura quebrada. A pista estava no `smoke_crossplay.py`, que
+usa `raise` com mensagem em vez de `grep`.
+
+Corrigido subindo o projeto inteiro para Paper 26.3 build 167, com o sha256
+vindo da API do PaperMC — que confere com o jar que já está no ar.
+
+### 2. ⚠️ O crossplay do Switch quebraria em silêncio na próxima atualização
+
+Este é o achado que importa fora do CI.
+
+O Geyser **2.12** mudou o padrão de conexão de RakNet para **NetherNet** e, no
+caminho, removeu o valor `none` de `bedrock.signaling.mode`. O template do repo
+usava exatamente esse valor:
+
+```
+SerializationException: [bedrock, signaling, mode] ... Invalid enum constant
+provided, expected a value of enum, got none
+```
+
+Uma chave inválida derruba a leitura do arquivo **inteiro**. O Geyser cai para
+o default, sobe `Built-in signaling` em vez de `Started Geyser on`, e **nunca
+chega a ler o `transport: raknet`** que o template pedia. O servidor liga
+normal; só para de atender na porta 19132.
+
+O Switch usa RakNet. Quem atualizasse o Geyser com esse template no disco
+perderia o crossplay sem nenhuma mensagem de erro aparente.
+
+Corrigido removendo o bloco `signaling` (com `transport: raknet` ele não é
+usado) e subindo o `config-version` esperado de 8 para 11, que é o que a 2.12.1
+escreve.
+
+Validado com boot real, não por changelog:
+
+```text
+[Geyser-Spigot] Started Geyser on UDP port 19132
+ping UDP responde 0x1c com "MCPE;" no payload
+```
+
+O lock foi atualizado para Geyser **2.12.1 build 1276** (Floodgate seguiu em
+2.2.5 b141, mesmo sha de antes), com a verificação feita do jeito que o lock
+exige: baixar pelo sha256 da API do GeyserMC e bootar num Paper 26.3 limpo.
+
+### Estado final
+
+Os três workflows verdes em `28f4e0c`: CI, Economy Smoke e Crossplay smoke.
+
+---
+
 ## ⏭️ Pendências
 
 - [ ] **Restart** para o GravesX carregar (o boot de 13:24 foi antes da instalação)
