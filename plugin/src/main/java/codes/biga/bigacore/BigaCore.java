@@ -26,6 +26,8 @@ public final class BigaCore extends JavaPlugin {
     private StartingBalance startingBalance;
     private ShopDisplays shopDisplays;
     private ChestShopCapGuard chestShopCapGuard;
+    private PlotApiBridge plotApi;
+    private PlotSale plotSale;
     private Pedreiro pedreiro;
 
     @Override
@@ -51,6 +53,8 @@ public final class BigaCore extends JavaPlugin {
         this.shopSnapshot = new ShopSnapshot(this);
         this.serverBuyback = new ServerBuyback(this);
         this.startingBalance = new StartingBalance(this);
+        this.plotApi = new PlotApiBridge();
+        this.plotSale = new PlotSale(this);
         this.shopDisplays = new ShopDisplays(this);
         this.shopDisplays.start();
 
@@ -62,6 +66,11 @@ public final class BigaCore extends JavaPlugin {
         // Listeners e comandos ficam em classes próprias para a
         // classe principal não virar um depósito de tudo.
         getServer().getPluginManager().registerEvents(new JogadorListener(this), this);
+
+        // Venda de terreno. O listener sobe sempre; quem decide se cobra é o
+        // PlotSale, que fica inerte se policy.plot-prices estiver vazio ou se
+        // o CreativePlots nao estiver instalado.
+        getServer().getPluginManager().registerEvents(new PlotPurchaseListener(this), this);
 
         this.pedreiro = new Pedreiro(this);
 
@@ -88,6 +97,44 @@ public final class BigaCore extends JavaPlugin {
             economyState = "economia Vault conectada";
         }
         getLogger().info("BigaCore habilitado — " + economyState + ".");
+
+        relatarVendaDeTerreno();
+    }
+
+    /**
+     * Diz no console se a venda de terreno está realmente valendo.
+     *
+     * A cobrança depende de reflexão sobre o CreativePlots, e reflexão falha em
+     * silêncio: sem esta linha, um terreno saindo de graça por API renomeada
+     * só apareceria quando alguém reparasse que o saldo não caiu. Mesmo motivo
+     * da linha [teto] do ChestShopCapGuard.
+     */
+    private void relatarVendaDeTerreno() {
+        var precos = economyCatalog.plotPrices();
+        String moeda = economyCatalog.currencySymbol();
+
+        if (precos.isEmpty()) {
+            getLogger().info("[terreno] Venda desligada — policy.plot-prices está vazio.");
+            return;
+        }
+
+        if (!plotApi.available()) {
+            getLogger().warning("[terreno] CreativePlots não encontrado pela ponte de reflexão — "
+                    + "terreno continua SENDO DE GRAÇA apesar de policy.plot-prices estar preenchido.");
+            return;
+        }
+
+        if (!economyBridge.available()) {
+            getLogger().warning("[terreno] Economia Vault indisponível — terreno continua de graça.");
+            return;
+        }
+
+        StringBuilder escada = new StringBuilder();
+        for (int i = 0; i < precos.size(); i++) {
+            escada.append(i == 0 ? "" : " / ").append(precos.get(i));
+        }
+        getLogger().info("[terreno] Venda ligada — " + escada + " " + moeda
+                + " (depois disso, x" + PlotSale.fatorDeEscalada(precos) + " por terreno).");
     }
 
     @Override
@@ -112,6 +159,8 @@ public final class BigaCore extends JavaPlugin {
         startingBalance = null;
         shopDisplays = null;
         chestShopCapGuard = null;
+        plotSale = null;
+        plotApi = null;
         spawnShopBuilder = null;
         economyCatalog = null;
         economyBridge = null;
@@ -163,12 +212,21 @@ public final class BigaCore extends JavaPlugin {
         return chestShopCapGuard;
     }
 
+    public PlotApiBridge plotApi() {
+        return plotApi;
+    }
+
+    public PlotSale plotSale() {
+        return plotSale;
+    }
+
     /** Recarrega os dois arquivos que pertencem ao BigaCore. */
     public void reloadBigaConfigs() {
         reloadConfig();
         economyCatalog.reload();
         serverBuyback.reload();
         startingBalance.reload();
+        plotSale.reload();
     }
 
     /**

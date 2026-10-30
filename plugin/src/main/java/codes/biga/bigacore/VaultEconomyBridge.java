@@ -20,6 +20,7 @@ public final class VaultEconomyBridge {
     private Object provider;
     private Method getBalance;
     private Method depositPlayer;
+    private Method withdrawPlayer;
 
     public boolean available() {
         if (provider != null && getBalance != null) {
@@ -65,6 +66,31 @@ public final class VaultEconomyBridge {
     }
 
     /**
+     * Debita o jogador.
+     *
+     * Contraparte do {@link #deposit}: é por aqui que a moeda SAI de
+     * circulação. Hoje só a {@link PlotSale} usa, e é o primeiro ralo
+     * recorrente que o servidor tem.
+     *
+     * Devolve false quando o saque não acontece — inclusive quando o saldo não
+     * cobre. Quem chama precisa tratar isso como "não cobrado", nunca como
+     * "cobrado parcialmente": o Vault não faz débito parcial, e assumir que fez
+     * entregaria o bem sem receber.
+     */
+    public boolean withdraw(OfflinePlayer player, double amount) {
+        if (amount <= 0 || !available() || withdrawPlayer == null) {
+            return false;
+        }
+
+        try {
+            Object resposta = withdrawPlayer.invoke(provider, player, amount);
+            return transacaoDeuCerto(resposta);
+        } catch (IllegalAccessException | InvocationTargetException exception) {
+            return false;
+        }
+    }
+
+    /**
      * O Vault devolve um EconomyResponse. Como não compilamos contra o Vault,
      * o sucesso é lido por reflexão; se o formato mudar, o padrão é considerar
      * que NÃO deu certo, para nunca dar item por dinheiro que não entrou.
@@ -98,6 +124,8 @@ public final class VaultEconomyBridge {
             this.getBalance = economyType.getMethod("getBalance", OfflinePlayer.class);
             this.depositPlayer = economyType.getMethod(
                     "depositPlayer", OfflinePlayer.class, double.class);
+            this.withdrawPlayer = economyType.getMethod(
+                    "withdrawPlayer", OfflinePlayer.class, double.class);
             return true;
         } catch (ClassNotFoundException | NoSuchMethodException exception) {
             return false;

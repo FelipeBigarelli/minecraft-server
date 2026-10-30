@@ -16,6 +16,33 @@ currency:
   starting-balance: 2000
 
 policy:
+  # -----------------------------------------------------------------
+  #  Preço do terreno (CreativePlots) — o primeiro RALO recorrente.
+  #
+  #  Até 30/10/2026 a economia só tinha torneira: imposto, criação de
+  #  loja e reembolso estavam todos em 0, enquanto a recompra injeta
+  #  até admin-buyback-daily-cap por jogador por dia. Entrava moeda e
+  #  não saía nada.
+  #
+  #  Ancoragem do primeiro valor, na mesma régua do resto do catálogo
+  #  (mediana de 562 BC$/hora):
+  #
+  #    1.200 BC$  ~=  2,1 horas de jogo
+  #                =  1,5 dia no teto diário de 800
+  #                =  60% do saldo inicial de 2.000
+  #
+  #  Ficar ABAIXO do saldo inicial é proposital: o jogador pode comprar
+  #  no primeiro dia, mas gasta a maior parte da reserva. Vira escolha
+  #  contra comprar material na loja, em vez de terreno grátis
+  #  disfarçado de pago.
+  #
+  #  Lista vazia = terreno de graça. Além do último degrau o preço
+  #  continua subindo pelo mesmo fator do último salto (aqui, x3).
+  # -----------------------------------------------------------------
+  plot-prices:
+    - 1200
+    - 3600
+    - 10800
   chestshop-tax-percent: 0
   shop-creation-price: 0
   shop-refund-price: 0

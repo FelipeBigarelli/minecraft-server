@@ -16,7 +16,10 @@ load: POSTWORLD
 # Integrações opcionais: BigaCore ainda sobe sem a stack econômica,
 # mas, quando ela existe, deve carregar depois dela para encontrar o
 # provider Vault já registrado.
-softdepend: [Vault, EternalEconomy, ChestShop]
+# O CreativePlots entra aqui porque a venda de terreno le o PlotAPI dele por
+# reflexao. Sem ele instalado o PlotApiBridge fica indisponivel e a cobranca se
+# desliga sozinha, sem derrubar o plugin.
+softdepend: [Vault, EternalEconomy, ChestShop, CreativePlots]
 
 commands:
   biga:
@@ -48,6 +51,13 @@ permissions:
   bigacore.use:
     description: Permite usar /biga e consultar a economia
     default: true
+  bigacore.plot.isento:
+    description: Reivindica terreno sem pagar
+    # default: false de proposito, nao "op". Se fosse op o dono nunca pagaria e
+    # nunca veria o fluxo de cobranca funcionar em jogo -- o unico jeito de
+    # testar seria desopando. Quem precisar de isencao recebe por LuckPerms:
+    #   /lp user <nome> permission set bigacore.plot.isento true
+    default: false
   bigacore.admin:
     description: Acesso administrativo a reload, voo e construção da loja do spawn
     default: op

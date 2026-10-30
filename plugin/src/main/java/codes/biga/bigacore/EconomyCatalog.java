@@ -67,6 +67,24 @@ public final class EconomyCatalog {
         return config.getInt("policy.admin-buyback-weekly-cap", 900);
     }
 
+    /**
+     * Preço de cada terreno, em ordem: primeiro, segundo, terceiro...
+     *
+     * Lista vazia (ou ausente) significa terreno de graça — é o estado em que o
+     * servidor ficou até 30/10/2026. Valor não-positivo é descartado em vez de
+     * virar "grátis no meio da escada", que faria o degrau seguinte cobrar mais
+     * por um terreno que o jogador já teria pego sem pagar.
+     */
+    public List<Integer> plotPrices() {
+        List<Integer> precos = new ArrayList<>();
+        for (int valor : config.getIntegerList("policy.plot-prices")) {
+            if (valor > 0) {
+                precos.add(valor);
+            }
+        }
+        return Collections.unmodifiableList(precos);
+    }
+
     public boolean adminBuybackEnabledAtLaunch() {
         return config.getBoolean("policy.admin-buyback-enabled-at-launch", false);
     }
