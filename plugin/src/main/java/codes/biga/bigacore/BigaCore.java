@@ -22,6 +22,7 @@ public final class BigaCore extends JavaPlugin {
     private SpawnShopBuilder spawnShopBuilder;
     private ShopPreview shopPreview;
     private ShopSnapshot shopSnapshot;
+    private ShopSignWriter shopSignWriter;
     private ServerBuyback serverBuyback;
     private StartingBalance startingBalance;
     private ShopDisplays shopDisplays;
@@ -51,6 +52,7 @@ public final class BigaCore extends JavaPlugin {
         this.spawnShopBuilder = new SpawnShopBuilder(this);
         this.shopPreview = new ShopPreview(this);
         this.shopSnapshot = new ShopSnapshot(this);
+        this.shopSignWriter = new ShopSignWriter(this);
         this.serverBuyback = new ServerBuyback(this);
         this.startingBalance = new StartingBalance(this);
         this.plotApi = new PlotApiBridge();
@@ -155,6 +157,7 @@ public final class BigaCore extends JavaPlugin {
         pedreiro = null;
         shopPreview = null;
         shopSnapshot = null;
+        shopSignWriter = null;
         serverBuyback = null;
         startingBalance = null;
         shopDisplays = null;
@@ -190,6 +193,10 @@ public final class BigaCore extends JavaPlugin {
 
     public ShopPreview shopPreview() {
         return shopPreview;
+    }
+
+    public ShopSignWriter shopSignWriter() {
+        return shopSignWriter;
     }
 
     public ShopSnapshot shopSnapshot() {

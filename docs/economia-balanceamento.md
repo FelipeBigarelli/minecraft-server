@@ -8,6 +8,25 @@ Documento irmão: [`ECONOMIA.md`](../ECONOMIA.md) descreve a política escrita.
 [`docs/sessoes/2026-10-28-auditoria-economia-e-tema-the-bigas.md`](sessoes/2026-10-28-auditoria-economia-e-tema-the-bigas.md)
 descreve o estado real do servidor hoje. Este aqui é o **porquê** dos números.
 
+> ### 📍 Estado em 30/10/2026 — leia antes
+>
+> Este arquivo tem três camadas, e confundi-las faz proposta parecer realidade:
+>
+> | Parte | O que é |
+> |---|---|
+> | **Seções 1 a 3** | Diagnóstico de 28/10/2026. É história — descreve o servidor **antes** das correções |
+> | **Seções 4 a 6** | As recomendações. Quase todas **já aplicadas** |
+> | **6-bis e 6-ter** | O que está de fato rodando, com data |
+>
+> **No ar hoje:** moeda **BC$** pelo EssentialsX Economy via VaultUnlocked, saldo
+> inicial **2.000**, recompra com teto de **800/dia** e **4.000/semana**, imposto
+> de P2P e taxa de criação de loja em **0**, e venda de terreno em
+> **1.200 / 3.600 / 10.800** (depois disso ×3) — o primeiro ralo recorrente que
+> este servidor teve.
+>
+> **Ainda não existe:** a Biga Market não foi construída, e o faucet de
+> advancements da seção 4.4 não foi implementado.
+
 ---
 
 ## 1. A conclusão primeiro
@@ -257,8 +276,10 @@ naturalmente ao longo de meses. É um faucet generoso sem ser uma fonte contínu
 O dreno principal já existe e é a própria compra na loja. Além dele, dois que
 cabem num servidor pequeno:
 
-- **Plots extras no mundo criativo.** O primeiro é de graça; do segundo em
-  diante custa. É dreno puro e dá uso ao mundo que acabou de ser gerado.
+- **Plots extras no mundo criativo.** É dreno puro e dá uso ao mundo que acabou
+  de ser gerado. ✅ **Implementado em 30/10/2026** — mas cobrando **desde o
+  primeiro** terreno, não a partir do segundo como esta seção propunha. O porquê
+  da mudança está na seção 6-ter.
 - **Conserto e renomeio.** Um `/biga reparar` que cobra por durabilidade é um
   dreno que cresce junto com o quanto o jogador joga, e não exige bigorna nem
   XP. Encaixa com a elytra, que desgasta sempre.
@@ -280,9 +301,13 @@ Dois que **não** cabem:
 | Economia irrelevante de novo | `ChestShop.log` parado por semanas | É o modo de falha **histórico** deste servidor. Vigiar mais que a inflação |
 | Preço fora de lugar | Um item sendo vendido ao servidor muito mais que os outros | Recalcular pela taxa BC$/min da seção 3.1 |
 
-### Contradição a resolver antes de ligar
+### Contradição a resolver antes de ligar — ✅ resolvida em 28/10/2026
 
-O `economy.yml` tem, em lugares diferentes:
+> Decisão: a recompra **entra ligada**.
+> `admin-buyback-enabled-at-launch` passou para `true`, concordando com
+> `admin-shop.buyback-enabled`. O texto abaixo fica como registro do problema.
+
+O `economy.yml` tinha, em lugares diferentes:
 
 ```yaml
 policy:
@@ -299,20 +324,25 @@ de qualquer ajuste de número, decidir qual vale — é a chave que controla a
 
 ## 6. Ordem de execução sugerida
 
-1. **Destravar o saldo inicial.** Limpar `plugins/BigaCore/saldo-inicial.yml` ou
+1. ✅ **Destravar o saldo inicial.** Limpar `plugins/BigaCore/saldo-inicial.yml` ou
    dar `/eco give` manual nos dois jogadores. São duas pessoas, dá para fazer na
-   mão.
-2. **Alinhar o `ECONOMIA.md` com a realidade**: o provedor é EssentialsX, não
+   mão. *(28/10 — os 3 jogadores receberam 2.000.)*
+2. ⚠️ **Alinhar o `ECONOMIA.md` com a realidade**: o provedor é EssentialsX, não
    EternalEconomy; aplicar `BC$` como `currency-symbol` se o nome importa.
-3. **Resolver a contradição** da seção 5.
-4. **Subir os três números** da seção 4.3 (saldo inicial, teto diário, teto
-   semanal) e zerar imposto e taxa de criação de loja.
-5. **Decidir o modelo de Admin Shop** — placa infinita ou catálogo curado. Os
+   *(O símbolo foi aplicado; o `ECONOMIA.md` continua descrevendo o
+   EternalEconomy e hoje só traz um aviso no topo. Pendente.)*
+3. ✅ **Resolver a contradição** da seção 5. *(28/10 — a recompra entra ligada.)*
+4. ✅ **Subir os três números** da seção 4.3 (saldo inicial, teto diário, teto
+   semanal) e zerar imposto e taxa de criação de loja. *(28/10.)*
+5. ✅ **Decidir o modelo de Admin Shop** — placa infinita ou catálogo curado. Os
    dois estão escritos em lugares diferentes do projeto e são incompatíveis.
-6. **Construir a Biga Market de fato** e povoar com os itens da seção 4.2. Loja
-   vazia não ensina ninguém a usar economia.
-7. **Só então** avaliar o faucet de advancements, com uma semana de `/baltop`
-   como base de comparação.
+   *(30/10 — venceu a placa de estoque infinito, dono `Loja do Servidor`.)*
+6. 🔨 **Construir a Biga Market de fato** e povoar com os itens da seção 4.2. Loja
+   vazia não ensina ninguém a usar economia. *(Em andamento: o terreno está
+   comprado e validado, a construção ainda não subiu.)*
+7. ⏳ **Só então** avaliar o faucet de advancements, com uma semana de `/baltop`
+   como base de comparação. *(Não começou — e agora tem um ralo do outro lado
+   para comparar.)*
 
 Não fazer tudo de uma vez. Subir número é fácil; tirar dinheiro de circulação
 depois que entrou é o que dá trabalho.
@@ -394,6 +424,107 @@ para chegar ao alvo, nunca soma. Quem já tiver 2.000 não recebe nada.
 
 O levantamento completo item a item saiu como PDF e CSV, gerados a partir do
 `economy.yml` real.
+
+---
+
+## 6-ter. Aplicado em 30/10/2026 — o primeiro ralo
+
+Até esta data a economia tinha **só torneira**: saldo inicial, recompra com
+teto, e nada que tirasse moeda de circulação. `chestshop-tax-percent`,
+`shop-creation-price` e `shop-refund-price` estão todos em 0 por decisão da
+seção 4.3 — todos eram atrito entre 3 amigos, não dreno de verdade.
+
+### A venda de terreno, e por que o primeiro também é pago
+
+A seção 4.5 propunha cobrar a partir do **segundo** terreno. A implementação
+cobra desde o **primeiro**. A razão é a assimetria que a própria 4.5 não via:
+um servidor de 3 pessoas em que cada uma pega um terreno de graça é um servidor
+onde o único ralo recorrente nunca dispara. O primeiro terreno é justamente o
+que todo mundo compra; isentá-lo isenta o caso comum e cobra só o excêntrico.
+
+Tabela em `policy.plot-prices`, e além dela o preço segue multiplicando pelo
+fator do último salto:
+
+| Terreno | Preço | Equivale a |
+|---|---:|---|
+| 1º | **1.200** | ~2,1 h de jogo na mediana de 562 BC$/h; 1,5 dia no teto diário; 60% do saldo inicial |
+| 2º | **3.600** | ~6,4 h |
+| 3º | **10.800** | ~19 h |
+| 4º em diante | ×3 a cada um | teto duro em 1 bilhão, para o `int` não estourar e virar preço negativo |
+
+O teto não é paranoia: sem ele a multiplicação vira negativa por volta do 19º
+terreno, e preço negativo passaria pelo `saldo < preco` e viraria **depósito**
+no Vault — o ralo funcionando ao contrário.
+
+### Como a cobrança funciona, já que não dava para fazer direito
+
+O CreativePlots 5.1 não dispara evento de claim e o `PlotAPI` dele só expõe
+leitura. Não existe ponto de extensão: ou se forka o plugin, ou se intercepta o
+comando.
+
+A ordem escolhida foi: conferir o saldo **antes** e recusar se faltar; deixar o
+comando do CreativePlots rodar; e um tick depois perguntar à API quem é o dono
+agora. **Só cobra contra fato consumado.** O inverso — cobrar e torcer — cobraria
+por claim recusado (terreno já tomado, limite atingido, mundo errado) e cada
+motivo de recusa viraria uma cobrança fantasma diferente.
+
+> **Limitação conhecida:** abandonar um terreno não devolve dinheiro nem
+> diminui a contagem. O CreativePlots não expõe API de unclaim, então não há
+> como saber que aconteceu sem varrer a grade. Na prática isso é um dreno extra,
+> não um bug — mas é assimétrico e vale lembrar antes de alguém reclamar.
+
+### O estado real da moeda neste dia
+
+| | |
+|---|---:|
+| Jogadores com saldo | 3 |
+| Moeda em circulação | **4.800 BC$** |
+| Moeda já destruída pelo ralo | **1.200 BC$** |
+| Transações no `ChestShop.log` | **2**, ambas de 12/08/2026 |
+
+Os 1.200 são os primeiros BC$ que este servidor **tirou** de circulação na
+história. O log parado em duas transações continua sendo o indicador que
+importa: o modo de falha deste servidor é irrelevância, não inflação.
+
+### A loja física
+
+O modelo do Admin Shop ficou decidido: **estoque infinito**, não catálogo
+curado. Com `FORCE_UNLIMITED_ADMIN_SHOP: true` a placa cujo dono é
+`Loja do Servidor` dispensa baú e nunca fica sem produto. Catálogo finito, com
+3 jogadores, viveria vazio.
+
+O levantamento do que cabe na parede:
+
+| | |
+|---|---:|
+| Itens no catálogo | 85 |
+| Com `server-sell` (podem ir à parede) | **62** |
+| Na parede hoje | 60 |
+| Com `server-buy` (recompra) | 51 |
+
+Os 23 sem `server-sell` não são esquecimento: são exatamente a lista que a
+seção 4.2 manda nunca vender — diamante, esmeralda, netherite em todas as
+formas, elytra, totem, concha e caixa de shulker, nether star, beacon, conduit,
+tridente, mace, heavy core, coração do mar, maçã dourada encantada, ovo e
+cabeça de dragão, disco pigstep e os dois smithing templates. **O teto de 62 é
+política, não falta de preço** — e é por isso que ele não sobe sozinho.
+
+Isso dá a regra de dimensionamento da construção: **1 item = 1 bloco linear de
+parede interna**. A loja gerada pelo BigaCore oferece 61 vagas; a construção
+pronta escolhida oferece 92, e 30 ficariam vazias até o catálogo crescer.
+
+### Travas novas
+
+| Trava | Contra o quê |
+|---|---|
+| `PlotSaleTest` | preço negativo ou estourado virando depósito |
+| `PlotFootprintTest` | a loja crescer até não caber mais no terreno |
+| `AdminShopSignTest` | a placa ganhar lado de compra sem o teto diário ativo |
+| Guard de `/plot abandon` | abandonar apaga os blocos do terreno, não só a posse |
+
+A última merece nota: o `handleAbandon` do CreativePlots chama
+`resetPlotLayer`, que reescreve o terreno. Com a loja dentro de um terreno, um
+comando digitado por engano apagaria tudo — sem confirmação e sem desfazer.
 
 ---
 

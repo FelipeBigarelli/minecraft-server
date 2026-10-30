@@ -45,6 +45,7 @@ public final class PlotPurchaseListener implements Listener {
 
     private static final Set<String> COMPRA = Set.of("claim", "auto");
     private static final String INFO = "info";
+    private static final String ABANDONO = "abandon";
 
     /** Quem tem isto não paga. Não é default op de propósito: veja o plugin.yml. */
     private static final String ISENTO = "bigacore.plot.isento";
@@ -72,6 +73,11 @@ public final class PlotPurchaseListener implements Listener {
 
         if (INFO.equals(sub)) {
             mostrarPrecoDepoisDoInfo(jogador);
+            return;
+        }
+
+        if (ABANDONO.equals(sub)) {
+            barrarAbandonoProtegido(evento, jogador);
             return;
         }
 
@@ -117,6 +123,45 @@ public final class PlotPurchaseListener implements Listener {
         // terreno, se mudou, já está gravado no arquivo dele.
         plugin.getServer().getScheduler().runTask(plugin,
                 () -> cobrarSeVirouDono(jogador, antes, preco, moeda));
+    }
+
+    /**
+     * Recusa o /plot abandon num terreno marcado como protegido.
+     *
+     * O abandono do CreativePlots não solta a posse: ele chama
+     * {@code resetPlotLayer} e REESCREVE os blocos do terreno. Num terreno com
+     * a Biga Market dentro, um comando digitado por engano apaga a construção
+     * inteira — sem confirmação, sem snapshot, sem volta.
+     *
+     * A trava é pela posição do jogador, que é como o CreativePlots resolve o
+     * terreno quando o comando vem sem argumento. Não cobre uma variante futura
+     * que aceite o id do terreno como parâmetro; se isso aparecer, o guard
+     * precisa olhar o argumento também.
+     */
+    private void barrarAbandonoProtegido(PlayerCommandPreprocessEvent evento, Player jogador) {
+        PlotSale venda = plugin.plotSale();
+        PlotApiBridge terrenos = plugin.plotApi();
+        if (venda == null || !terrenos.available()) {
+            return;
+        }
+
+        Optional<String> terreno = terrenos.terrenoEm(jogador.getLocation());
+        if (terreno.isEmpty()) {
+            return;
+        }
+
+        String mundo = jogador.getWorld().getName();
+        if (!venda.protegido(mundo, terreno.get())) {
+            return;
+        }
+
+        evento.setCancelled(true);
+        jogador.sendMessage(plugin.mini().deserialize(
+                "<color:#E03131>Este terreno está protegido. Abandonar APAGARIA tudo"
+                        + " que está construído nele.</color>"));
+        jogador.sendMessage(plugin.mini().deserialize(
+                "<color:#AAAAAA>Se é mesmo isso que você quer:"
+                        + " <color:#FFD700>/biga loja desproteger</color> primeiro.</color>"));
     }
 
     // ------------------------------------------------------------------

@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -45,6 +46,7 @@ import java.util.UUID;
 public final class PlotSale {
 
     private static final String FILE_NAME = "plots.yml";
+    private static final String CHAVE_PROTEGIDOS = "protegidos";
 
     /**
      * Teto duro do preço escalonado.
@@ -177,6 +179,57 @@ public final class PlotSale {
 
         return Resultado.cobrado(preco, pagosPor(jogador.getUniqueId()),
                 precoProximo(jogador.getUniqueId()));
+    }
+
+    // ------------------------------------------------------------------
+    //  Terrenos protegidos do /plot abandon
+    // ------------------------------------------------------------------
+
+    /**
+     * Por que esta trava existe.
+     *
+     * O {@code handleAbandon} do CreativePlots chama {@code resetPlotLayer},
+     * que reescreve os blocos do terreno de volta para grama e borda. Abandonar
+     * não é só largar a posse: é APAGAR o que está construído.
+     *
+     * A Biga Market mora num terreno. Um {@code /plot abandon} digitado por
+     * engano — e em 30/10/2026 foram três em dois minutos, testando — apagaria
+     * a loja inteira, com as placas, sem confirmação e sem desfazer.
+     *
+     * A lista fica no plots.yml e não no config porque é estado do mundo, não
+     * configuração: muda quando alguém protege um terreno, não quando o dono
+     * edita um arquivo.
+     */
+    public boolean protegido(String mundo, String terreno) {
+        return dados.getStringList(CHAVE_PROTEGIDOS).contains(chave(mundo, terreno));
+    }
+
+    /** Devolve false quando já estava protegido. */
+    public boolean proteger(String mundo, String terreno) {
+        List<String> lista = new ArrayList<>(dados.getStringList(CHAVE_PROTEGIDOS));
+        String chave = chave(mundo, terreno);
+        if (lista.contains(chave)) {
+            return false;
+        }
+        lista.add(chave);
+        dados.set(CHAVE_PROTEGIDOS, lista);
+        salvar();
+        return true;
+    }
+
+    /** Devolve false quando não estava protegido. */
+    public boolean desproteger(String mundo, String terreno) {
+        List<String> lista = new ArrayList<>(dados.getStringList(CHAVE_PROTEGIDOS));
+        if (!lista.remove(chave(mundo, terreno))) {
+            return false;
+        }
+        dados.set(CHAVE_PROTEGIDOS, lista);
+        salvar();
+        return true;
+    }
+
+    private static String chave(String mundo, String terreno) {
+        return mundo + ":" + terreno;
     }
 
     // ------------------------------------------------------------------

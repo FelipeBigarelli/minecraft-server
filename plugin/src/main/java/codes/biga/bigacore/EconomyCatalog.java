@@ -175,6 +175,17 @@ public final class EconomyCatalog {
         return List.copyOf(vitrine);
     }
 
+    /**
+     * Quantos itens o economy.yml PEDE na parede, antes de qualquer corte.
+     *
+     * Diferente do tamanho de {@link #adminShopWall(int)}, que já vem filtrado
+     * pelas vagas disponíveis e pelos itens sem server-sell. A diferença entre
+     * os dois é exatamente o que o dono precisa ver: item pedido que não entrou.
+     */
+    public int adminShopWallSize() {
+        return config.getStringList("admin-shop.wall").size();
+    }
+
     public Optional<PriceEntry> find(String input) {
         if (input == null || input.isBlank()) {
             return Optional.empty();

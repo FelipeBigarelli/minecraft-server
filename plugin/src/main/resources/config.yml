@@ -48,8 +48,18 @@ mensagem-boas-vindas: "<aqua>Bem-vindo ao servidor, <white><jogador></white>! <g
 #  Não usa coordenada absoluta. Em runtime o BigaCore lê o spawn
 #  REAL do mundo e soma este offset para obter o centro da loja.
 #
-#  Padrão: 28 blocos no eixo +X em relação ao spawn. A fachada é
-#  automaticamente virada de volta para o spawn.
+#  A fachada é automaticamente virada de volta para o spawn.
+#
+#  VALORES ATUAIS: a loja mora no terreno #1 do mundo 'plots',
+#  comprado como terreno de admin em 30/10/2026. O spawn desse
+#  mundo é (0, 65, 0), então o offset 21/21 põe o centro em
+#  X=21 Z=21 e a footprint 29x30 ocupa X 7..36 e Z 7..35 — o
+#  interior de grama inteiro, sem encostar na borda de
+#  polished_blackstone (que fica em 6 e 37).
+#
+#  Trocar de terreno = recalcular. O centro precisa cair a 14
+#  blocos de cada borda na largura e a 14/15 na profundidade;
+#  fora disso a loja invade a borda e a validação reprova.
 #
 #  Antes de construir, use:
 #    /biga loja local
@@ -76,8 +86,8 @@ mensagem-boas-vindas: "<aqua>Bem-vindo ao servidor, <white><jogador></white>! <g
 # -------------------------------------------------------------
 loja-spawn:
   # Deslocamento em relação ao spawn REAL do mundo.
-  offset-x: 28
-  offset-z: 0
+  offset-x: 21
+  offset-z: 21
 
   # Diferença máxima aceita entre o solo mais baixo e o mais alto
   # da footprint. Acima disso a validação bloqueia.

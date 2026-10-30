@@ -30,7 +30,8 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
     private static final List<String> ECO_SUBCOMANDOS =
             List.of("status", "saldo", "preco", "vender", "regras");
     private static final List<String> LOJA_SUBCOMANDOS =
-            List.of("local", "validar", "preview", "criar", "desfazer");
+            List.of("local", "validar", "preview", "criar", "placas",
+                    "proteger", "desproteger", "desfazer");
 
     private final BigaCore plugin;
 
@@ -279,6 +280,9 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             case "validar" -> validarLoja(jogador);
             case "preview" -> previewLoja(jogador);
             case "criar" -> criarLoja(jogador, label, args);
+            case "placas" -> placasLoja(jogador, label, args);
+            case "proteger" -> protegerTerreno(jogador, true);
+            case "desproteger" -> protegerTerreno(jogador, false);
             case "desfazer" -> desfazerLoja(jogador, label, args);
             default -> enviarAjudaLoja(sender, label);
         }
@@ -424,6 +428,135 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
                 NamedTextColor.GRAY));
     }
 
+    /**
+     * Escreve o balcão do servidor nas placas vazias de uma construção pronta.
+     *
+     * Sem argumento nenhum o comando apenas SIMULA — e isso é deliberado. Não
+     * existe snapshot de rollback para placa como existe para construção, e
+     * desfazer 92 placas na mão é um castigo. O relatório mostra os dois
+     * desencontros possíveis antes de qualquer escrita: placa que vai sobrar
+     * vazia e item do catálogo que não encontrou vaga.
+     */
+    private void placasLoja(Player jogador, String label, String[] args) {
+        int raio = ShopSignWriter.RAIO_PADRAO;
+        boolean confirmar = false;
+
+        for (int i = 2; i < args.length; i++) {
+            if (args[i].equalsIgnoreCase("CONFIRMAR")) {
+                confirmar = true;
+                continue;
+            }
+            try {
+                raio = Integer.parseInt(args[i]);
+            } catch (NumberFormatException ignorado) {
+                jogador.sendMessage(Component.text(
+                        "Raio inválido: '" + args[i] + "'. Usando " + raio + ".",
+                        NamedTextColor.YELLOW));
+            }
+        }
+
+        ShopSignWriter escritor = plugin.shopSignWriter();
+        ShopSignWriter.Relatorio r = confirmar
+                ? escritor.escrever(jogador.getLocation(), raio)
+                : escritor.simular(jogador.getLocation(), raio);
+
+        if (r.placasEmBranco() == 0) {
+            jogador.sendMessage(Component.text(
+                    "Nenhuma placa em branco num raio de " + r.raio() + " blocos.",
+                    NamedTextColor.RED));
+            jogador.sendMessage(Component.text(
+                    "Cole a construção primeiro, ou aumente o raio: /" + label
+                            + " loja placas 48",
+                    NamedTextColor.GRAY));
+            return;
+        }
+
+        String titulo = confirmar ? "Balcão escrito" : "Simulação — nada foi alterado";
+        jogador.sendMessage(Component.text(titulo, NamedTextColor.GOLD)
+                .decorate(TextDecoration.BOLD));
+        jogador.sendMessage(linha("Placas em branco", String.valueOf(r.placasEmBranco())));
+        jogador.sendMessage(linha("Itens pedidos no economy.yml", String.valueOf(r.itensPedidos())));
+        jogador.sendMessage(linha(confirmar ? "Placas escritas" : "Seriam escritas",
+                String.valueOf(r.itensColocados())));
+
+        if (r.sobrando() > 0) {
+            jogador.sendMessage(Component.text(
+                    "• " + r.sobrando() + " placa(s) ficam vazias: a construção tem mais"
+                            + " vagas do que o catálogo tem itens vendáveis.",
+                    NamedTextColor.YELLOW));
+        }
+        if (r.semVaga() > 0) {
+            jogador.sendMessage(Component.text(
+                    "• " + r.semVaga() + " item(ns) ficaram de fora por falta de vaga"
+                            + " ou por não ter server-sell. Veja os avisos no console.",
+                    NamedTextColor.YELLOW));
+        }
+
+        if (!confirmar) {
+            jogador.sendMessage(Component.text(
+                    "Para escrever de verdade: /" + label + " loja placas " + r.raio()
+                            + " CONFIRMAR",
+                    NamedTextColor.GOLD));
+            return;
+        }
+
+        jogador.sendMessage(Component.text(
+                "Só placas em branco foram tocadas — decoração da construção ficou intacta.",
+                NamedTextColor.DARK_GRAY));
+    }
+
+    /**
+     * Liga ou desliga a trava de /plot abandon no terreno onde o jogador está.
+     *
+     * Sem CONFIRMAR de propósito nos dois sentidos: proteger não destrói nada,
+     * e desproteger também não — o estrago só viria do /plot abandon seguinte,
+     * que é onde a confirmação já existe na cabeça de quem digita.
+     */
+    private void protegerTerreno(Player jogador, boolean ligar) {
+        PlotApiBridge terrenos = plugin.plotApi();
+        if (!terrenos.available()) {
+            jogador.sendMessage(Component.text(
+                    "CreativePlots não respondeu. Sem ele não há terreno para proteger.",
+                    NamedTextColor.RED));
+            return;
+        }
+
+        var terreno = terrenos.terrenoEm(jogador.getLocation());
+        if (terreno.isEmpty()) {
+            jogador.sendMessage(Component.text(
+                    "Fique dentro do terreno que você quer proteger.", NamedTextColor.RED));
+            return;
+        }
+
+        String mundo = jogador.getWorld().getName();
+        boolean mudou = ligar
+                ? plugin.plotSale().proteger(mundo, terreno.get())
+                : plugin.plotSale().desproteger(mundo, terreno.get());
+
+        if (!mudou) {
+            jogador.sendMessage(Component.text(
+                    "O terreno " + terreno.get() + " já estava "
+                            + (ligar ? "protegido" : "desprotegido") + ".",
+                    NamedTextColor.YELLOW));
+            return;
+        }
+
+        if (ligar) {
+            jogador.sendMessage(Component.text(
+                    "Terreno " + terreno.get() + " protegido: /plot abandon passa a ser recusado.",
+                    NamedTextColor.GREEN).decorate(TextDecoration.BOLD));
+            jogador.sendMessage(Component.text(
+                    "Abandonar um terreno apaga os blocos dele, não só a posse.",
+                    NamedTextColor.DARK_GRAY));
+            return;
+        }
+
+        jogador.sendMessage(Component.text(
+                "Terreno " + terreno.get() + " desprotegido. /plot abandon volta a funcionar"
+                        + " — e apaga o que estiver construído.",
+                NamedTextColor.YELLOW).decorate(TextDecoration.BOLD));
+    }
+
     private void desfazerLoja(Player jogador, String label, String[] args) {
         if (!plugin.shopSnapshot().exists()) {
             jogador.sendMessage(Component.text(
@@ -532,10 +665,13 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
 
     private void enviarAjudaLoja(CommandSender sender, String label) {
         sender.sendMessage(Component.text(
-                "Uso: /" + label + " loja <local|validar|preview|criar|desfazer>",
+                "Uso: /" + label + " loja <local|validar|preview|criar|placas|desfazer>",
                 NamedTextColor.YELLOW));
         sender.sendMessage(Component.text(
                 "Ordem segura: local -> validar -> preview -> criar CONFIRMAR",
+                NamedTextColor.GRAY));
+        sender.sendMessage(Component.text(
+                "Construção pronta, colada com WorldEdit: placas [raio] CONFIRMAR",
                 NamedTextColor.GRAY));
         sender.sendMessage(Component.text(
                 "Reverter a última construção: desfazer CONFIRMAR",

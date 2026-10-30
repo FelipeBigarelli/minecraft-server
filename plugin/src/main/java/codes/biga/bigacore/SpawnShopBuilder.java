@@ -57,12 +57,27 @@ public final class SpawnShopBuilder {
     //  ampliar a loja sem caçar constante solta.
     // ------------------------------------------------------------------
 
-    /** Metade da largura da footprint. 15 => 31 colunas de largura. */
-    static final int HALF_WIDTH = 15;
+    /**
+     * Metade da largura da footprint. 14 => 29 colunas de largura.
+     *
+     * O limite não é estético: a loja mora num terreno do CreativePlots, e o
+     * interior de grama de um terreno é 30x30 (a grade é 32 com borda de
+     * polished_blackstone de cada lado). Com HALF_WIDTH 15 a footprint saía
+     * 31 de largura e comia uma fileira inteira da borda do terreno — além de
+     * reprovar na validação, porque borda é bloco construído.
+     */
+    static final int HALF_WIDTH = 14;
 
-    /** Profundidade da footprint: de MIN_V (frente) a MAX_V (fundo). */
+    /**
+     * Profundidade da footprint: de MIN_V (frente) a MAX_V (fundo).
+     *
+     * 30 colunas, o interior inteiro do terreno. Subiu junto com o HALF_WIDTH
+     * caindo: as duas vagas perdidas na parede do fundo voltam como uma
+     * fileira a mais em cada lateral, e o balcão continua com 61 vagas para os
+     * 60 itens do economy.yml. Ver {@link #adminShopSlotCount()}.
+     */
     static final int MIN_V = -4;
-    static final int MAX_V = 24;
+    static final int MAX_V = 25;
 
     /** Metade da largura do salão fechado. */
     static final int WALL_HALF = HALF_WIDTH - 2;
@@ -84,7 +99,16 @@ public final class SpawnShopBuilder {
     /** Altura do envelope construído acima do piso (telhado + chaminé). */
     static final int BUILD_HEIGHT = roofHeight(0, 0) + 5;
 
-    /** Meio da footprint no eixo de profundidade. */
+    /**
+     * Meio da footprint no eixo de profundidade.
+     *
+     * Com profundidade PAR (30 colunas) não existe coluna central exata: o meio
+     * real cai entre v=10 e v=11. A divisão inteira escolhe a de trás, então a
+     * construção vai de {@code centro-14} até {@code centro+15} — meio bloco
+     * para o fundo. É deliberado: arredondar para a frente empurraria a
+     * fachada contra a borda do terreno, que é exatamente o que esta
+     * geometria existe para evitar.
+     */
     static final int CENTER_V = (MIN_V + MAX_V) / 2;
 
     /** Vão livre da entrada, para cada lado do centro. */
@@ -1042,36 +1066,16 @@ public final class SpawnShopBuilder {
             return;
         }
 
-        EconomyCatalog catalog = plugin.economyCatalog();
-
-        // Linha 3: "B <venda>" compra apenas, ou "B <venda>:<compra> S" nos dois
-        // sentidos. O segundo só é ligado com o teto de recompra funcionando.
-        // FAIL CLOSED também aqui: sem o teto registrado, a placa nem ganha
-        // preço de compra. Uma placa que compra sem limite é pior do que uma
-        // placa que só vende.
-        boolean podeComprar = catalog.adminShopSignBuysBack()
-                && plugin.chestShopCapGuard() != null
-                && plugin.chestShopCapGuard().ativo();
-
-        String preco = "B " + item.serverSell();
-        if (podeComprar && item.serverBuy() != null) {
-            preco = "B " + item.serverSell() + ":" + item.serverBuy() + " S";
-        } else if (catalog.adminShopSignBuysBack() && item.serverBuy() != null) {
-            plugin.getLogger().warning("[admin-shop] Teto inativo: '" + item.key()
-                    + "' fica só como venda.");
-        }
-
-        // Linha 4: o ChestShop resolve o nome em português pelo itemAliases.yml.
-        String nomeItem = item.key().toUpperCase(Locale.ROOT);
-        if (catalog.adminShopPortugueseNames()) {
-            nomeItem = catalog.displayName(item.key());
-        }
+        // As quatro linhas vivem no AdminShopSign porque o ShopSignWriter
+        // escreve as mesmas placas numa construção colada com WorldEdit. Duas
+        // cópias desta regra divergiriam justamente no "fail closed" que
+        // impede uma placa de comprar sem teto diário.
+        java.util.List<String> linhas = AdminShopSign.linhas(plugin, item, dono);
 
         SignSide frente = sign.getSide(Side.FRONT);
-        frente.line(0, Component.text(dono));
-        frente.line(1, Component.text(String.valueOf(item.lot())));
-        frente.line(2, Component.text(preco));
-        frente.line(3, Component.text(nomeItem));
+        for (int n = 0; n < linhas.size(); n++) {
+            frente.line(n, Component.text(linhas.get(n)));
+        }
         sign.update(true, false);
     }
 
