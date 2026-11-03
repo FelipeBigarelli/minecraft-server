@@ -986,7 +986,12 @@ public final class SpawnShopBuilder {
         }
 
         // Laterais: placa olha para o centro do salão.
-        for (int v = FRONT_V + 1; v <= BACK_V - 1; v++) {
+        // Para em BACK_V - 2, nao em BACK_V - 1: a fileira do fundo ja ocupa
+        // BACK_V - 1 de u=-(WALL_HALF-1) a u=WALL_HALF-1, que inclui as duas
+        // colunas laterais. Ir ate BACK_V - 1 aqui repetia essas duas posicoes,
+        // e a segunda placa era escrita EM CIMA da primeira — dois itens do
+        // catalogo somiam sem erro nenhum no console.
+        for (int v = FRONT_V + 1; v <= BACK_V - 2; v++) {
             vagas.add(new ShopSlot(-(WALL_HALF - 1), v, right));
             vagas.add(new ShopSlot(WALL_HALF - 1, v, right.getOppositeFace()));
         }
@@ -1003,7 +1008,7 @@ public final class SpawnShopBuilder {
      */
     static int adminShopSlotCount() {
         int fundo = 2 * (WALL_HALF - 1) + 1;
-        int lateral = (BACK_V - 1) - (FRONT_V + 1) + 1;
+        int lateral = (BACK_V - 2) - (FRONT_V + 1) + 1;
         return fundo + 2 * lateral;
     }
 

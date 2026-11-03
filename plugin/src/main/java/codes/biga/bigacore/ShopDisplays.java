@@ -1,8 +1,14 @@
 package codes.biga.bigacore;
 
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.Sign;
+import org.bukkit.block.data.Directional;
+import org.bukkit.block.sign.Side;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemDisplay;
@@ -12,9 +18,13 @@ import org.bukkit.util.Transformation;
 import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * Item flutuante e girando sobre cada banca do balcão.
@@ -215,5 +225,272 @@ public final class ShopDisplays {
                     + " item(ns) flutuante(s) removido(s).");
         }
         return removidos;
+    }
+
+    // ------------------------------------------------------------------
+    //  Construção baixada: pendurar a partir das placas já escritas
+    // ------------------------------------------------------------------
+
+    /**
+     * Pendura um item na frente de cada placa do Admin Shop num raio.
+     *
+     * <h2>Por que existe um segundo caminho de criação</h2>
+     *
+     * O {@link #spawn} acima serve quando o BigaCore é o arquiteto: ele recebe
+     * o {@link SpawnShopBuilder.Layout} e já sabe onde fica cada barril. Na
+     * loja de 30/10/2026 a construção veio pronta, colada com WorldEdit, e
+     * não existe Layout nenhum — só 60 placas espalhadas por uma planta que o
+     * plugin nunca viu.
+     *
+     * Aqui a placa É o layout: a posição e a direção dela dizem onde o item
+     * deve flutuar, e a linha 4 diz qual item é.
+     *
+     * <h2>O item vem da linha da placa, não da ordem</h2>
+     *
+     * Parear por índice (primeira placa = primeiro item do economy.yml) daria
+     * a loja inteira errada em silêncio se alguém apagasse uma placa do meio.
+     * A linha 4 é traduzida de volta ao material pelo mesmo {@code nomes:} que
+     * a escreveu; placa que não casa fica sem item e é CONTADA no relatório.
+     */
+    public Relatorio pendurar(Location centro, int raio, boolean aplicar) {
+        int limite = Math.max(1, Math.min(raio, ShopSignWriter.RAIO_MAXIMO));
+        List<Sign> placas = placasDoAdminShop(centro, limite);
+        Map<String, Material> indice = indiceDoCatalogo();
+
+        int removidas = aplicar ? removerNoRaio(centro, limite) : 0;
+        int penduradas = 0;
+        int semMaterial = 0;
+        int semEspaco = 0;
+
+        for (Sign placa : placas) {
+            Material material = materialDaPlaca(placa, indice);
+            if (material == null || material.isAir()) {
+                semMaterial++;
+                continue;
+            }
+            Location ponto = pontoDoItem(placa);
+            if (ponto == null) {
+                semEspaco++;
+                continue;
+            }
+            if (aplicar) {
+                criarNoPonto(ponto, material);
+            }
+            penduradas++;
+        }
+
+        if (aplicar) {
+            plugin.getLogger().info("[display] " + penduradas + " item(ns) pendurados nas placas, "
+                    + removidas + " removido(s) antes.");
+        }
+
+        return new Relatorio(placas.size(), penduradas, semMaterial, semEspaco, removidas, limite);
+    }
+
+    /**
+     * Remove só os itens flutuantes do raio.
+     *
+     * O {@link #removeAll} varre o mundo inteiro, o que é o certo no rollback
+     * da loja gerada. Para a construção colada num terreno isso seria demais:
+     * apagaria a vitrine de outra loja no mesmo mundo.
+     */
+    public int removerNoRaio(Location centro, int raio) {
+        World world = centro.getWorld();
+        if (world == null) {
+            return 0;
+        }
+        int limite = Math.max(1, Math.min(raio, ShopSignWriter.RAIO_MAXIMO));
+        int removidos = 0;
+
+        for (Entity entidade : world.getEntities()) {
+            if (entidade instanceof ItemDisplay
+                    && entidade.getScoreboardTags().contains(TAG)
+                    && dentroDoRaio(entidade.getLocation(), centro, limite)) {
+                entidade.remove();
+                removidos++;
+            }
+        }
+
+        girando.removeIf(display -> !display.isValid());
+        return removidos;
+    }
+
+    private void criarNoPonto(Location alvo, Material material) {
+        World world = alvo.getWorld();
+        if (world == null) {
+            return;
+        }
+        ItemDisplay display = world.spawn(alvo, ItemDisplay.class, novo -> {
+            novo.setItemStack(new ItemStack(material));
+            novo.setBillboard(Display.Billboard.FIXED);
+            novo.setViewRange(0.6f);
+            novo.setPersistent(true);
+            // O interior da construção baixada é escuro de propósito. Sem
+            // forçar o brilho o ícone some na penumbra e a vitrine não serve.
+            novo.setBrightness(new Display.Brightness(15, 15));
+            novo.setShadowRadius(0f);
+            novo.addScoreboardTag(TAG);
+        });
+
+        aplicarAngulo(display, angulo);
+        girando.add(display);
+    }
+
+    /**
+     * O ponto onde o item flutua, ou null se não couber em lugar nenhum.
+     *
+     * <h2>Por que acima e não à frente</h2>
+     *
+     * A primeira versão punha o item um bloco à frente da placa, na mesma
+     * altura. Ficou errado na prática: o olho do jogador fica em Y+1,6 a partir
+     * do piso, ou seja, exatamente na altura da placa — então o ícone pousava
+     * na linha de visão e TAPAVA o texto que ele deveria ilustrar.
+     *
+     * Acima resolve os dois lados: a placa continua na altura do olhar, onde se
+     * lê, e o item fica no ar sobre ela, visível de longe no corredor inteiro.
+     *
+     * <h2>Por que procurar o primeiro espaço livre</h2>
+     *
+     * Em vez de fixar "uma casa acima", sobe até achar ar. Assim a mesma regra
+     * serve para a banca simples (placa, depois ar) e para a banca com
+     * prateleira (placa, bloco, depois ar) sem precisar de dois comandos.
+     */
+    private static final int SUBIDA_MAXIMA = 2;
+
+    private static Location pontoDoItem(Sign placa) {
+        Block bloco = placa.getBlock();
+        for (int acima = 1; acima <= SUBIDA_MAXIMA; acima++) {
+            Block candidato = bloco.getRelative(0, acima, 0);
+            if (candidato.isPassable()) {
+                return candidato.getLocation().add(0.5, 0.45, 0.5);
+            }
+        }
+        // Teto baixo em cima da placa: cai para a frente, que é melhor que
+        // nenhum item. Continua contado como vitrine no relatório.
+        if (placa.getBlockData() instanceof Directional direcional) {
+            Location frente = placa.getLocation().add(0.5, 0.5, 0.5)
+                    .add(direcional.getFacing().getDirection());
+            if (frente.getBlock().isPassable()) {
+                return frente;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Nome escrito na placa -> material.
+     *
+     * Indexa pelos DOIS nomes — a chave do catálogo e a tradução — porque
+     * {@code admin-shop.nomes-em-portugues} pode ser desligado depois, e aí as
+     * placas antigas seguem em português enquanto as novas saem em inglês.
+     */
+    private Map<String, Material> indiceDoCatalogo() {
+        Map<String, Material> indice = new HashMap<>();
+        EconomyCatalog catalog = plugin.economyCatalog();
+
+        for (EconomyCatalog.PriceEntry item : catalog.adminShopWall(Integer.MAX_VALUE)) {
+            Material material = Material.matchMaterial(item.key());
+            if (material == null) {
+                plugin.getLogger().warning("[display] '" + item.key()
+                        + "' não é material deste Minecraft; fica sem item flutuante.");
+                continue;
+            }
+            indice.put(normalizar(item.key()), material);
+            indice.put(normalizar(catalog.displayName(item.key())), material);
+        }
+        return indice;
+    }
+
+    private static Material materialDaPlaca(Sign placa, Map<String, Material> indice) {
+        String linha = texto(placa, 3);
+        if (linha.isBlank()) {
+            return null;
+        }
+        Material traduzido = indice.get(normalizar(linha));
+        if (traduzido != null) {
+            return traduzido;
+        }
+        // A placa pode ter sido escrita à mão, fora do catálogo.
+        return Material.matchMaterial(linha.trim().replace(' ', '_'));
+    }
+
+    /**
+     * Placas cuja primeira linha é o dono do Admin Shop.
+     *
+     * Mesma varredura por tile entity do {@link ShopSignWriter} — o custo
+     * cresce com a área em chunks, não com o volume — mas o filtro é o
+     * oposto: lá interessa a placa em branco, aqui a já escrita.
+     */
+    private List<Sign> placasDoAdminShop(Location centro, int limite) {
+        World world = centro.getWorld();
+        List<Sign> achadas = new ArrayList<>();
+        if (world == null) {
+            return achadas;
+        }
+
+        String dono = normalizar(plugin.economyCatalog().adminShopSignOwner());
+        int chunkRaio = (limite >> 4) + 1;
+        int cx = centro.getBlockX() >> 4;
+        int cz = centro.getBlockZ() >> 4;
+
+        for (int dx = -chunkRaio; dx <= chunkRaio; dx++) {
+            for (int dz = -chunkRaio; dz <= chunkRaio; dz++) {
+                if (!world.isChunkLoaded(cx + dx, cz + dz)) {
+                    continue;
+                }
+                for (BlockState estado : world.getChunkAt(cx + dx, cz + dz).getTileEntities()) {
+                    if (estado instanceof Sign placa
+                            && dentroDoRaio(placa.getLocation(), centro, limite)
+                            && normalizar(texto(placa, 0)).equals(dono)) {
+                        achadas.add(placa);
+                    }
+                }
+            }
+        }
+        return achadas;
+    }
+
+    private static boolean dentroDoRaio(Location alvo, Location centro, int raio) {
+        return Math.abs(alvo.getBlockX() - centro.getBlockX()) <= raio
+                && Math.abs(alvo.getBlockZ() - centro.getBlockZ()) <= raio
+                && Math.abs(alvo.getBlockY() - centro.getBlockY()) <= raio;
+    }
+
+    private static String texto(Sign placa, int linha) {
+        return PlainTextComponentSerializer.plainText()
+                .serialize(placa.getSide(Side.FRONT).line(linha));
+    }
+
+    /**
+     * Compara nome de placa ignorando acento, caixa e espaço sobrando.
+     *
+     * O nome vai do economy.yml para a placa e volta. No caminho passa pelo
+     * cliente e por arquivos que podem ter sido salvos em outra codificação —
+     * exigir igualdade byte a byte faria a vitrine falhar por um acento.
+     */
+    static String normalizar(String texto) {
+        if (texto == null) {
+            return "";
+        }
+        return Normalizer.normalize(texto, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .trim()
+                .replaceAll("\\s+", " ")
+                .toUpperCase(Locale.ROOT);
+    }
+
+    /**
+     * O que foi (ou seria) pendurado.
+     *
+     * {@code semMaterial} e {@code semEspaco} são os dois jeitos de uma placa
+     * ficar sem item, e separá-los importa: o primeiro é erro de catálogo, o
+     * segundo é erro de construção, e o conserto de cada um é diferente.
+     */
+    public record Relatorio(int placas, int penduradas, int semMaterial,
+                            int semEspaco, int removidas, int raio) {
+
+        public int semItem() {
+            return semMaterial + semEspaco;
+        }
     }
 }

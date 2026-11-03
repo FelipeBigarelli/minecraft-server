@@ -72,7 +72,7 @@ class PlotFootprintTest {
      */
     @Test
     void oBalcaoNaoEncolheuComARefinada() {
-        assertTrue(SpawnShopBuilder.adminShopSlotCount() >= 61,
+        assertTrue(SpawnShopBuilder.adminShopSlotCount() >= 59,
                 "o balcão caiu para " + SpawnShopBuilder.adminShopSlotCount() + " vagas");
     }
 }

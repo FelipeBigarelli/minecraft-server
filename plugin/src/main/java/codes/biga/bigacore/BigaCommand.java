@@ -30,7 +30,7 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
     private static final List<String> ECO_SUBCOMANDOS =
             List.of("status", "saldo", "preco", "vender", "regras");
     private static final List<String> LOJA_SUBCOMANDOS =
-            List.of("local", "validar", "preview", "criar", "placas",
+            List.of("local", "validar", "preview", "criar", "placas", "vitrine",
                     "proteger", "desproteger", "desfazer");
 
     private final BigaCore plugin;
@@ -281,6 +281,7 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             case "preview" -> previewLoja(jogador);
             case "criar" -> criarLoja(jogador, label, args);
             case "placas" -> placasLoja(jogador, label, args);
+            case "vitrine" -> vitrineLoja(jogador, label, args);
             case "proteger" -> protegerTerreno(jogador, true);
             case "desproteger" -> protegerTerreno(jogador, false);
             case "desfazer" -> desfazerLoja(jogador, label, args);
@@ -440,10 +441,15 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
     private void placasLoja(Player jogador, String label, String[] args) {
         int raio = ShopSignWriter.RAIO_PADRAO;
         boolean confirmar = false;
+        boolean limpar = false;
 
         for (int i = 2; i < args.length; i++) {
             if (args[i].equalsIgnoreCase("CONFIRMAR")) {
                 confirmar = true;
+                continue;
+            }
+            if (args[i].equalsIgnoreCase("limpar")) {
+                limpar = true;
                 continue;
             }
             try {
@@ -456,6 +462,25 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
         }
 
         ShopSignWriter escritor = plugin.shopSignWriter();
+
+        if (limpar) {
+            if (!confirmar) {
+                ShopSignWriter.Relatorio previa = escritor.simular(jogador.getLocation(), raio);
+                jogador.sendMessage(Component.text(
+                        previa.placasEmBranco() + " placa(s) em branco seriam APAGADAS.",
+                        NamedTextColor.GOLD));
+                jogador.sendMessage(Component.text(
+                        "Para apagar de verdade: /" + label + " loja placas " + previa.raio()
+                                + " limpar CONFIRMAR",
+                        NamedTextColor.GRAY));
+                return;
+            }
+            int apagadas = escritor.removerEmBranco(jogador.getLocation(), raio);
+            jogador.sendMessage(Component.text(
+                    apagadas + " placa(s) em branco removida(s).", NamedTextColor.GOLD));
+            return;
+        }
+
         ShopSignWriter.Relatorio r = confirmar
                 ? escritor.escrever(jogador.getLocation(), raio)
                 : escritor.simular(jogador.getLocation(), raio);
@@ -503,6 +528,93 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
         jogador.sendMessage(Component.text(
                 "Só placas em branco foram tocadas — decoração da construção ficou intacta.",
                 NamedTextColor.DARK_GRAY));
+    }
+
+    /**
+     * Pendura (ou apaga) o item flutuante na frente de cada placa do balcão.
+     *
+     * <p>Aceita {@code limpar} como terceiro argumento porque remover é a
+     * operação que o dono vai querer com pressa: item flutuante errado fica
+     * visível para todo mundo que entra na loja, e esperar lembrar da sintaxe
+     * de CONFIRMAR enquanto a loja está feia é tempo demais.</p>
+     */
+    private void vitrineLoja(Player jogador, String label, String[] args) {
+        int raio = ShopSignWriter.RAIO_PADRAO;
+        boolean confirmar = false;
+        boolean limpar = false;
+
+        for (int i = 2; i < args.length; i++) {
+            if (args[i].equalsIgnoreCase("CONFIRMAR")) {
+                confirmar = true;
+                continue;
+            }
+            if (args[i].equalsIgnoreCase("limpar")) {
+                limpar = true;
+                continue;
+            }
+            try {
+                raio = Integer.parseInt(args[i]);
+            } catch (NumberFormatException ignorado) {
+                jogador.sendMessage(Component.text(
+                        "Raio inválido: '" + args[i] + "'. Usando " + raio + ".",
+                        NamedTextColor.YELLOW));
+            }
+        }
+
+        ShopDisplays vitrines = plugin.shopDisplays();
+
+        if (limpar) {
+            int removidos = vitrines.removerNoRaio(jogador.getLocation(), raio);
+            jogador.sendMessage(Component.text(
+                    removidos + " item(ns) flutuante(s) removido(s).", NamedTextColor.GOLD));
+            return;
+        }
+
+        ShopDisplays.Relatorio r = vitrines.pendurar(jogador.getLocation(), raio, confirmar);
+
+        if (r.placas() == 0) {
+            jogador.sendMessage(Component.text(
+                    "Nenhuma placa do balcão num raio de " + r.raio() + " blocos.",
+                    NamedTextColor.RED));
+            jogador.sendMessage(Component.text(
+                    "Escreva as placas antes: /" + label + " loja placas " + r.raio()
+                            + " CONFIRMAR",
+                    NamedTextColor.GRAY));
+            return;
+        }
+
+        String titulo = confirmar ? "Vitrine pendurada" : "Simulação — nada foi alterado";
+        jogador.sendMessage(Component.text(titulo, NamedTextColor.GOLD)
+                .decorate(TextDecoration.BOLD));
+        jogador.sendMessage(linha("Placas do balcão", String.valueOf(r.placas())));
+        jogador.sendMessage(linha(confirmar ? "Itens pendurados" : "Seriam pendurados",
+                String.valueOf(r.penduradas())));
+        if (confirmar && r.removidas() > 0) {
+            jogador.sendMessage(linha("Vitrine antiga removida", String.valueOf(r.removidas())));
+        }
+
+        if (r.semMaterial() > 0) {
+            jogador.sendMessage(Component.text(
+                    "• " + r.semMaterial() + " placa(s) com nome que não bate com nenhum item"
+                            + " do catálogo. Veja os avisos no console.",
+                    NamedTextColor.YELLOW));
+        }
+        if (r.semEspaco() > 0) {
+            jogador.sendMessage(Component.text(
+                    "• " + r.semEspaco() + " placa(s) sem espaço livre na frente:"
+                            + " o item ficaria dentro da parede.",
+                    NamedTextColor.YELLOW));
+        }
+
+        if (!confirmar) {
+            jogador.sendMessage(Component.text(
+                    "Para pendurar de verdade: /" + label + " loja vitrine " + r.raio()
+                            + " CONFIRMAR",
+                    NamedTextColor.GOLD));
+            jogador.sendMessage(Component.text(
+                    "Para apagar depois: /" + label + " loja vitrine " + r.raio() + " limpar",
+                    NamedTextColor.DARK_GRAY));
+        }
     }
 
     /**
@@ -665,13 +777,18 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
 
     private void enviarAjudaLoja(CommandSender sender, String label) {
         sender.sendMessage(Component.text(
-                "Uso: /" + label + " loja <local|validar|preview|criar|placas|desfazer>",
+                "Uso: /" + label
+                        + " loja <local|validar|preview|criar|placas|vitrine|desfazer>",
                 NamedTextColor.YELLOW));
         sender.sendMessage(Component.text(
                 "Ordem segura: local -> validar -> preview -> criar CONFIRMAR",
                 NamedTextColor.GRAY));
         sender.sendMessage(Component.text(
                 "Construção pronta, colada com WorldEdit: placas [raio] CONFIRMAR",
+                NamedTextColor.GRAY));
+        sender.sendMessage(Component.text(
+                "Item flutuante na frente das placas: vitrine [raio] CONFIRMAR"
+                        + " (limpar apaga)",
                 NamedTextColor.GRAY));
         sender.sendMessage(Component.text(
                 "Reverter a última construção: desfazer CONFIRMAR",

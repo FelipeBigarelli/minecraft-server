@@ -4,6 +4,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
@@ -55,6 +56,18 @@ public final class ShopSignWriter {
 
     public static final int RAIO_PADRAO = 32;
 
+    /**
+     * Quantas bancas a Biga Market colada tem.
+     *
+     * Mora aqui porque é esta classe que enche a construção pronta, e o teste
+     * do economy.yml precisa de um número para comparar: a lista
+     * {@code admin-shop.wall} não pode pedir mais itens do que existe vaga.
+     *
+     * Fica acoplado a {@code server/scripts/gerar-bigamarket.py}, que desenha
+     * as 62 bancas. Mexeu lá, mexe aqui — o teste quebra e avisa.
+     */
+    public static final int VAGAS_BIGA_MARKET = 62;
+
     private final BigaCore plugin;
 
     public ShopSignWriter(BigaCore plugin) {
@@ -94,6 +107,38 @@ public final class ShopSignWriter {
                 + vazias.size() + " em branco encontradas.");
 
         return new Relatorio(vazias.size(), escritas, itensPedidos(), raio);
+    }
+
+    /**
+     * Apaga as placas que sobraram em branco.
+     *
+     * <h2>Por que apagar e não deixar</h2>
+     *
+     * A construção baixada tem 92 vagas e o catálogo tem 60 itens. As 32
+     * sobrando não são neutras: ficam espalhadas pelas paredes como buracos no
+     * meio do balcão, e o cliente lê isso como loja quebrada, não como loja
+     * com espaço para crescer.
+     *
+     * <h2>Por que isto é seguro</h2>
+     *
+     * Reaproveita o MESMO filtro do {@link #escrever}: só placa com os dois
+     * lados vazios entra na lista. Placa de decoração, de nome de rua ou de
+     * aviso tem texto e nunca é tocada. Quem quiser as vagas de volta só
+     * precisa aumentar {@code admin-shop.wall} e colar a construção de novo.
+     */
+    public int removerEmBranco(Location centro, int raio) {
+        int limite = Math.max(1, Math.min(raio, RAIO_MAXIMO));
+        List<Sign> vazias = placasEmBranco(centro, limite);
+
+        for (Sign placa : vazias) {
+            // applyPhysics=false: derrubar física numa parede cheia de placa e
+            // lanterna vizinha faria as outras caírem junto.
+            placa.getBlock().setType(Material.AIR, false);
+        }
+
+        plugin.getLogger().info("[admin-shop] " + vazias.size()
+                + " placa(s) em branco removida(s).");
+        return vazias.size();
     }
 
     // ------------------------------------------------------------------

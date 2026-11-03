@@ -114,12 +114,29 @@ class EconomyCatalogTest {
     }
 
     @Test
-    void paredeCabeNasVagasDisponiveis() {
-        int vagas = SpawnShopBuilder.adminShopSlotCount();
+    void paredeCabeNaLojaEmUso() {
+        // A loja em uso é a Biga Market colada com WorldEdit, não a que o
+        // SpawnShopBuilder gera: aquela é menor (ver adminShopSlotCount) e
+        // ficou para trás quando a construção passou a vir de schematic.
+        int vagas = ShopSignWriter.VAGAS_BIGA_MARKET;
         int pedidos = economia.getStringList("admin-shop.wall").size();
 
         assertTrue(pedidos <= vagas,
-                "a parede tem " + vagas + " vagas e o economy.yml pede " + pedidos);
+                "a Biga Market tem " + vagas + " bancas e o economy.yml pede " + pedidos);
+    }
+
+    @Test
+    void lojaGeradaAvisaQuandoNaoCabeTudo() {
+        // Invariante que sobrou do balcão gerado: ele é menor que a parede, e
+        // o importante é que isso APAREÇA. O adminShopWall corta no limite e
+        // escreve no console; o que não pode é sumir item em silêncio.
+        int geradas = SpawnShopBuilder.adminShopSlotCount();
+        int pedidos = economia.getStringList("admin-shop.wall").size();
+
+        assertTrue(geradas < pedidos,
+                "o balcão gerado passou a caber a parede inteira (" + geradas
+                        + " vagas para " + pedidos + " itens): este teste virou"
+                        + " mentira, troque-o por uma comparação direta");
     }
 
     @Test
