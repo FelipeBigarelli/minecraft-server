@@ -1,17 +1,20 @@
 # 💰 Economia BigaCore v1
 
-> ### ⚠️ Este documento está desatualizado em pontos críticos (auditado em 28/10/2026)
+> ### Conferido contra o servidor em 03/11/2026
 >
-> O provedor de economia **não é mais o EternalEconomy** — ele foi movido para
-> `plugins-desativados/`. Quem responde hoje é o **EssentialsX Economy**, com
-> `starting-balance: 0`. O saldo inicial de 250 BC$ descrito abaixo **nunca foi
-> entregue a ninguém**, porque o BigaCore já marcou os três UUIDs como
-> "recebido" ainda na era do plugin antigo.
+> Todo número daqui saiu de `plugins/BigaCore/economy.yml`,
+> `plugins/ChestShop/config.yml` e `plugins/Essentials/config.yml` — não de
+> memória. A versão anterior deste documento descrevia um servidor que não
+> existe mais: imposto de 4%, loja custando 50 BC$, saldo inicial de 250 BC$,
+> teto de 150/dia e recompra fora da placa. Nada disso vale.
 >
-> Resultado: os dois jogadores estão com saldo **0** e o `ChestShop.log` tem
-> **duas transações em toda a história do servidor**, ambas de 12/08/2026.
+> Duas pendências da auditoria de 28/10/2026 estão **resolvidas**:
 >
-> Antes de usar este arquivo como verdade, leia:
+> - o provedor de economia é o **EssentialsX Economy** (o EternalEconomy foi
+>   para `plugins-desativados/`), com `starting-balance: 2000` nos dois lados;
+> - o saldo inicial **foi entregue**: as cinco contas do servidor têm 2.000 BC$.
+>
+> Leitura complementar:
 >
 > - [docs/sessoes/2026-10-28-auditoria-economia-e-tema-the-bigas.md](docs/sessoes/2026-10-28-auditoria-economia-e-tema-the-bigas.md) — o estado real, com evidências
 > - [docs/economia-balanceamento.md](docs/economia-balanceamento.md) — estudo de balanceamento para servidor de 2 a 10 amigos e os números recomendados
@@ -24,8 +27,10 @@ A regra central é:
 
 > **O servidor facilita liquidez; os jogadores formam o mercado.**
 
-O lançamento usa principalmente **ChestShop jogador ↔ jogador**. Itens raros e
-de progressão continuam vindo de exploração, gameplay e negociação real.
+A espinha dorsal é o **ChestShop jogador ↔ jogador**. A Biga Market existe
+para dar piso e teto de preço aos materiais comuns, não para substituir o
+mercado. Itens raros e de progressão continuam vindo de exploração, gameplay e
+negociação real.
 
 ---
 
@@ -35,17 +40,23 @@ de progressão continuam vindo de exploração, gameplay e negociação real.
 |---|---:|
 | Moeda | **Biga Coin (`BC$`)** |
 | Casas decimais | **0** |
-| Saldo inicial | **250 BC$** (aplicado pelo BigaCore) |
-| Taxa ChestShop P2P | **4%** |
-| Criar uma loja | **50 BC$** |
-| Reembolso ao remover | **10 BC$** |
+| Saldo inicial | **2.000 BC$** (aplicado pelo BigaCore) |
+| Taxa ChestShop P2P | **0%** |
+| Criar uma loja | **grátis** |
+| Reembolso ao remover | **0 BC$** |
+| Terreno (CreativePlots) | **1.200 → 3.600 → 10.800 BC$**, depois ×3 a cada um |
 | Transações parciais | **desativadas** |
 | Auto-sell / sell-all | **não existe** |
-| Admin Shop ilimitada | **ativa, só do lado da venda** |
-| Buyback do servidor | **ativo, com teto diário por jogador** |
+| Limite de lojas por jogador | **nenhum** (ver política não aplicada) |
+| Admin Shop ilimitada | **ativa nos dois lados do balcão** |
+| Buyback do servidor | **ativo, com teto diário e semanal por jogador** |
 
-Os 4% de imposto não vão para outra conta: saem de circulação. Portanto são um
-**money sink real**, não apenas dinheiro movido para uma tesouraria.
+O único sink recorrente hoje é o **preço do terreno**. Imposto, criação de loja
+e reembolso estão todos em zero — foi uma escolha, não esquecimento: cobrar 4%
+de um mercado com cinco contas e duas compras registradas em toda a história do
+servidor (`ChestShop.log`, 12/08 e 30/10/2026) só atrapalharia a formação de
+preço. O terreno cobre o papel de sink porque é caro,
+repetível e opcional.
 
 Não existe pagamento automático por:
 
@@ -57,9 +68,9 @@ Não existe pagamento automático por:
 
 Uma farm pode produzir muitos **itens**, mas não imprime BC$ automaticamente.
 
-### ⚠️ O saldo inicial não vinha do plugin de economia
+### Por que o saldo inicial não pode vir do plugin de economia
 
-O `defaultBalance: '250'` do EternalEconomy estava correto e mesmo assim a
+O `defaultBalance` do plugin de economia estava correto e mesmo assim a
 primeira conta real nasceu zerada:
 
 ```text
@@ -71,10 +82,13 @@ dependia do comportamento de um plugin de terceiro no instante exato em que a
 conta é criada — e ela pode nascer por um caminho que ignora esse default (uma
 consulta de saldo via Vault costuma criar a conta zerada).
 
-Agora quem aplica a política é o BigaCore (`StartingBalance.java`), no login,
-com duas travas: o UUID é marcado em `plugins/BigaCore/saldo-inicial.yml`, e o
-crédito é um **complemento até** 250, nunca uma soma. Quem já tem 250 ou mais
-não recebe nada, mesmo que o arquivo de controle seja apagado.
+Quem aplica a política é o BigaCore (`StartingBalance.java`), no login, com
+duas travas: o UUID é marcado em `plugins/BigaCore/saldo-inicial.yml`, e o
+crédito é um **complemento até** o alvo, nunca uma soma. Quem já tem 2.000 ou
+mais não recebe nada, mesmo que o arquivo de controle seja apagado.
+
+Funcionou: em 03/11/2026 as cinco contas do servidor estão com 2.000 BC$
+(uma delas com 1.910, que gastou 90).
 
 ---
 
@@ -89,31 +103,45 @@ formas diferentes:
 | Lado | Efeito na moeda | Como é feito | Limite |
 |---|---|---|---|
 | Servidor **vende** | sai de circulação → **sink** | placas ChestShop `Admin Shop`, estoque infinito | nenhum |
-| Servidor **compra** | entra em circulação → **faucet** | `/biga eco vender` no BigaCore | **teto diário por jogador** |
+| Servidor **compra** | entra em circulação → **faucet** | a mesma placa (`B x : y S`) ou `/biga eco vender` | **teto diário e semanal por jogador** |
 
-### Por que a recompra não é uma placa
+### Como a placa compra sem virar impressora de dinheiro
 
-O ChestShop não sabe aplicar teto por jogador. Se a recompra fosse uma placa de
-Admin Shop ilimitada, uma farm de cobblestone ligada a noite inteira viraria uma
-impressora de dinheiro — exatamente o cenário que o resto deste documento existe
-para evitar.
+O ChestShop não sabe aplicar teto por jogador. Uma placa de Admin Shop
+ilimitada do lado da compra transformaria uma farm de cobblestone ligada a noite
+inteira em impressora de dinheiro — exatamente o cenário que o resto deste
+documento existe para evitar.
 
-Passando pelo BigaCore, a vazão máxima de moeda nova é previsível:
+A placa compra mesmo assim, e o teto é aplicado por fora: o
+`ChestShopCapGuard` do BigaCore escuta o `PreTransactionEvent`, que é
+cancelável, deixa passar o que couber no teto do dia e recusa o resto. Detalhes
+que importam:
+
+- só olha **venda** (jogador → servidor). Compra é sink, não precisa de limite;
+- só conta loja **do servidor**. Venda entre jogadores move moeda, não cria;
+- é **fail closed**: se a reflexão falhar, a venda é recusada. Perder uma venda
+  custa um log; deixar passar custa inflação que só aparece semanas depois;
+- se o console avisar que o teto não pôde ser ligado, desligue
+  `admin-shop.placa-compra` na hora.
+
+Com o teto aplicado, a vazão máxima de moeda nova é previsível:
 
 ```text
-moeda nova por dia  ≤  jogadores × 150 BC$
+moeda nova por dia  ≤  jogadores × 800 BC$
 ```
 
-contra os sinks de 4% de imposto, 50 BC$ por loja criada e a venda no varejo.
+contra o sink do terreno (1.200 BC$ o primeiro, ×3 a cada seguinte) e a venda
+no varejo.
 
 ### O que o servidor vende
 
-**60 itens** — praticamente todo o catálogo vendável — distribuídos em 61 vagas
-na parede do fundo e nas duas laterais do salão. A lista fica em
-`admin-shop.wall` no `economy.yml`.
+**62 itens** — todo o catálogo que tem `server-sell` — em exatamente 62 vagas
+no arcade que contorna o pátio da Biga Market. A lista fica em
+`admin-shop.wall` no `economy.yml`, e um teste falha o build se ela não couber.
 
-Cada vaga é um barril, uma placa ChestShop e um **item flutuando** acima do
-balcão, para dar para ver o que está à venda sem ler placa por placa.
+Cada vaga é um balcão de bétula, uma placa ChestShop e um **item flutuando no
+bloco acima da placa**, girando, para dar para ver o que está à venda sem ler
+placa por placa. Pendurar/recolher é `/biga loja vitrine <raio>`.
 
 **Item de progressão fica fora de propósito.** Diamante, elytra, netherite,
 totem, shulker shell e afins continuam vindo de exploração ou de negociação
@@ -140,22 +168,35 @@ Regras:
 - o pagamento sempre arredonda **para baixo**;
 - ao bater o teto, o comando avisa e manda negociar com outros jogadores.
 
-Os tetos são `admin-buyback-daily-cap` (150 BC$) e `admin-buyback-weekly-cap`
-(900 BC$), que já estavam escritos como política antes de existir código.
+Os tetos são `admin-buyback-daily-cap` (**800 BC$**) e
+`admin-buyback-weekly-cap` (**4.000 BC$**), e vale sempre o que apertar
+primeiro: o jogador recebe `min(sobra do dia, sobra da semana)`. O dia vira à
+meia-noite local do servidor e a semana vira na segunda (semana ISO).
+
+Para calibrar: 800 BC$ é ~1,4 dia de poupança para o primeiro terreno e, no
+item mais valioso do catálogo, dá 39 unidades antes de fechar o dia. É piso de
+liquidez, não profissão.
 
 ---
 
 ## 🧩 Stack instalada
 
-O `setup.sh` instala automaticamente versões fixadas e testadas pelo projeto:
+O que está rodando no servidor do Felipe:
 
 | Componente | Versão | Responsabilidade |
 |---|---:|---|
-| Paper | 26.2 build 92 | servidor |
+| Paper | 26.3 build 167-beta | servidor |
 | VaultUnlocked | 2.20.2 | bridge padrão de economia (`Vault`) |
-| EternalEconomy | 1.0.1 | saldo persistente / SQLite |
-| ChestShop | 3.13-pre-1 | lojas físicas jogador ↔ jogador |
-| BigaCore | 1.0.0 | política, catálogo e UX da economia |
+| EssentialsX | 2.22.1-dev | saldo persistente (`starting-balance: 2000`) |
+| ChestShop | 3.13-pre-1 | placas de loja, P2P e Admin Shop |
+| BigaCore | 1.0.0 | política, catálogo, teto de recompra e UX |
+
+> ⚠️ **O `setup.sh` ainda não reproduz isto.** Numa máquina nova ele chama o
+> `install-economy.sh`, que instala **EternalEconomy 1.0.1** e nem toca no
+> EssentialsX. O `doctor.sh` já aceita os dois provedores, mas um PC montado
+> hoje pelo script não fica igual ao servidor real. Alinhar os dois é uma
+> decisão em aberto: o EssentialsX traz muito além de economia (homes, warps,
+> kits, spawn), então trocar não é só mudar uma URL.
 
 Os JARs de terceiros **não ficam commitados no Git**. O script
 `server/scripts/install-economy.sh` baixa versões exatas de fontes oficiais e
@@ -225,8 +266,10 @@ Os jogadores comuns já recebem pelas permissões padrão do ChestShop acesso a
 criar, comprar e vender em lojas. Poderes administrativos continuam restritos a
 OP/staff.
 
-Criar a loja custa **50 BC$**. Isso é intencional: evita paredes de placas
-inúteis e cria um pequeno sink desde o começo.
+Criar a loja é **grátis** (`SHOP_CREATION_PRICE: 0`), e remover não devolve
+nada. Com cinco contas no servidor, cobrar pela placa só desencorajaria o
+mercado que a gente está tentando fazer nascer. Se um dia virarem paredes de
+placa inútil, o sink volta aqui.
 
 ---
 
@@ -246,17 +289,20 @@ Quando o BigaCore roda pela primeira vez, uma cópia vai para:
 
 Algumas referências iniciais:
 
-| Item | Lote | P2P ref. | Servidor compra* | Servidor vende* |
+O catálogo tem **85 itens**: 62 com `server-sell` (o servidor vende) e 51 com
+`server-buy` (o servidor compra).
+
+| Item | Lote | P2P ref. | Servidor compra | Servidor vende |
 |---|---:|---:|---:|---:|
-| Cobblestone | 64 | 20 BC$ | 8 BC$ | 32 BC$ |
-| Stone | 64 | 28 BC$ | 10 BC$ | 44 BC$ |
-| Oak Log | 32 | 48 BC$ | 16 BC$ | 80 BC$ |
-| Coal | 32 | 64 BC$ | 20 BC$ | 100 BC$ |
-| Iron Ingot | 16 | 160 BC$ | 80 BC$ | 240 BC$ |
-| Gold Ingot | 16 | 240 BC$ | 96 BC$ | 360 BC$ |
-| Redstone | 64 | 96 BC$ | 24 BC$ | 160 BC$ |
-| Diamond | 1 | 120 BC$ | 55 BC$ | 190 BC$ |
-| Blaze Rod | 8 | 240 BC$ | 32 BC$ | 380 BC$ |
+| Cobblestone | 64 | 20 BC$ | 2 BC$ | 32 BC$ |
+| Stone | 64 | 28 BC$ | 14 BC$ | 44 BC$ |
+| Oak Log | 32 | 48 BC$ | 12 BC$ | 80 BC$ |
+| Coal | 32 | 64 BC$ | 33 BC$ | 100 BC$ |
+| Iron Ingot | 16 | 160 BC$ | 13 BC$ | 240 BC$ |
+| Gold Ingot | 16 | 240 BC$ | 2 BC$ | 360 BC$ |
+| Redstone | 64 | 96 BC$ | 53 BC$ | 160 BC$ |
+| Diamond | 1 | 120 BC$ | — | — |
+| Blaze Rod | 8 | 240 BC$ | 6 BC$ | 380 BC$ |
 | Shulker Shell | 1 | 300 BC$ | — | — |
 | Ancient Debris | 1 | 650 BC$ | — | — |
 | Netherite Ingot | 1 | 3.000 BC$ | — | — |
@@ -267,9 +313,13 @@ Algumas referências iniciais:
 | Mace | 1 | 8.000 BC$ | — | — |
 | Dragon Egg | 1 | 15.000 BC$ | — | — |
 
-\* **Não existem Admin Shops de buyback/retail ativas no lançamento.** Esses
-valores já estão catalogados para uma fase posterior, depois de observarmos o
-mercado real. `—` significa P2P somente.
+`—` significa **P2P somente**: o servidor não negocia aquele item em nenhum dos
+dois lados. É por isso que diamante sumiu dos dois últimos campos — ele é item
+de progressão e saiu do balcão de propósito.
+
+Repare no ferro e no ouro: o servidor vende a 240/360 e recompra a 13/2. O
+spread é brutal **de propósito** — é o que faz vender para outro jogador valer
+mais a pena do que despachar no balcão.
 
 ---
 
@@ -281,11 +331,12 @@ quem constrói a maior farm automática.
 
 Por isso:
 
-1. recursos renováveis/farmáveis têm referência de buyback baixa;
-2. o buyback sistêmico começa **desligado**;
-3. itens craftados normalmente não terão recompra automática;
-4. itens de progressão permanecem P2P;
-5. nenhum `/sellall` será lançado junto com a economia.
+1. recursos renováveis/farmáveis têm recompra **muito** baixa — cobblestone
+   são 2 BC$ por 64, ouro 2 BC$ por 16;
+2. a recompra tem teto por jogador, por dia e por semana;
+3. 34 dos 85 itens do catálogo não têm recompra nenhuma;
+4. itens de progressão permanecem P2P, nos dois lados do balcão;
+5. não existe `/sellall`: `/biga eco vender` só vende o item na mão.
 
 A experiência desejada é:
 
@@ -308,8 +359,18 @@ O ChestShop está configurado para:
 - não permitir múltiplas lojas no mesmo bloco;
 - registrar transações/remoções em log;
 - não atualizar o próprio JAR automaticamente;
-- limitar quantidade global por loja/transação;
-- cobrar criação e aplicar imposto.
+- limitar quantidade global por loja/transação.
+
+Criação e imposto estão em **zero** hoje; quem segura a torneira é o teto de
+recompra do BigaCore, não o ChestShop.
+
+O `priceLimits.yml` está **vazio de propósito**: preço entre jogadores não cria
+moeda, só move, e a política escrita no `economy.yml` diz explicitamente que o
+catálogo é referência e não tabela obrigatória. Até 03/11/2026 esse arquivo
+ainda tinha os exemplos que vêm no jar do ChestShop (`piston_head`,
+`powered_rail`, `placed_banner`), que recusavam lojas desses itens com limites
+de 1 a 3 BC$ sem explicação. Não apague o arquivo: o ChestShop só recria os
+exemplos quando ele não existe.
 
 O `doctor.sh` impede o primeiro boot se detectar versões esperadas ausentes,
 configs econômicos críticos incorretos ou JARs duplicados.
@@ -321,13 +382,17 @@ configs econômicos críticos incorretos ou JARs duplicados.
 As seguintes ideias estão registradas em `economy.yml`, porém não devem ser
 confundidas com recurso já ativo:
 
-| Política futura | Referência atual | Situação |
+| Política | Referência atual | Situação |
 |---|---:|---|
-| Buyback máximo por jogador/dia | 150 BC$ | **aplicado** pelo BigaCore |
-| Buyback máximo por jogador/semana | 900 BC$ | **aplicado** pelo BigaCore |
+| Buyback máximo por jogador/dia | 800 BC$ | **aplicado** pelo BigaCore |
+| Buyback máximo por jogador/semana | 4.000 BC$ | **aplicado** pelo BigaCore |
 | Teto combinado de moeda nova/dia | 200 BC$ | só documentado |
 | Primeiro tier comercial | até 6 lojas | só documentado |
 | Tiers futuros | 12 / 20 lojas | só documentado |
+
+O teto combinado seria **global**, e não por jogador. Isso muda a justiça entre
+as pessoas: quem vendesse primeiro no dia comeria o orçamento dos outros. Por
+isso continua só escrito — precisa de decisão do dono antes de virar código.
 
 O limite de lojas por jogador continua sendo um número decorativo: nada o
 aplica.
@@ -411,8 +476,10 @@ Além do CI normal, existe:
 ```
 
 Ele cria um runtime descartável como um PC novo, roda o mesmo `setup.sh`, passa
-o `doctor.sh`, inicia Paper 26.2 com a stack econômica, confirma que Vault,
-EternalEconomy, ChestShop e BigaCore carregaram juntos e encerra com `stop`.
+o `doctor.sh`, inicia o Paper com a stack econômica, confirma que Vault, o
+provedor de economia, o ChestShop e o BigaCore carregaram juntos e encerra com
+`stop`. Como o `setup.sh` ainda instala o EternalEconomy, é essa a stack que o
+CI valida — e não a do servidor real.
 
 Esse teste **não usa nem inicia o mundo real do Felipe**.
 
@@ -423,15 +490,17 @@ Esse teste **não usa nem inicia o mundo real do Felipe**.
 A primeira fase de jogo é propositalmente simples:
 
 ```text
-250 BC$ inicial
+2.000 BC$ inicial
    ↓
-ChestShops P2P
+Biga Market (servidor vende) + ChestShops P2P
    ↓
-4% de sink
+recompra com teto de 800/dia como piso de liquidez
+   ↓
+terreno a 1.200 BC$ como sink
    ↓
 observar preços e produção real
    ↓
-criar apenas os Admin Shops que realmente forem necessários
+decidir se precisa de mais sink, mais teto ou nenhum dos dois
 ```
 
 Depois de algumas sessões com os amigos, os dados reais devem decidir se

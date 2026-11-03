@@ -111,7 +111,7 @@ public final class ServerBuyback {
             return Resultado.recusado("A recompra do servidor está desligada.");
         }
         if (!plugin.economyBridge().available()) {
-            return Resultado.recusado("Economia indisponível. Confirme VaultUnlocked + EternalEconomy.");
+            return Resultado.recusado("Economia indisponível. Confirme VaultUnlocked + EssentialsX.");
         }
 
         ItemStack mao = jogador.getInventory().getItemInMainHand();

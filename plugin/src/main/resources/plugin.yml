@@ -16,10 +16,12 @@ load: POSTWORLD
 # Integrações opcionais: BigaCore ainda sobe sem a stack econômica,
 # mas, quando ela existe, deve carregar depois dela para encontrar o
 # provider Vault já registrado.
+# Quem registra o provider hoje e o EssentialsX Economy (o EternalEconomy
+# saiu em 28/10/2026); por isso o Essentials esta nesta lista, e nao ele.
 # O CreativePlots entra aqui porque a venda de terreno le o PlotAPI dele por
 # reflexao. Sem ele instalado o PlotApiBridge fica indisponivel e a cobranca se
 # desliga sozinha, sem derrubar o plugin.
-softdepend: [Vault, EternalEconomy, ChestShop, CreativePlots]
+softdepend: [Vault, Essentials, ChestShop, CreativePlots]
 
 commands:
   biga:
