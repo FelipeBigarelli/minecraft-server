@@ -1,0 +1,35 @@
+# Teto e piso de preço para lojas DE JOGADOR, conferidos só na hora de criar a placa.
+#
+# Este arquivo está VAZIO de propósito.
+#
+# A política do servidor, escrita em plugins/BigaCore/economy.yml, diz:
+#   "Este arquivo é a política/catálogo do servidor, não uma tabela que força
+#    o preço de lojas entre jogadores. P2P é referência inicial."
+#
+# Preço entre jogadores não cria moeda, só move. Quem precisa de teto é a
+# recompra do servidor (admin-buyback-daily-cap), e essa já é aplicada pelo
+# ChestShopCapGuard do BigaCore.
+#
+# O que havia aqui antes eram os EXEMPLOS que vêm no jar do ChestShop —
+# item_type, piston_head, powered_rail, placed_banner — e não valores
+# escolhidos por alguém. Três deles são itens reais, então qualquer loja de
+# pistão ou trilho propulsor era recusada por um limite de 1 a 3 BC$ sem
+# explicação nenhuma. Removidos em 03/11/2026.
+#
+# NÃO APAGUE ESTE ARQUIVO. O ChestShop só recria os exemplos quando o arquivo
+# não existe: PriceRestrictionModule.load() faz os addDefault dentro de um
+# if (!file.exists()). Com o arquivo presente e sem as seções max/min, nenhum
+# caminho de limite roda — isValid() devolve false para toda chave ausente.
+#
+# Se um dia houver política de preço entre jogadores, o formato é:
+#
+#   max:
+#     buy_price:
+#       diamond: 100
+#   min:
+#     sell_price:
+#       diamond: 10
+#
+# Nome de Material em minúsculo, ou o nome exato do /iteminfo para item com NBT.
+
+uses_materials: true

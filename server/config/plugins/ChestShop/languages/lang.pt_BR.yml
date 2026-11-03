@@ -1,0 +1,133 @@
+# ChestShop — mensagens em português do Biga Market.
+#
+# O ChestShop NÃO usa código de cor do Spigot: ele passa tudo pelo MineDown.
+# Hex aqui é '&#RRGGBB&' (com o & final). O formato '&x&R&R&G&G&B&B' aparece
+# literalmente no chat como "&x" — foi o que quebrou a versão anterior.
+# No MineDown _texto_ vira itálico e **texto** vira negrito: evite nos textos.
+#
+# Paleta (a mesma do BigaCore):
+#   #FFD700 marca/destaque   #FF6A00 dinheiro   #56D364 deu certo
+#   #E03131 deu errado       #AAAAAA apoio      &f texto normal
+
+prefix: '[&lLOJA](#FFD700-#FF6A00) &8» &r'
+
+shopinfo: |-
+  [&lLOJA](#FFD700-#FF6A00) &8» &#FFD700&Sobre esta loja
+  &8| &fDono: &#AAAAAA&%owner
+  &8| &fEstoque: &#AAAAAA&%stock
+  &8| &fItem: &#AAAAAA&%item
+shopinfo_buy: '&8| &fVocê compra &#FFD700&%amount &fpor &#FF6A00&%price'
+shopinfo_sell: '&8| &fVocê vende &#FFD700&%amount &fpor &#FF6A00&%price'
+
+iteminfo: '[&lITEM](#FFD700-#FF6A00) &8» &r'
+iteminfo_fullname: '&8| &fNome completo: &#AAAAAA&%item'
+iteminfo_shopname: '&8| &fNome na placa: &#AAAAAA&%item'
+iteminfo_repaircost: '&8| &fCusto de reparo: &#AAAAAA&%cost'
+iteminfo_book: |-
+  &8| &fLivro: &#AAAAAA&%title
+  &8| &fAutor: &#AAAAAA&%author
+  &8| &fPáginas: &#AAAAAA&%pages
+iteminfo_book_generation: '&8| &fGeração do livro: &#AAAAAA&%generation'
+iteminfo_leather_color: '&8| &fCor do couro: &#AAAAAA&vermelho %colorred, verde %colorgreen,
+  azul %colorblue &8(&#AAAAAA&#%colorhex&8)'
+iteminfo_bundle_items: '&8| &fItens na trouxa: &#AAAAAA&%itemcount'
+iteminfo_axolotl_variant: '&8| &fVariante do axolote: &#AAAAAA&%variant'
+iteminfo_armor_trim: '&8| &fEnfeite da armadura: &#AAAAAA&%material %pattern'
+iteminfo_recipes: '&8| &fReceitas que ensina:'
+iteminfo_map_view: |-
+  &8| &fMapa nº &#AAAAAA&%id
+  &8| &fMundo: &#AAAAAA&%world
+  &8| &fCentro: &#AAAAAA&%x / %z
+  &8| &fTravado: &#AAAAAA&%locked
+iteminfo_map_location: '&8| &fLocal do mapa: &#AAAAAA&%location'
+iteminfo_tropical_fish: |-
+  &8| &fPadrão do peixe: &#AAAAAA&%pattern
+  &8| &fCor do padrão: &#AAAAAA&%patterncolor
+  &8| &fCor do corpo: &#AAAAAA&%bodycolor
+iteminfo_crossbow_projectiles: '&8| &fBesta carregada com:'
+iteminfo_crossbow_projectile: '&8| &#AAAAAA&%item'
+iteminfo_lore: |-
+  &8| &fDescrição:
+  &r%lore
+
+METRICS: |-
+  [&lLOJA](#FFD700-#FF6A00) &8» &#FFD700&Números do comércio
+  &8| &fContas: &#AAAAAA&%accounts
+  &8| &fTransações por conta: &#AAAAAA&%totalTransactions &8(&fcompra &#AAAAAA&%buyTransactions&8, &fvenda &#AAAAAA&%sellTransactions&8)
+  &8| &fItens por conta: &#AAAAAA&%totalItems &8(&fcomprados &#AAAAAA&%boughtItems&8, &fvendidos &#AAAAAA&%soldItems&8)
+
+# ----- bloqueios -----
+ACCESS_DENIED: '&#E03131&Esse baú não é seu.'
+TRADE_DENIED: '&#E03131&Você não tem permissão para negociar nesta loja.'
+TRADE_DENIED_ACCESS_PERMS: '&#E03131&Esta loja é sua &8— &#AAAAAA&não dá pra comprar de si mesmo.'
+TRADE_DENIED_CREATIVE_MODE: '&#E03131&No criativo a loja não negocia. &#AAAAAA&Use &#FFD700&/gamemode survival&#AAAAAA& para testar.'
+NO_PERMISSION: '&#E03131&Você não tem permissão para isso.'
+CANNOT_ACCESS_THE_CHEST: '&#E03131&Você não tem permissão para abrir este baú.'
+CANNOT_CHANGE_SIGN_BACKSIDE: '&#E03131&O verso da placa de uma loja não pode ser alterado.'
+
+# ----- dinheiro -----
+NOT_ENOUGH_MONEY: '&#E03131&Saldo insuficiente. &#AAAAAA&Veja quanto você tem com &#FFD700&/saldo&#AAAAAA&.'
+NOT_ENOUGH_MONEY_SHOP: '&#E03131&O dono desta loja está sem dinheiro para pagar você.'
+CLIENT_DEPOSIT_FAILED: '&#E03131&Não consegui depositar o dinheiro na sua conta.'
+SHOP_DEPOSIT_FAILED: '&#E03131&Não consegui depositar o dinheiro na conta do dono da loja.'
+NO_ECONOMY_ACCOUNT: '&#E03131&O dono desta loja não tem conta no banco.'
+
+# ----- estoque e espaço -----
+NO_BUYING_HERE: '&#E03131&Esta loja não vende &8— &#AAAAAA&ela só compra.'
+NO_SELLING_HERE: '&#E03131&Esta loja não compra &8— &#AAAAAA&ela só vende.'
+NOT_ENOUGH_SPACE_IN_INVENTORY: '&#E03131&Seu inventário está cheio.'
+NOT_ENOUGH_SPACE_IN_CHEST: '&#E03131&O baú da loja está cheio.'
+NOT_ENOUGH_ITEMS_TO_SELL: '&#E03131&Você não tem esses itens para vender.'
+NOT_ENOUGH_STOCK: '&#E03131&Esgotado. &#AAAAAA&Volte depois que o dono reabastecer.'
+NOT_ENOUGH_SPACE_IN_YOUR_SHOP: |-
+  [&#E03131&Sua loja encheu e recusou &#FF6A00&%price &#E03131&por &#FFD700&%item&#E03131&.](&f%seller&7 tentou vender
+  &7Mundo: &f%world
+  &7Local: &f%x / %y / %z)
+NOT_ENOUGH_STOCK_IN_YOUR_SHOP: |-
+  [&#E03131&Sua loja ficou sem &#FFD700&%item&#E03131& e perdeu &#FF6A00&%price&#E03131&.](&f%buyer&7 tentou comprar
+  &7Mundo: &f%world
+  &7Local: &f%x / %y / %z)
+
+# ----- negócio fechado -----
+YOU_BOUGHT_FROM_SHOP: '&#56D364&Comprou &#FFD700&%item &#56D364&de &f%owner &#56D364&por &#FF6A00&%price&#56D364&.'
+YOU_SOLD_TO_SHOP: '&#56D364&Vendeu &#FFD700&%item &#56D364&para &f%buyer &#56D364&por &#FF6A00&%price&#56D364&.'
+SOMEBODY_BOUGHT_FROM_YOUR_SHOP: |-
+  [&f%buyer &#56D364&comprou &#FFD700&%item &#56D364&por &#FF6A00&%price&#56D364&.](&7Mundo: &f%world
+  &7Local: &f%x / %y / %z)
+SOMEBODY_SOLD_TO_YOUR_SHOP: |-
+  [&f%seller &#56D364&vendeu &#FFD700&%item &#56D364&por &#FF6A00&%price&#56D364&.](&7Mundo: &f%world
+  &7Local: &f%x / %y / %z)
+
+# ----- abrindo loja -----
+YOU_CANNOT_CREATE_SHOP: '&#E03131&Você não pode criar esse tipo de loja.'
+CANNOT_CREATE_SHOP_HERE: '&#E03131&Aqui não dá pra abrir loja.'
+NO_CHEST_DETECTED: '&#E03131&Não achei baú nenhum. &#AAAAAA&A placa precisa ficar na frente ou em cima de um.'
+INVALID_SHOP_DETECTED: '&#E03131&Esta loja está quebrada e não pode ser usada.'
+INVALID_SHOP_PRICE: '&#E03131&O preço da placa está inválido. &#AAAAAA&Escreva assim: &#FFD700&B 10 : 5 S&#AAAAAA&.'
+INVALID_SHOP_QUANTITY: '&#E03131&A quantidade da placa está inválida. &#AAAAAA&A linha 2 só aceita número.'
+SELL_PRICE_HIGHER_THAN_BUY_PRICE: '&#E03131&O preço de venda ficou acima do de compra &8— &#AAAAAA&assim dá pra fabricar dinheiro.'
+SELL_PRICE_ABOVE_MAX: '&#E03131&Vender a &#FF6A00&%price&#E03131& passa do teto de &#FF6A00&%maxprice&#E03131&.'
+SELL_PRICE_BELOW_MIN: '&#E03131&Vender a &#FF6A00&%price&#E03131& fica abaixo do piso de &#FF6A00&%minprice&#E03131&.'
+BUY_PRICE_ABOVE_MAX: '&#E03131&Comprar a &#FF6A00&%price&#E03131& passa do teto de &#FF6A00&%maxprice&#E03131&.'
+BUY_PRICE_BELOW_MIN: '&#E03131&Comprar a &#FF6A00&%price&#E03131& fica abaixo do piso de &#FF6A00&%minprice&#E03131&.'
+CLICK_TO_AUTOFILL_ITEM: '&#FFD700&Clique na placa segurando o item que ela vai negociar.'
+NO_ITEM_IN_HAND: '&#E03131&Sua mão está vazia &8— &#AAAAAA&segure o item para preencher a placa.'
+PROTECTED_SHOP: '&#56D364&Baú da loja protegido.'
+PROTECTED_SHOP_SIGN: '&#56D364&Placa da loja protegida.'
+NOT_ENOUGH_PROTECTIONS: '&#E03131&Não consegui criar a proteção.'
+SHOP_CREATED: '&#56D364&Loja aberta. &#AAAAAA&Bons negócios.'
+RESTRICTED_SIGN_CREATED: '&#56D364&Placa criada.'
+SHOP_FEE_PAID: '&#AAAAAA&Taxa de &#FF6A00&%amount&#AAAAAA& cobrada pela loja.'
+SHOP_REFUNDED: '&#56D364&Devolvemos &#FF6A00&%amount&#56D364& pra você.'
+ITEM_GIVEN: '&#56D364&Entreguei &#FFD700&%item &#56D364&para &f%player&#56D364&.'
+
+# ----- diversos -----
+PLAYER_NOT_FOUND: '&#E03131&Jogador não encontrado.'
+INCORRECT_ITEM_ID: '&#E03131&Esse item não existe. &#AAAAAA&Confira o nome escrito na placa.'
+INVALID_CLIENT_NAME: '&#E03131&Seu nome não é um nome válido de Minecraft.'
+NO_SHOP_FOUND: '&#AAAAAA&Nenhuma loja por aqui.'
+TOGGLE_MESSAGES_OFF: '&#AAAAAA&Avisos das suas lojas &#E03131&desligados&#AAAAAA&.'
+TOGGLE_MESSAGES_ON: '&#AAAAAA&Avisos das suas lojas &#56D364&ligados&#AAAAAA&.'
+TOGGLE_ACCESS_ON: '&#AAAAAA&Travado: você não negocia mais nas lojas em que tem acesso.'
+TOGGLE_ACCESS_OFF: '&#AAAAAA&Liberado: você já pode negociar nas lojas em que tem acesso.'
+ERROR_OCCURRED: '&#E03131&Deu ruim: &#AAAAAA&%error'
