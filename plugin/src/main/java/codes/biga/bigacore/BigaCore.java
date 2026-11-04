@@ -31,6 +31,9 @@ public final class BigaCore extends JavaPlugin {
     private PlotSale plotSale;
     private Pedreiro pedreiro;
     private PainelAjuda painelAjuda;
+    private WorldGuardBridge worldGuard;
+    private TerrenoCatalog terrenoCatalog;
+    private TerrenoVenda terrenoVenda;
 
     @Override
     public void onEnable() {
@@ -57,6 +60,14 @@ public final class BigaCore extends JavaPlugin {
             saveResource("ajuda.yml", false);
         }
 
+        // terrenos.yml: regra de venda de terreno no survival. Fora do
+        // economy.yml porque mexer no preco por bloco nao deveria obrigar a
+        // reler trezentas linhas de catalogo de item.
+        File terrenosFile = new File(getDataFolder(), "terrenos.yml");
+        if (!terrenosFile.exists()) {
+            saveResource("terrenos.yml", false);
+        }
+
         this.economyCatalog = new EconomyCatalog(this);
         this.economyBridge = new VaultEconomyBridge();
         this.spawnShopBuilder = new SpawnShopBuilder(this);
@@ -70,6 +81,9 @@ public final class BigaCore extends JavaPlugin {
         this.shopDisplays = new ShopDisplays(this);
         this.shopDisplays.start();
         this.painelAjuda = new PainelAjuda(this);
+        this.worldGuard = new WorldGuardBridge(this);
+        this.terrenoCatalog = new TerrenoCatalog(this);
+        this.terrenoVenda = new TerrenoVenda(this);
 
         // Precisa vir depois do ChestShop no softdepend, senão o plugin ainda
         // não está registrado e o hook do teto não encontra a classe do evento.
@@ -96,6 +110,15 @@ public final class BigaCore extends JavaPlugin {
             getLogger().severe("Comando 'pedreiro' não declarado no plugin.yml — verifique o arquivo.");
         }
 
+        var cmdTerreno = getCommand("terreno");
+        if (cmdTerreno != null) {
+            var executorTerreno = new TerrenoCommand(this);
+            cmdTerreno.setExecutor(executorTerreno);
+            cmdTerreno.setTabCompleter(executorTerreno);
+        } else {
+            getLogger().severe("Comando 'terreno' não declarado no plugin.yml — verifique o arquivo.");
+        }
+
         var cmd = getCommand("biga");
         if (cmd != null) {
             var executor = new BigaCommand(this);
@@ -112,6 +135,7 @@ public final class BigaCore extends JavaPlugin {
         getLogger().info("BigaCore habilitado — " + economyState + ".");
 
         relatarVendaDeTerreno();
+        relatarTerrenoSurvival();
     }
 
     /**
@@ -150,6 +174,34 @@ public final class BigaCore extends JavaPlugin {
                 + " (depois disso, x" + PlotSale.fatorDeEscalada(precos) + " por terreno).");
     }
 
+    /**
+     * Diz no console se /terreno esta valendo, e por que nao quando nao esta.
+     *
+     * Mesmo motivo das linhas [terreno] e [teto]: a venda depende de coisas
+     * que falham caladas. Sem WorldGuard o comando responde erro so para quem
+     * digitou, e um mundo fora da lista branca nao gera aviso nenhum — o dono
+     * descobriria pela reclamacao de um jogador.
+     */
+    private void relatarTerrenoSurvival() {
+        if (!worldGuard.disponivel()) {
+            getLogger().warning("[survival] /terreno desligado — WorldGuard nao encontrado.");
+            return;
+        }
+
+        if (!economyBridge.available()) {
+            getLogger().warning("[survival] /terreno ativo mas SEM economia — "
+                    + "terreno sairia de graca. Confira o provider do Vault.");
+            return;
+        }
+
+        getLogger().info("[survival] /terreno ativo — "
+                + terrenoCatalog.precoPorBloco() + " por bloco, de "
+                + terrenoCatalog.tamanhoMinimo() + "x" + terrenoCatalog.tamanhoMinimo()
+                + " a " + terrenoCatalog.tamanhoMaximo() + "x" + terrenoCatalog.tamanhoMaximo()
+                + ", limite " + terrenoCatalog.limitePorJogador()
+                + " por pessoa, nos mundos " + String.join(", ", terrenoCatalog.mundos()) + ".");
+    }
+
     @Override
     public void onDisable() {
         // Cancele tarefas agendadas, feche conexões de banco e salve
@@ -176,6 +228,9 @@ public final class BigaCore extends JavaPlugin {
         plotSale = null;
         plotApi = null;
         painelAjuda = null;
+        terrenoVenda = null;
+        terrenoCatalog = null;
+        worldGuard = null;
         spawnShopBuilder = null;
         economyCatalog = null;
         economyBridge = null;
@@ -243,6 +298,18 @@ public final class BigaCore extends JavaPlugin {
         return painelAjuda;
     }
 
+    public WorldGuardBridge worldGuard() {
+        return worldGuard;
+    }
+
+    public TerrenoCatalog terrenoCatalog() {
+        return terrenoCatalog;
+    }
+
+    public TerrenoVenda terrenoVenda() {
+        return terrenoVenda;
+    }
+
     /** Recarrega os dois arquivos que pertencem ao BigaCore. */
     public void reloadBigaConfigs() {
         reloadConfig();
@@ -251,6 +318,7 @@ public final class BigaCore extends JavaPlugin {
         startingBalance.reload();
         plotSale.reload();
         painelAjuda.reload();
+        terrenoCatalog.reload();
     }
 
     /**

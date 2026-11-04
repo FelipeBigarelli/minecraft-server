@@ -21,7 +21,12 @@ load: POSTWORLD
 # O CreativePlots entra aqui porque a venda de terreno le o PlotAPI dele por
 # reflexao. Sem ele instalado o PlotApiBridge fica indisponivel e a cobranca se
 # desliga sozinha, sem derrubar o plugin.
-softdepend: [Vault, Essentials, ChestShop, CreativePlots]
+# O WorldGuard entra aqui porque /terreno cria regiao nele. Diferente dos
+# outros, este e dependencia de COMPILACAO tambem (pom.xml), mas segue
+# softdepend e nao depend: sem ele o BigaCore ainda sobe, so com /terreno
+# desligado. Virar depend derrubaria o plugin inteiro — a loja, a economia,
+# o pedreiro — por causa de um comando.
+softdepend: [Vault, Essentials, ChestShop, CreativePlots, WorldGuard]
 
 commands:
   biga:
@@ -31,6 +36,12 @@ commands:
     usage: "/biga <info|eco|loja|painel|reload|voar> — eco: status|saldo|preco|vender|regras — painel: construir|limpar"
     aliases: [bc]
     permission: bigacore.use
+
+  terreno:
+    description: Compra e administra terreno protegido no survival
+    usage: "/terreno <preco|comprar|expandir|vender|info|listar|ver|convidar|remover>"
+    aliases: [lote, tr]
+    permission: bigacore.terreno
 
   pedreiro:
     description: Estuda uma construcao existente e refaz em outro lugar
@@ -59,6 +70,18 @@ permissions:
     # nunca veria o fluxo de cobranca funcionar em jogo -- o unico jeito de
     # testar seria desopando. Quem precisar de isencao recebe por LuckPerms:
     #   /lp user <nome> permission set bigacore.plot.isento true
+    default: false
+  bigacore.terreno:
+    description: Permite comprar e administrar terreno no survival
+    default: true
+  bigacore.terreno.isento:
+    description: Compra e expande terreno sem pagar
+    # Mesmo motivo do bigacore.plot.isento ser false e nao op: com op isento o
+    # dono nunca veria a cobranca funcionar em jogo, e o unico jeito de testar
+    # o fluxo de compra seria desopar.
+    default: false
+  bigacore.terreno.ilimitado:
+    description: Ignora o limite-por-jogador do terrenos.yml
     default: false
   bigacore.admin:
     description: Acesso administrativo a reload, voo e construção da loja do spawn

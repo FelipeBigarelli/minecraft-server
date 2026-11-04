@@ -1,0 +1,110 @@
+# Venda de terreno no survival.
+#
+# Isto NAO e um sistema de protecao novo. Cada terreno comprado aqui vira uma
+# regiao de WorldGuard igual a que /rg define cria, com o comprador como owner.
+# Vantagem: as flags, os comandos e as mensagens que voce ja conhece continuam
+# valendo, e /rg info mostra o terreno do jogador como mostra qualquer outra
+# regiao. O limite de regioes do WorldGuard (max-region-count-per-player) nao
+# se aplica, porque a regiao e criada pelo plugin e nao por /rg claim — o
+# limite que vale e o limite-por-jogador aqui embaixo.
+#
+# Depois de editar: /biga reload
+
+version: 1
+
+# ---------------------------------------------------------------------------
+# Onde da para comprar
+# ---------------------------------------------------------------------------
+
+# Lista BRANCA de mundos. Mundo que nao esta aqui nao vende terreno.
+#
+# E lista branca de proposito. Com lista negra, cada mundo novo que o
+# Multiverse criar — minigame, criativo, mapa de teste — nasceria vendendo
+# terreno, e alguem compraria 64x64 no meio da arena antes de alguem notar.
+mundos:
+  - world
+
+# Raio, em blocos, em volta do spawn do mundo onde nao se vende nada.
+#
+# Medido em quadrado (distancia de Chebyshev), igual ao desenho da protecao
+# vanilla, e nao em circulo — com circulo os quatro cantos do quadrado em volta
+# do spawn ficariam compraveis.
+#
+# Serve para manter o spawn, as lojas e as estradas de saida como area publica.
+distancia-minima-do-spawn: 48
+
+# Espaco obrigatorio entre dois terrenos. 0 deixa encostar.
+folga-entre-terrenos: 0
+
+# ---------------------------------------------------------------------------
+# Preco
+# ---------------------------------------------------------------------------
+
+# B$ por bloco de CHAO (area), nao por bloco de volume.
+#
+# Com 3: 8x8 = B$192 | 16x16 = B$768 | 20x20 = B$1.200 | 32x32 = B$3.072
+#        48x48 = B$6.912 | 64x64 = B$12.288
+#
+# O 20x20 custar o mesmo que o primeiro terreno criativo (plot-prices no
+# economy.yml) nao e coincidencia: e para o jogador comparar os dois precos e
+# escolher, em vez de um dos dois parecer de graca.
+#
+# Cobrar por area e nao por volume importa porque o terreno pega a coluna
+# inteira: por volume, o MESMO 20x20 custaria o dobro num mundo com o teto mais
+# alto, e o jogador nao tem como adivinhar isso.
+preco-por-bloco: 3
+
+# Lado minimo e maximo do quadrado.
+#
+# O minimo existe para nao encher o mapa de regiao de 2x2 usada so para trancar
+# um bau. O maximo existe porque regiao grande nao se desfaz: quem compra
+# 200x200 cercou um bioma inteiro para sempre.
+tamanho-minimo: 8
+tamanho-maximo: 64
+
+# Quantos terrenos cada pessoa pode ter POR MUNDO.
+limite-por-jogador: 3
+
+# Multiplicador do preco pelo numero do terreno: o 1o paga x1, o 2o x2, o 3o
+# x3.5. Depois do fim da lista continua subindo pela razao dos dois ultimos.
+#
+# O numero que conta e o do SLOT (t_nome_2), nao a quantidade que a pessoa tem
+# agora. Assim o preco do "seu segundo terreno" e o mesmo hoje e depois de voce
+# vender e recomprar o primeiro.
+multiplicador:
+  - 1.0
+  - 2.0
+  - 3.5
+
+# Quanto volta no /terreno vender, em % do preco BASE (sem multiplicador).
+#
+# Sobre o preco base de proposito. Se o reembolso seguisse o multiplicador, o
+# terceiro terreno (x3.5) devolveria 60% de 3.5 = 2.1 vezes o que um terreno
+# base custa — comprar e vender daria lucro, e viraria impressora de dinheiro
+# para quem tivesse paciencia de repetir. Do jeito que esta, vender sempre da
+# prejuizo.
+reembolso-percent: 60
+
+# ---------------------------------------------------------------------------
+# Forma da regiao
+# ---------------------------------------------------------------------------
+
+# true: o terreno vai do fundo ao teto do mundo.
+#
+# Deixe true. Com false, a protecao e so uma fatia de altura em volta de quem
+# comprou, e esse e o furo mais explorado em survival: quem nao pode construir
+# no terreno cava por baixo, sobe dentro da casa e leva tudo sem nunca quebrar
+# um bloco protegido.
+altura-total: true
+
+# ---------------------------------------------------------------------------
+# Mensagens das bordas
+# ---------------------------------------------------------------------------
+
+# Vao para as flags greeting e farewell da regiao, entao usam codigo & (o
+# WorldGuard nao le MiniMessage nessas flags). <dono> e trocado pelo nome.
+#
+# Deixe mensagem-saida vazia: aviso ao entrar E ao sair dobra o chat de quem
+# atravessa uma rua com terreno dos dois lados.
+mensagem-entrada: "&8▎ &7Terreno de &f<dono>"
+mensagem-saida: ""

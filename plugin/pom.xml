@@ -36,12 +36,28 @@
              Ao atualizar o Paper: troque este número E o PAPER_BUILD do
              start.sh no mesmo commit. Os dois andam juntos. -->
         <paper.version>26.3.build.167-beta</paper.version>
+
+        <!-- Mesma regra do paper.version: numero fixo, igual ao jar que esta
+             em ~/minecraft/plugins/. Compilar contra a 7.0.21 e rodar na
+             7.0.19 passa no build e estoura em jogo, no primeiro metodo que
+             so existe na versao nova.
+
+             Atencao ao atualizar: o jar do servidor e um jar PATCHEADO com a
+             traducao pt-BR (server/scripts/traducao-worldguard/). Subir a
+             versao aqui sem repassar o patcher deixa o plugin em ingles. -->
+        <worldguard.version>7.0.19</worldguard.version>
     </properties>
 
     <repositories>
         <repository>
             <id>papermc</id>
             <url>https://repo.papermc.io/repository/maven-public/</url>
+        </repository>
+
+        <!-- WorldGuard e WorldEdit nao estao no Maven Central. -->
+        <repository>
+            <id>enginehub</id>
+            <url>https://maven.enginehub.org/repo/</url>
         </repository>
     </repositories>
 
@@ -58,6 +74,44 @@
             <artifactId>paper-api</artifactId>
             <version>${paper.version}</version>
             <scope>provided</scope>
+        </dependency>
+
+        <!-- A venda de terreno no survival nao tem motor de protecao proprio:
+             ela cria regiao de WorldGuard. O servidor ja tem o WorldGuard
+             instalado, configurado e com as mensagens traduzidas, e o jogador
+             ja conhece as flags dele. Escrever um segundo sistema de protecao
+             ao lado seria duas verdades sobre quem pode construir onde.
+
+             Aqui a dependencia e de compilacao de verdade, nao reflexao como
+             no VaultEconomyBridge e no PlotApiBridge. A diferenca e que o
+             WorldGuard publica API versionada: refletir sobre RegionContainer,
+             RegionManager, ProtectedCuboidRegion, DefaultDomain e BlockVector3
+             daria um arquivo ilegivel que erra em runtime em vez de no build.
+
+             scope=provided pelo mesmo motivo da paper-api, e aqui com um
+             agravante: duas copias das classes do WorldGuard em classloaders
+             diferentes fariam a regiao criada por nos ser de um tipo que o
+             WorldGuard do servidor nao reconhece. -->
+        <dependency>
+            <groupId>com.sk89q.worldguard</groupId>
+            <artifactId>worldguard-bukkit</artifactId>
+            <version>${worldguard.version}</version>
+            <scope>provided</scope>
+            <exclusions>
+                <!-- O worldguard-bukkit arrasta o worldedit-bukkit, que
+                     depende da spigot-api. Sem esta exclusao ficam duas
+                     copias de org.bukkit no classpath de compilacao e quem
+                     ganha depende da ordem de resolucao do Maven. Fica so a
+                     paper-api, que e superset da spigot-api. -->
+                <exclusion>
+                    <groupId>org.spigotmc</groupId>
+                    <artifactId>spigot-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.bukkit</groupId>
+                    <artifactId>bukkit</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Só para teste. O escopo provided da paper-api também vale no

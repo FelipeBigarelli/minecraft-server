@@ -48,9 +48,21 @@ public final class VaultEconomyBridge {
     /**
      * Credita o jogador.
      *
-     * Único ponto do BigaCore que CRIA moeda. Todo caminho até aqui precisa
-     * passar pelo teto diário do {@link ServerBuyback} — é o que separa uma
-     * recompra controlada de uma impressora de dinheiro ligada a uma farm AFK.
+     * Único ponto do BigaCore que CRIA moeda.
+     *
+     * Dois caminhos chegam aqui, e só um precisa de teto:
+     *
+     *  - {@link ServerBuyback}: passa pelo teto diário. Sem ele, uma farm AFK
+     *    de qualquer item renovável vira impressora de dinheiro, porque o
+     *    ciclo nunca fecha — o item volta a existir de graça.
+     *  - {@link TerrenoVenda} no reembolso: NÃO passa por teto, de propósito.
+     *    O valor é limitado pelo que o jogador pagou antes e é sempre menor
+     *    (o reembolso sai do preço base, sem o multiplicador de quantidade),
+     *    então comprar e vender em sequência dá prejuízo garantido. Não existe
+     *    ciclo com lucro para automatizar, então não há o que capear.
+     *
+     * Antes de abrir o terceiro caminho, a pergunta é essa: o jogador consegue
+     * repetir isso de graça? Se consegue, precisa de teto.
      */
     public boolean deposit(OfflinePlayer player, double amount) {
         if (amount <= 0 || !available() || depositPlayer == null) {
@@ -69,8 +81,9 @@ public final class VaultEconomyBridge {
      * Debita o jogador.
      *
      * Contraparte do {@link #deposit}: é por aqui que a moeda SAI de
-     * circulação. Hoje só a {@link PlotSale} usa, e é o primeiro ralo
-     * recorrente que o servidor tem.
+     * circulação. Usam a {@link PlotSale} (terreno no criativo) e a
+     * {@link TerrenoVenda} (terreno no survival) — os dois ralos recorrentes
+     * que o servidor tem.
      *
      * Devolve false quando o saque não acontece — inclusive quando o saldo não
      * cobre. Quem chama precisa tratar isso como "não cobrado", nunca como
