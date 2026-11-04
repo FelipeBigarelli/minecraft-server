@@ -804,6 +804,9 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
                 String.valueOf(r.criados())));
         jogador.sendMessage(linha(confirmar ? "Painéis antigos removidos" : "Já existem no mundo",
                 String.valueOf(r.removidos())));
+        jogador.sendMessage(linha("Espaçamento usado",
+                String.format(java.util.Locale.ROOT, "%.1f na horizontal, %.1f na vertical",
+                        r.espacamento(), r.espacamentoVertical())));
 
         if (!confirmar) {
             jogador.sendMessage(Component.text(

@@ -18,8 +18,16 @@ layout:
   distancia: 6
 
   # Espaço horizontal entre o centro de dois painéis vizinhos.
-  # Com 4.0 e escala 1.0 as colunas não se encostam.
-  espacamento: 4.0
+  #
+  # 0 = calcule sozinho. O plugin mede a linha mais larga de todos os
+  # painéis (já sem as tags de cor, que não ocupam pixel na tela) e
+  # abre a coluna com essa largura mais a margem abaixo.
+  #
+  # Deixar número fixo aqui funciona até alguém escrever uma linha mais
+  # comprida — e aí os painéis se sobrepõem, sem erro nenhum no
+  # console. Foi o que aconteceu na primeira versão: painéis de quase
+  # 7 blocos postos a cada 4.
+  espacamento: 0
 
   # Altura do centro de cada painel em relação aos pés de quem
   # construiu.
@@ -29,8 +37,13 @@ layout:
   # saem duas fileiras.
   por_fileira: 3
 
-  # Espaço vertical entre fileiras.
-  espacamento_vertical: 2.8
+  # Espaço vertical entre fileiras. 0 = calcule sozinho, a partir do
+  # painel com mais linhas.
+  espacamento_vertical: 0
+
+  # Folga em blocos somada ao cálculo automático, na horizontal e na
+  # vertical. Aumente se quiser a parede mais arejada.
+  margem: 1.2
 
   escala: 1.0
 

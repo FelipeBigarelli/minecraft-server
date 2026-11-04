@@ -53,6 +53,38 @@ public final class PainelAjuda {
      */
     public static final String TAG = "bigacore_ajuda_painel";
 
+    /**
+     * Quanto vale um pixel da fonte em blocos, num display de escala 1.
+     *
+     * <p>Uma linha de texto ocupa 0.25 bloco de altura e a fonte avança
+     * 10 px por linha (8 do glifo + 2 de respiro), então 1 px = 0.025
+     * bloco. É daqui que sai a largura de um painel, e sem isso o
+     * espaçamento entre colunas vira chute — foi o que aconteceu na
+     * primeira versão, com painéis de ~7 blocos postos a cada 4.
+     */
+    private static final double BLOCO_POR_PIXEL = 0.025;
+
+    /** Altura de uma linha de texto, em blocos, na escala 1. */
+    private static final double ALTURA_LINHA = 0.25;
+
+    /**
+     * Largura de avanço de cada caractere na fonte padrão, em pixels.
+     *
+     * <p>A fonte do Minecraft não é monoespaçada: um {@code i} ocupa 2 px
+     * e um {@code m}, 6. Medir tudo por 6 incharia a parede sem motivo,
+     * ainda mais num texto cheio de barra e pontuação como este.
+     */
+    private static int larguraPixel(char c) {
+        return switch (c) {
+            case '!', '.', ',', ':', ';', 'i', '|', '\'', '`' -> 2;
+            case 'l' -> 3;
+            case ' ', 't', 'I', '[', ']', '(', ')', '{', '}', '"', '<', '>', '*' -> 4;
+            case 'f', 'k' -> 5;
+            case '@', '~' -> 7;
+            default -> 6;
+        };
+    }
+
     private final BigaCore plugin;
     private YamlConfiguration config;
 
@@ -84,7 +116,7 @@ public final class PainelAjuda {
     public Relatorio construir(Player jogador, boolean aplicar) {
         List<Painel> paineis = lerPaineis();
         if (paineis.isEmpty()) {
-            return new Relatorio(false, 0, 0,
+            return new Relatorio(false, 0, 0, 0, 0,
                     "ajuda.yml não tem nenhum painel em 'paineis'.");
         }
 
@@ -93,10 +125,23 @@ public final class PainelAjuda {
 
         ConfigurationSection l = config.getConfigurationSection("layout");
         double distancia = valor(l, "distancia", 6.0);
-        double espacamento = valor(l, "espacamento", 4.0);
         double altura = valor(l, "altura", 2.4);
-        double espacamentoV = valor(l, "espacamento_vertical", 2.8);
         float escala = (float) valor(l, "escala", 1.0);
+        double margem = valor(l, "margem", 1.0);
+
+        // Espaçamento 0 (ou ausente) significa "calcule você": o painel
+        // mais largo manda na largura da coluna, o mais alto manda na
+        // altura da fileira. Deixar número fixo aqui quebra toda vez que
+        // alguém reescreve uma linha mais longa no ajuda.yml, e o
+        // sintoma é texto sobreposto, não um erro.
+        double espacamento = valor(l, "espacamento", 0.0);
+        if (espacamento <= 0) {
+            espacamento = larguraMaxima(paineis, escala) + margem;
+        }
+        double espacamentoV = valor(l, "espacamento_vertical", 0.0);
+        if (espacamentoV <= 0) {
+            espacamentoV = alturaMaxima(paineis, escala) + margem;
+        }
         float alcance = (float) valor(l, "alcance", 32.0);
         float giro = (float) valor(l, "giro", 180.0);
         int porFileira = l == null ? 3 : Math.max(1, l.getInt("por_fileira", 3));
@@ -144,7 +189,7 @@ public final class PainelAjuda {
             criados++;
         }
 
-        return new Relatorio(true, criados, removidos, null);
+        return new Relatorio(true, criados, removidos, espacamento, espacamentoV, null);
     }
 
     private void criar(World mundo, Location alvo, Painel painel,
@@ -273,6 +318,44 @@ public final class PainelAjuda {
         return saida;
     }
 
+    /**
+     * Largura, em blocos, do painel mais largo do conjunto.
+     *
+     * <p>Mede o texto depois de resolver os preços e de tirar as tags do
+     * MiniMessage: {@code <gray>} não ocupa pixel nenhum na tela, mas
+     * ocupa oito caracteres no arquivo, e medir o texto cru daria uma
+     * parede larga demais — num painel bem colorido, o dobro do
+     * necessário.
+     */
+    private double larguraMaxima(List<Painel> paineis, float escala) {
+        int pixels = 0;
+        for (Painel painel : paineis) {
+            pixels = Math.max(pixels, larguraPixel(painel.titulo()));
+            for (String linha : painel.linhas()) {
+                pixels = Math.max(pixels, larguraPixel(linha));
+            }
+        }
+        return pixels * BLOCO_POR_PIXEL * escala;
+    }
+
+    private int larguraPixel(String comTags) {
+        String limpo = plugin.mini().stripTags(resolver(comTags));
+        int total = 0;
+        for (int i = 0; i < limpo.length(); i++) {
+            total += larguraPixel(limpo.charAt(i));
+        }
+        return total;
+    }
+
+    /** Altura, em blocos, do painel com mais linhas (título e o branco incluídos). */
+    private double alturaMaxima(List<Painel> paineis, float escala) {
+        int linhas = 0;
+        for (Painel painel : paineis) {
+            linhas = Math.max(linhas, painel.linhas().size() + 2);
+        }
+        return linhas * ALTURA_LINHA * escala;
+    }
+
     private static double valor(ConfigurationSection secao, String chave, double padrao) {
         return secao == null ? padrao : secao.getDouble(chave, padrao);
     }
@@ -301,6 +384,16 @@ public final class PainelAjuda {
     public record Painel(String titulo, List<String> linhas) {
     }
 
-    public record Relatorio(boolean ok, int criados, int removidos, String erro) {
+    /**
+     * Resultado de uma construção.
+     *
+     * <p>Carrega o espaçamento usado de propósito: quando ele é
+     * calculado, o número só existe em memória, e sem devolvê-lo não há
+     * como conferir no jogo se a conta bateu com o que apareceu na
+     * parede.
+     */
+    public record Relatorio(boolean ok, int criados, int removidos,
+                            double espacamento, double espacamentoVertical,
+                            String erro) {
     }
 }
