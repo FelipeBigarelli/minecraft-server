@@ -16,8 +16,7 @@ layout:
   # da construção. O comando usa a posição e o ângulo de quem
   # digitou: você mira para onde quer a parede e constrói.
   #
-  # 8 e não 6 desde que a parede passou a ter 4 colunas: de 6 blocos, uma
-  # parede de 4 painéis não cabe no campo de visão de uma vez.
+  # 8 deixa a parede inteira no campo de visão com 3 colunas.
   distancia: 8
 
   # Espaço horizontal entre o centro de dois painéis vizinhos.
@@ -38,20 +37,22 @@ layout:
 
   # Quantos painéis por fileira.
   #
-  # Com 7 painéis, 4 por fileira dá 4 em cima e 3 embaixo, e cada fileira é
-  # centralizada no jogador por conta própria — as duas ficam alinhadas pelo
-  # meio. Com 3 por fileira sobraria um painel sozinho numa terceira fileira,
-  # e a terceira fileira joga a de cima para uns 10 blocos de altura, onde
-  # ninguém lê sem empinar o pescoço.
-  por_fileira: 4
+  # 3 com 6 painéis: duas fileiras cheias, nenhuma sobra. Com 4 colunas a
+  # parede passava de 25 blocos de largura e os painéis das pontas ficavam
+  # quase de perfil para quem está no meio — legíveis só andando até eles.
+  por_fileira: 3
 
   # Espaço vertical entre fileiras. 0 = calcule sozinho, a partir do
   # painel com mais linhas.
   espacamento_vertical: 0
 
-  # Folga em blocos somada ao cálculo automático, na horizontal e na
-  # vertical. Aumente se quiser a parede mais arejada.
-  margem: 1.2
+  # Folga entre dois painéis, em blocos.
+  #
+  # Pequena de propósito. Como todos os painéis saem do mesmo tamanho (o
+  # código iguala largura e altura pelo maior), o que sobra entre duas caixas
+  # é exatamente este número — e 0.4 faz a parede ler como um quadro só, em
+  # vez de seis placas soltas no céu. Aumente se quiser respiro.
+  margem: 0.4
 
   escala: 1.0
 
@@ -74,53 +75,48 @@ layout:
 paineis:
   - titulo: "<gradient:#FF6A00:#FFD700><bold>COMO COMEÇAR</bold></gradient>"
     linhas:
-      - "<gray>/spawn <dark_gray>— volta para cá"
-      - "<gray>/sethome <white>casa <dark_gray>— marca sua base"
-      - "<gray>/home <white>casa <dark_gray>— vai até ela"
+      - "<gray>/spawn <dark_gray>— volta para cá, sempre"
       - "<gray>/tpa <white>jogador <dark_gray>— pede teleporte"
       - "<gray>/list <dark_gray>— quem está online"
       - ""
-      - "<dark_gray>Perdeu o rumo? <gray>/spawn <dark_gray>sempre funciona."
-
-  - titulo: "<gradient:#FF6A00:#FFD700><bold>SUA CASA</bold></gradient>"
-    linhas:
-      - "<gray>Você pode ter <white>mais de uma<gray> casa."
-      - ""
+      - "<gray>Sua casa — pode ter mais de uma:"
       - "<gray>/sethome <white>nome <dark_gray>— cria"
       - "<gray>/home <dark_gray>— lista as suas"
+      - "<gray>/home <white>nome <dark_gray>— vai até ela"
       - "<gray>/delhome <white>nome <dark_gray>— apaga"
-      - "<gray>/renamehome <white>velho novo <dark_gray>— renomeia"
       - ""
-      - "<#E03131>Cuidado:<gray> este mundo é de ilhas"
-      - "<gray>flutuantes. Marcar casa no ar é queda."
+      - "<#E03131>Cuidado:<gray> aqui é mundo de ilhas."
+      - "<gray>Marcar casa no ar é queda."
 
   - titulo: "<gradient:#FF6A00:#FFD700><bold>DINHEIRO</bold></gradient>"
     linhas:
-      - "<gray>Todo mundo começa com <#FFD700>B$<moeda-inicial></#FFD700>."
+      - "<gray>Você começa com <#FFD700><simbolo><moeda-inicial></#FFD700>."
       - ""
       - "<gray>/saldo <dark_gray>— quanto você tem"
       - "<gray>/pay <white>jogador valor <dark_gray>— transferir"
       - "<gray>/baltop <dark_gray>— os mais ricos"
-      - "<gray>/worth <dark_gray>— quanto vale o item na mão"
+      - "<gray>/worth <dark_gray>— o valor do item na mão"
       - ""
-      - "<gray>/biga eco regras <dark_gray>— as regras inteiras"
+      - "<gray>O dinheiro entra vendendo para outros"
+      - "<gray>jogadores. A loja do servidor é só"
+      - "<gray>uma rede de segurança."
+      - ""
+      - "<gray>/biga eco regras <dark_gray>— as regras"
 
   - titulo: "<gradient:#FF6A00:#FFD700><bold>SEU TERRENO</bold></gradient>"
     linhas:
       - "<gray>No survival você <white>compra o chão<gray>."
-      - "<gray>Lá dentro, ninguém mexe no que é seu."
+      - "<gray>Lá dentro ninguém mexe no que é seu."
       - ""
       - "<gray>/terreno preco <white>20 <dark_gray>— só o orçamento"
       - "<gray>/terreno comprar <white>20 <dark_gray>— marca 20x20"
       - "<gray>/terreno ver <dark_gray>— acende as bordas"
-      - "<gray>/terreno convidar <white>nome <dark_gray>— libera alguém"
+      - "<gray>/terreno convidar <white>nome <dark_gray>— libera"
       - ""
       - "<#FFD700><simbolo><terreno-bloco><gray> por bloco de chão:"
       - "<gray>16x16 <dark_gray>·· <#FFD700><simbolo><terreno-preco-16>"
       - "<gray>32x32 <dark_gray>·· <#FFD700><simbolo><terreno-preco-32>"
-      - ""
-      - "<dark_gray>Pega do fundo ao céu — ninguém cava"
-      - "<dark_gray>por baixo para entrar. Até <terreno-limite> terrenos."
+      - "<dark_gray>Vai do fundo ao céu. Até <terreno-limite> terrenos."
 
   - titulo: "<gradient:#FF6A00:#FFD700><bold>CRIATIVO</bold></gradient>"
     linhas:
@@ -135,9 +131,7 @@ paineis:
       - "<gray>1º lote <dark_gray>·· <#FFD700>B$<preco-terreno-1>"
       - "<gray>2º lote <dark_gray>·· <#FFD700>B$<preco-terreno-2>"
       - "<gray>3º lote <dark_gray>·· <#FFD700>B$<preco-terreno-3>"
-      - ""
-      - "<dark_gray>Cada um custa o triplo do anterior:"
-      - "<dark_gray>é de propósito, para a terra não acabar."
+      - "<dark_gray>Cada um custa o triplo do anterior."
 
   - titulo: "<gradient:#FF6A00:#FFD700><bold>SUA LOJA</bold></gradient>"
     linhas:
@@ -148,6 +142,9 @@ paineis:
       - "<dark_gray>linha 2 <gray>·· quantidade"
       - "<dark_gray>linha 3 <gray>·· <white>B 10 : V 5"
       - "<dark_gray>linha 4 <gray>·· o item"
+      - ""
+      - "<gray><white>B<gray> é o que você cobra para vender."
+      - "<gray><white>V<gray> é o que você paga para comprar."
       - ""
       - "<gray>Sem taxa, sem corte. <white>Até <lojas-limite> lojas."
 
@@ -161,4 +158,5 @@ paineis:
       - "<gray>Clique nele para pegar tudo de volta,"
       - "<gray>inclusive o XP."
       - ""
-      - "<#E03131>No void não dá.<gray> Lá não sobra nada."
+      - "<#E03131>No void não dá.<gray> Lá não sobra nada,"
+      - "<gray>então cuidado com a beirada da ilha."

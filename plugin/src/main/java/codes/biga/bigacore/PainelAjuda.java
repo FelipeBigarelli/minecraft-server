@@ -73,6 +73,9 @@ public final class PainelAjuda {
     /** Altura de uma linha de texto, em blocos, na escala 1. */
     private static final double ALTURA_LINHA = 0.25;
 
+    /** Largura do espaço na fonte padrão. É com ele que os painéis são igualados. */
+    private static final int LARGURA_ESPACO = 4;
+
     /**
      * Largura de avanço de cada caractere na fonte padrão, em pixels.
      *
@@ -140,13 +143,26 @@ public final class PainelAjuda {
         // altura da fileira. Deixar número fixo aqui quebra toda vez que
         // alguém reescreve uma linha mais longa no ajuda.yml, e o
         // sintoma é texto sobreposto, não um erro.
+        //
+        // O gabarito: todos os painéis saem do mesmo tamanho, o do maior.
+        //
+        // Antes cada painel tinha a largura do próprio texto enquanto a coluna
+        // reservava a largura do MAIOR deles. O resultado é o da primeira
+        // versão de 4 colunas: painel estreito nadando num buraco, painel
+        // largo quase encostando, e nenhuma borda alinhada com a de cima.
+        // Igualar o tamanho transforma a margem em folga de verdade — o que
+        // sobra entre dois painéis passa a ser exatamente `margem`, e não
+        // "margem mais o quanto este painel é mais estreito que o maior".
+        int larguraAlvo = larguraPixelMaxima(paineis);
+        int linhasAlvo = linhasMaximas(paineis);
+
         double espacamento = valor(l, "espacamento", 0.0);
         if (espacamento <= 0) {
-            espacamento = larguraMaxima(paineis, escala) + margem;
+            espacamento = larguraAlvo * BLOCO_POR_PIXEL * escala + margem;
         }
         double espacamentoV = valor(l, "espacamento_vertical", 0.0);
         if (espacamentoV <= 0) {
-            espacamentoV = alturaMaxima(paineis, escala) + margem;
+            espacamentoV = (linhasAlvo + 2) * ALTURA_LINHA * escala + margem;
         }
         float alcance = (float) valor(l, "alcance", 32.0);
         float giro = (float) valor(l, "giro", 180.0);
@@ -190,7 +206,8 @@ public final class PainelAjuda {
             alvo.setPitch(0f);
 
             if (aplicar) {
-                criar(mundo, alvo, paineis.get(i), escala, alcance, fundo);
+                criar(mundo, alvo, paineis.get(i), escala, alcance, fundo,
+                        larguraAlvo, linhasAlvo);
             }
             criados++;
         }
@@ -199,9 +216,10 @@ public final class PainelAjuda {
     }
 
     private void criar(World mundo, Location alvo, Painel painel,
-                       float escala, float alcance, Color fundo) {
+                       float escala, float alcance, Color fundo,
+                       int larguraAlvo, int linhasAlvo) {
 
-        Component texto = montar(painel);
+        Component texto = montar(painel, larguraAlvo, linhasAlvo);
 
         mundo.spawn(alvo, TextDisplay.class, novo -> {
             novo.text(texto);
@@ -235,13 +253,53 @@ public final class PainelAjuda {
     }
 
     /** Título, linha em branco e corpo, já com os placeholders resolvidos. */
-    private Component montar(Painel painel) {
+    /**
+     * Monta o painel no tamanho do gabarito.
+     *
+     * <p>O fundo de um TextDisplay acompanha o texto e não tem largura
+     * mínima na API — não existe "deixe esta caixa com 5 blocos". O único
+     * jeito de igualar duas caixas é dar a elas a mesma linha mais larga e a
+     * mesma quantidade de linhas.
+     *
+     * <p>A largura vai em espaços no fim do título. Espaço à direita de um
+     * texto alinhado à esquerda é invisível e empurra o fundo, que é
+     * exatamente o que se quer. A altura vai em linhas vazias no fim, então o
+     * conteúdo de todo painel começa na mesma altura e as caixas formam
+     * fileiras de verdade em vez de ficarem centradas cada uma no seu
+     * tamanho.
+     */
+    private Component montar(Painel painel, int larguraAlvo, int linhasAlvo) {
         StringBuilder bruto = new StringBuilder(painel.titulo());
+        bruto.append(" ".repeat(preenchimento(painel.titulo(), larguraAlvo)));
         bruto.append('\n');
+
         for (String linha : painel.linhas()) {
             bruto.append('\n').append(linha);
         }
+        for (int sobra = painel.linhas().size(); sobra < linhasAlvo; sobra++) {
+            bruto.append('\n');
+        }
+
         return plugin.mini().deserialize(resolver(bruto.toString()));
+    }
+
+    /** Quantos espaços faltam para esta linha chegar na largura do gabarito. */
+    private int preenchimento(String linha, int larguraAlvoPixel) {
+        return espacosPara(larguraAlvoPixel - larguraPixel(linha));
+    }
+
+    /**
+     * Quantos espaços cobrem os pixels que faltam.
+     *
+     * <p>Arredonda para cima: faltar 2 px deixaria a caixa 2 px mais estreita
+     * que as vizinhas, e 2 px a menos é visível quando elas se tocam. Passar
+     * até 3 px não é — o espaço é a menor unidade que existe.
+     */
+    static int espacosPara(int faltamPixels) {
+        if (faltamPixels <= 0) {
+            return 0;
+        }
+        return (faltamPixels + LARGURA_ESPACO - 1) / LARGURA_ESPACO;
     }
 
     /**
@@ -374,7 +432,8 @@ public final class PainelAjuda {
      * parede larga demais — num painel bem colorido, o dobro do
      * necessário.
      */
-    private double larguraMaxima(List<Painel> paineis, float escala) {
+    /** Largura, em pixels, da linha mais larga de todos os painéis. */
+    private int larguraPixelMaxima(List<Painel> paineis) {
         int pixels = 0;
         for (Painel painel : paineis) {
             pixels = Math.max(pixels, larguraPixel(painel.titulo()));
@@ -382,7 +441,16 @@ public final class PainelAjuda {
                 pixels = Math.max(pixels, larguraPixel(linha));
             }
         }
-        return pixels * BLOCO_POR_PIXEL * escala;
+        return pixels;
+    }
+
+    /** Quantas linhas de conteúdo tem o painel mais comprido. */
+    private int linhasMaximas(List<Painel> paineis) {
+        int linhas = 0;
+        for (Painel painel : paineis) {
+            linhas = Math.max(linhas, painel.linhas().size());
+        }
+        return linhas;
     }
 
     private int larguraPixel(String comTags) {
@@ -391,16 +459,26 @@ public final class PainelAjuda {
         for (int i = 0; i < limpo.length(); i++) {
             total += larguraPixel(limpo.charAt(i));
         }
+
+        // Negrito custa 1 pixel a mais por caractere — o Minecraft desenha a
+        // fonte duas vezes com um pixel de deslocamento. Como a medida roda
+        // depois de stripTags, essa conta se perderia, e são justamente os
+        // títulos que são <bold>: sem isto cada título mediria até 14 pixels
+        // a menos que o real, o preenchimento viria sobrando, e o painel
+        // ficaria mais largo que os vizinhos bem onde eles se tocam.
+        //
+        // Assume a linha inteira em negrito, que é o caso dos títulos. Uma
+        // linha só parcialmente negrito sai medida a mais, e o efeito é a
+        // caixa ficar alguns pixels mais estreita — nunca sobreposta.
+        if (comTags.contains("<bold>") || comTags.contains("<b>")) {
+            total += limpo.length();
+        }
         return total;
     }
 
     /** Altura, em blocos, do painel com mais linhas (título e o branco incluídos). */
-    private double alturaMaxima(List<Painel> paineis, float escala) {
-        int linhas = 0;
-        for (Painel painel : paineis) {
-            linhas = Math.max(linhas, painel.linhas().size() + 2);
-        }
-        return linhas * ALTURA_LINHA * escala;
+    double alturaDoGabarito(List<Painel> paineis, float escala) {
+        return (linhasMaximas(paineis) + 2) * ALTURA_LINHA * escala;
     }
 
     private static double valor(ConfigurationSection secao, String chave, double padrao) {

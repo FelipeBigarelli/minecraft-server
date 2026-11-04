@@ -14,6 +14,7 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -160,6 +161,49 @@ class AjudaPainelTest {
         assertTrue(sobra == 0 || sobra > 1 || paineis.size() <= porFileira,
                 "com " + paineis.size() + " painéis e " + porFileira
                         + " por fileira sobra 1 painel sozinho na última fileira");
+    }
+
+    @Test
+    @DisplayName("o preenchimento arredonda para cima e nunca é negativo")
+    void preenchimentoArredondaParaCima() {
+        // O espaço tem 4 px. Faltando 1 px ainda é preciso um espaço inteiro:
+        // passar 3 px não aparece, faltar 1 px deixa a caixa desalinhada das
+        // vizinhas bem onde elas se encostam.
+        assertEquals(0, PainelAjuda.espacosPara(0));
+        assertEquals(0, PainelAjuda.espacosPara(-12));
+        assertEquals(1, PainelAjuda.espacosPara(1));
+        assertEquals(1, PainelAjuda.espacosPara(4));
+        assertEquals(2, PainelAjuda.espacosPara(5));
+        assertEquals(50, PainelAjuda.espacosPara(200));
+    }
+
+    @Test
+    @DisplayName("nenhum painel é curto demais para o gabarito")
+    void paineisTemTamanhoParecido() throws Exception {
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> paineis =
+                (List<Map<String, Object>>) carregar().get("paineis");
+
+        int maior = 0;
+        int menor = Integer.MAX_VALUE;
+        String nomeDoMenor = "";
+        for (Map<String, Object> painel : paineis) {
+            int linhas = ((List<?>) painel.get("linhas")).size();
+            maior = Math.max(maior, linhas);
+            if (linhas < menor) {
+                menor = linhas;
+                nomeDoMenor = String.valueOf(painel.get("titulo"));
+            }
+        }
+
+        // Todos os painéis saem do tamanho do maior, preenchidos com linhas
+        // vazias. Isso alinha a parede, mas um painel com metade do conteúdo
+        // do maior vira uma caixa pela metade vazia. O limite é frouxo de
+        // propósito: ele existe para pegar o painel esquecido, não para
+        // obrigar todo mundo a ter o mesmo número de linhas.
+        assertTrue(menor * 2 >= maior,
+                "o painel " + nomeDoMenor + " tem " + menor + " linhas contra "
+                        + maior + " do maior, e ficaria mais da metade vazio");
     }
 
     private static double numero(Object valor) {
