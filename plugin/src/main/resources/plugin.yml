@@ -28,7 +28,7 @@ commands:
     description: Comando principal do BigaCore
     # Aspas obrigatórias: o "loja:" no meio da frase faria o YAML tratar a
     # linha como um mapa aninhado e o Paper recusaria o plugin.yml inteiro.
-    usage: "/biga <info|eco|loja|reload|voar> — eco: status|saldo|preco|vender|regras"
+    usage: "/biga <info|eco|loja|painel|reload|voar> — eco: status|saldo|preco|vender|regras — painel: construir|limpar"
     aliases: [bc]
     permission: bigacore.use
 

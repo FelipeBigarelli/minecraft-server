@@ -30,6 +30,7 @@ public final class BigaCore extends JavaPlugin {
     private PlotApiBridge plotApi;
     private PlotSale plotSale;
     private Pedreiro pedreiro;
+    private PainelAjuda painelAjuda;
 
     @Override
     public void onEnable() {
@@ -47,6 +48,15 @@ public final class BigaCore extends JavaPlugin {
             saveResource("economy.yml", false);
         }
 
+        // ajuda.yml guarda o texto do paredão do spawn. Mesmo motivo do
+        // economy.yml para ficar fora do config.yml: é conteúdo editorial,
+        // reescrito com frequência e sem relação com as chaves de
+        // comportamento do plugin.
+        File ajudaFile = new File(getDataFolder(), "ajuda.yml");
+        if (!ajudaFile.exists()) {
+            saveResource("ajuda.yml", false);
+        }
+
         this.economyCatalog = new EconomyCatalog(this);
         this.economyBridge = new VaultEconomyBridge();
         this.spawnShopBuilder = new SpawnShopBuilder(this);
@@ -59,6 +69,7 @@ public final class BigaCore extends JavaPlugin {
         this.plotSale = new PlotSale(this);
         this.shopDisplays = new ShopDisplays(this);
         this.shopDisplays.start();
+        this.painelAjuda = new PainelAjuda(this);
 
         // Precisa vir depois do ChestShop no softdepend, senão o plugin ainda
         // não está registrado e o hook do teto não encontra a classe do evento.
@@ -164,6 +175,7 @@ public final class BigaCore extends JavaPlugin {
         chestShopCapGuard = null;
         plotSale = null;
         plotApi = null;
+        painelAjuda = null;
         spawnShopBuilder = null;
         economyCatalog = null;
         economyBridge = null;
@@ -227,6 +239,10 @@ public final class BigaCore extends JavaPlugin {
         return plotSale;
     }
 
+    public PainelAjuda painelAjuda() {
+        return painelAjuda;
+    }
+
     /** Recarrega os dois arquivos que pertencem ao BigaCore. */
     public void reloadBigaConfigs() {
         reloadConfig();
@@ -234,6 +250,7 @@ public final class BigaCore extends JavaPlugin {
         serverBuyback.reload();
         startingBalance.reload();
         plotSale.reload();
+        painelAjuda.reload();
     }
 
     /**

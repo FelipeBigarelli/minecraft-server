@@ -1,0 +1,120 @@
+# =============================================================
+#  ajuda.yml — o paredão de ajuda do spawn
+#
+#  Construído com /biga ajuda construir, removido com
+#  /biga ajuda limpar. Texto fica aqui, e não no código, para
+#  reescrever sem recompilar: edite, /biga reload, construa de
+#  novo.
+#
+#  Os textos usam MiniMessage (<gold>, <bold>, <gray>...), o
+#  mesmo formato da mensagem de boas-vindas no config.yml.
+# =============================================================
+version: 1
+
+layout:
+  # Distância, em blocos, entre o jogador e a parede no momento
+  # da construção. O comando usa a posição e o ângulo de quem
+  # digitou: você mira para onde quer a parede e constrói.
+  distancia: 6
+
+  # Espaço horizontal entre o centro de dois painéis vizinhos.
+  # Com 4.0 e escala 1.0 as colunas não se encostam.
+  espacamento: 4.0
+
+  # Altura do centro de cada painel em relação aos pés de quem
+  # construiu.
+  altura: 2.4
+
+  # Quantos painéis por fileira. Com 6 painéis e 3 por fileira
+  # saem duas fileiras.
+  por_fileira: 3
+
+  # Espaço vertical entre fileiras.
+  espacamento_vertical: 2.8
+
+  escala: 1.0
+
+  # Distância, em blocos, a partir da qual o texto some. O padrão
+  # do servidor é curto de propósito: paredão só aparece de perto,
+  # e assim ele não polui a paisagem das ilhas.
+  alcance: 32.0
+
+  # Quanto o painel gira em relação ao ângulo de quem construiu.
+  # 180 faz o texto encarar você. Se sair de costas, troque para
+  # 0 e reconstrua — é um ajuste de uma linha, sem recompilar.
+  giro: 180
+
+  # Fundo da caixa de texto, em ARGB. O primeiro par é a
+  # transparência: 00 some com o fundo, FF deixa sólido.
+  fundo: "90000000"
+
+# Cada item vira um painel. A ordem aqui é a ordem na parede,
+# da esquerda para a direita.
+paineis:
+  - titulo: "<gradient:#FF6A00:#FFD700><bold>COMO COMEÇAR</bold></gradient>"
+    linhas:
+      - "<gray>/spawn <dark_gray>— volta para cá"
+      - "<gray>/sethome <white>casa <dark_gray>— marca sua base"
+      - "<gray>/home <white>casa <dark_gray>— vai até ela"
+      - "<gray>/tpa <white>jogador <dark_gray>— pede teleporte"
+      - "<gray>/list <dark_gray>— quem está online"
+      - ""
+      - "<dark_gray>Perdeu o rumo? <gray>/spawn <dark_gray>sempre funciona."
+
+  - titulo: "<gradient:#FF6A00:#FFD700><bold>SUA CASA</bold></gradient>"
+    linhas:
+      - "<gray>Você pode ter <white>mais de uma<gray> casa."
+      - ""
+      - "<gray>/sethome <white>nome <dark_gray>— cria"
+      - "<gray>/home <dark_gray>— lista as suas"
+      - "<gray>/delhome <white>nome <dark_gray>— apaga"
+      - "<gray>/renamehome <white>velho novo <dark_gray>— renomeia"
+      - ""
+      - "<#E03131>Cuidado:<gray> este mundo é de ilhas"
+      - "<gray>flutuantes. Marcar casa no ar é queda."
+
+  - titulo: "<gradient:#FF6A00:#FFD700><bold>DINHEIRO</bold></gradient>"
+    linhas:
+      - "<gray>Todo mundo começa com <#FFD700>B$<moeda-inicial></#FFD700>."
+      - ""
+      - "<gray>/saldo <dark_gray>— quanto você tem"
+      - "<gray>/pay <white>jogador valor <dark_gray>— transferir"
+      - "<gray>/baltop <dark_gray>— os mais ricos"
+      - "<gray>/worth <dark_gray>— quanto vale o item na mão"
+      - ""
+      - "<gray>/biga eco regras <dark_gray>— as regras inteiras"
+
+  - titulo: "<gradient:#FF6A00:#FFD700><bold>TERRENOS</bold></gradient>"
+    linhas:
+      - "<gray>Terreno é seu: ninguém quebra nada lá."
+      - ""
+      - "<gray>1º terreno <dark_gray>·· <#FFD700>B$<preco-terreno-1>"
+      - "<gray>2º terreno <dark_gray>·· <#FFD700>B$<preco-terreno-2>"
+      - "<gray>3º terreno <dark_gray>·· <#FFD700>B$<preco-terreno-3>"
+      - ""
+      - "<dark_gray>Cada um custa o triplo do anterior:"
+      - "<dark_gray>é de propósito, para a terra não acabar."
+
+  - titulo: "<gradient:#FF6A00:#FFD700><bold>SUA LOJA</bold></gradient>"
+    linhas:
+      - "<gray>Qualquer um pode vender. É <white>de graça<gray>."
+      - ""
+      - "<gray>Coloque um baú, e uma placa em cima:"
+      - "<dark_gray>linha 1 <gray>·· seu nome"
+      - "<dark_gray>linha 2 <gray>·· quantidade"
+      - "<dark_gray>linha 3 <gray>·· <white>B 10 : V 5"
+      - "<dark_gray>linha 4 <gray>·· o item"
+      - ""
+      - "<gray>Sem taxa, sem corte. <white>Até <lojas-limite> lojas."
+
+  - titulo: "<gradient:#FF6A00:#FFD700><bold>SE VOCÊ MORRER</bold></gradient>"
+    linhas:
+      - "<gray>Suas coisas <white>não somem<gray>."
+      - ""
+      - "<gray>Fica um <white>túmulo<gray> onde você caiu,"
+      - "<gray>e só <white>você<gray> consegue abrir."
+      - ""
+      - "<gray>Clique nele para pegar tudo de volta,"
+      - "<gray>inclusive o XP."
+      - ""
+      - "<#E03131>No void não dá.<gray> Lá não sobra nada."

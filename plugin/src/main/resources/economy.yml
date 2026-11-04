@@ -11,7 +11,7 @@ version: 1
 
 currency:
   name: "Biga Coin"
-  symbol: "BC$"
+  symbol: "B$"
   decimals: 0
   starting-balance: 2000
 

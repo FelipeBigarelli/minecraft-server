@@ -26,7 +26,9 @@ import java.util.OptionalDouble;
  */
 public final class BigaCommand implements CommandExecutor, TabCompleter {
 
-    private static final List<String> SUBCOMANDOS = List.of("info", "eco", "loja", "reload", "voar");
+    private static final List<String> SUBCOMANDOS =
+            List.of("info", "eco", "loja", "painel", "reload", "voar");
+    private static final List<String> PAINEL_SUBCOMANDOS = List.of("construir", "limpar");
     private static final List<String> ECO_SUBCOMANDOS =
             List.of("status", "saldo", "preco", "vender", "regras");
     private static final List<String> LOJA_SUBCOMANDOS =
@@ -52,6 +54,7 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             case "info" -> mostrarInfo(sender);
             case "eco" -> economia(sender, label, args);
             case "loja" -> lojaSpawn(sender, label, args);
+            case "painel" -> paredaoAjuda(sender, label, args);
             case "reload" -> recarregar(sender);
             case "voar" -> alternarVoo(sender);
             default -> enviarAjuda(sender, label);
@@ -749,6 +752,74 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(Component.text("Voce nao tem permissao para isso.", NamedTextColor.RED));
     }
 
+    /**
+     * Levanta ou apaga o paredão de ajuda do spawn.
+     *
+     * Exige CONFIRMAR para construir, como o resto dos comandos que
+     * criam coisa no mundo: sem isso, uma digitação errada enche o
+     * chunk de entidade de texto a seis blocos de onde a pessoa estava.
+     */
+    private void paredaoAjuda(CommandSender sender, String label, String[] args) {
+        if (!(sender instanceof Player jogador)) {
+            sender.sendMessage(Component.text(
+                    "Use /" + label + " painel dentro do jogo: a parede nasce à frente"
+                            + " de quem digita, na direção em que está olhando.",
+                    NamedTextColor.YELLOW));
+            return;
+        }
+        if (!jogador.hasPermission("bigacore.admin")) {
+            semPermissao(jogador);
+            return;
+        }
+
+        PainelAjuda painel = plugin.painelAjuda();
+        String acao = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "construir";
+
+        if (acao.equals("limpar")) {
+            int removidos = painel.limpar(jogador.getWorld());
+            jogador.sendMessage(Component.text(
+                    removidos + " painel(éis) removido(s) de " + jogador.getWorld().getName() + ".",
+                    NamedTextColor.GOLD));
+            return;
+        }
+
+        if (!acao.equals("construir")) {
+            jogador.sendMessage(Component.text(
+                    "Uso: /" + label + " painel <construir|limpar>", NamedTextColor.YELLOW));
+            return;
+        }
+
+        boolean confirmar = args.length >= 3 && args[2].equalsIgnoreCase("CONFIRMAR");
+        PainelAjuda.Relatorio r = painel.construir(jogador, confirmar);
+
+        if (!r.ok()) {
+            jogador.sendMessage(Component.text(r.erro(), NamedTextColor.RED));
+            return;
+        }
+
+        String titulo = confirmar ? "Paredão construído" : "Simulação — nada foi criado";
+        jogador.sendMessage(Component.text(titulo, NamedTextColor.GOLD)
+                .decorate(TextDecoration.BOLD));
+        jogador.sendMessage(linha(confirmar ? "Painéis criados" : "Seriam criados",
+                String.valueOf(r.criados())));
+        jogador.sendMessage(linha(confirmar ? "Painéis antigos removidos" : "Já existem no mundo",
+                String.valueOf(r.removidos())));
+
+        if (!confirmar) {
+            jogador.sendMessage(Component.text(
+                    "Para construir de verdade: /" + label + " painel construir CONFIRMAR",
+                    NamedTextColor.GOLD));
+            return;
+        }
+
+        jogador.sendMessage(Component.text(
+                "O texto fica em ajuda.yml. Edite, /" + label + " reload, e construa de novo.",
+                NamedTextColor.GRAY));
+        jogador.sendMessage(Component.text(
+                "Saiu de costas? Troque layout.giro entre 0 e 180 no ajuda.yml.",
+                NamedTextColor.DARK_GRAY));
+    }
+
     private void enviarAjuda(CommandSender sender, String label) {
         Component ajuda = Component.text("Uso: ", NamedTextColor.YELLOW)
                 .append(Component.text("/" + label + " ", NamedTextColor.WHITE));
@@ -808,6 +879,16 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             }
             if (args.length == 3 && args[1].equalsIgnoreCase("preco")) {
                 return filtrar(plugin.economyCatalog().keys(), args[2]);
+            }
+            return List.of();
+        }
+
+        if (args[0].equalsIgnoreCase("painel")) {
+            if (args.length == 2) {
+                return filtrar(PAINEL_SUBCOMANDOS, args[1]);
+            }
+            if (args.length == 3 && args[1].equalsIgnoreCase("construir")) {
+                return filtrar(List.of("CONFIRMAR"), args[2]);
             }
             return List.of();
         }
