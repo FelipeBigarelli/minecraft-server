@@ -18,6 +18,8 @@ import org.joml.Vector3f;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * O paredão de ajuda do spawn: painéis de texto flutuante explicando
@@ -52,6 +54,10 @@ public final class PainelAjuda {
      * limpeza de uma apagar a outra.
      */
     public static final String TAG = "bigacore_ajuda_painel";
+
+    /** {@code <terreno-preco-16>} — o 16 é o lado do quadrado, não o preço. */
+    private static final Pattern PRECO_TERRENO =
+            Pattern.compile("<terreno-preco-(\\d{1,4})>");
 
     /**
      * Quanto vale um pixel da fonte em blocos, num display de escala 1.
@@ -246,12 +252,18 @@ public final class PainelAjuda {
      */
     private String resolver(String texto) {
         EconomyCatalog eco = plugin.economyCatalog();
+        TerrenoCatalog terreno = plugin.terrenoCatalog();
 
         String saida = texto
                 .replace("<moeda-inicial>", String.valueOf(eco.startingBalance()))
                 .replace("<lojas-limite>", String.valueOf(eco.initialShopLimit()))
                 .replace("<taxa-loja>", String.valueOf(eco.chestShopTaxPercent()))
-                .replace("<simbolo>", eco.currencySymbol());
+                .replace("<simbolo>", eco.currencySymbol())
+                .replace("<terreno-bloco>", String.valueOf(terreno.precoPorBloco()))
+                .replace("<terreno-min>", String.valueOf(terreno.tamanhoMinimo()))
+                .replace("<terreno-max>", String.valueOf(terreno.tamanhoMaximo()))
+                .replace("<terreno-limite>", String.valueOf(terreno.limitePorJogador()))
+                .replace("<terreno-reembolso>", String.valueOf(terreno.reembolsoPercent()));
 
         List<Integer> precos = eco.plotPrices();
         for (int i = 0; i < 3; i++) {
@@ -259,7 +271,42 @@ public final class PainelAjuda {
             String valor = i < precos.size() ? String.valueOf(precos.get(i)) : "—";
             saida = saida.replace(marcador, valor);
         }
-        return saida;
+
+        return precosDeTerreno(saida, terreno);
+    }
+
+    /**
+     * Resolve {@code <terreno-preco-16>} e companhia, calculando na hora.
+     *
+     * Qualquer tamanho serve: o número no marcador vira o lado do quadrado e o
+     * painel mostra o que /terreno comprar cobraria por ele hoje.
+     *
+     * Existe pelo mesmo motivo dos outros marcadores — um exemplo de preço
+     * digitado à mão no ajuda.yml vira mentira no dia em que alguém mexer no
+     * preco-por-bloco do terrenos.yml, e ninguém lembra de voltar aqui. Com o
+     * cálculo na hora, a parede e a cobrança nunca discordam.
+     *
+     * O multiplicador de quantidade fica de fora de propósito: a parede fala
+     * com quem acabou de entrar, e para essa pessoa o primeiro terreno é o
+     * único preço que existe.
+     */
+    private String precosDeTerreno(String texto, TerrenoCatalog terreno) {
+        Matcher achado = PRECO_TERRENO.matcher(texto);
+        StringBuilder saida = new StringBuilder();
+
+        while (achado.find()) {
+            long preco;
+            try {
+                int lado = Integer.parseInt(achado.group(1));
+                preco = TerrenoCatalog.preco(lado * lado, terreno.precoPorBloco(), 1.0);
+            } catch (NumberFormatException erro) {
+                // Lado absurdo no ajuda.yml não derruba a parede inteira.
+                preco = 0L;
+            }
+            achado.appendReplacement(saida, Matcher.quoteReplacement(String.valueOf(preco)));
+        }
+        achado.appendTail(saida);
+        return saida.toString();
     }
 
     /**

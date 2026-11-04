@@ -15,7 +15,10 @@ layout:
   # Distância, em blocos, entre o jogador e a parede no momento
   # da construção. O comando usa a posição e o ângulo de quem
   # digitou: você mira para onde quer a parede e constrói.
-  distancia: 6
+  #
+  # 8 e não 6 desde que a parede passou a ter 4 colunas: de 6 blocos, uma
+  # parede de 4 painéis não cabe no campo de visão de uma vez.
+  distancia: 8
 
   # Espaço horizontal entre o centro de dois painéis vizinhos.
   #
@@ -33,9 +36,14 @@ layout:
   # construiu.
   altura: 2.4
 
-  # Quantos painéis por fileira. Com 6 painéis e 3 por fileira
-  # saem duas fileiras.
-  por_fileira: 3
+  # Quantos painéis por fileira.
+  #
+  # Com 7 painéis, 4 por fileira dá 4 em cima e 3 embaixo, e cada fileira é
+  # centralizada no jogador por conta própria — as duas ficam alinhadas pelo
+  # meio. Com 3 por fileira sobraria um painel sozinho numa terceira fileira,
+  # e a terceira fileira joga a de cima para uns 10 blocos de altura, onde
+  # ninguém lê sem empinar o pescoço.
+  por_fileira: 4
 
   # Espaço vertical entre fileiras. 0 = calcule sozinho, a partir do
   # painel com mais linhas.
@@ -97,13 +105,36 @@ paineis:
       - ""
       - "<gray>/biga eco regras <dark_gray>— as regras inteiras"
 
-  - titulo: "<gradient:#FF6A00:#FFD700><bold>TERRENOS</bold></gradient>"
+  - titulo: "<gradient:#FF6A00:#FFD700><bold>SEU TERRENO</bold></gradient>"
     linhas:
-      - "<gray>Terreno é seu: ninguém quebra nada lá."
+      - "<gray>No survival você <white>compra o chão<gray>."
+      - "<gray>Lá dentro, ninguém mexe no que é seu."
       - ""
-      - "<gray>1º terreno <dark_gray>·· <#FFD700>B$<preco-terreno-1>"
-      - "<gray>2º terreno <dark_gray>·· <#FFD700>B$<preco-terreno-2>"
-      - "<gray>3º terreno <dark_gray>·· <#FFD700>B$<preco-terreno-3>"
+      - "<gray>/terreno preco <white>20 <dark_gray>— só o orçamento"
+      - "<gray>/terreno comprar <white>20 <dark_gray>— marca 20x20"
+      - "<gray>/terreno ver <dark_gray>— acende as bordas"
+      - "<gray>/terreno convidar <white>nome <dark_gray>— libera alguém"
+      - ""
+      - "<#FFD700><simbolo><terreno-bloco><gray> por bloco de chão:"
+      - "<gray>16x16 <dark_gray>·· <#FFD700><simbolo><terreno-preco-16>"
+      - "<gray>32x32 <dark_gray>·· <#FFD700><simbolo><terreno-preco-32>"
+      - ""
+      - "<dark_gray>Pega do fundo ao céu — ninguém cava"
+      - "<dark_gray>por baixo para entrar. Até <terreno-limite> terrenos."
+
+  - titulo: "<gradient:#FF6A00:#FFD700><bold>CRIATIVO</bold></gradient>"
+    linhas:
+      - "<gray>Um mundo à parte, só para construir."
+      - "<gray>Lá o lote já vem pronto e plano."
+      - ""
+      - "<gray>/plot auto <dark_gray>— pega um lote livre"
+      - "<gray>/plot home <dark_gray>— volta para o seu"
+      - "<gray>/plot trust <white>nome <dark_gray>— libera alguém"
+      - "<gray>/plot abandon <dark_gray>— devolve o lote"
+      - ""
+      - "<gray>1º lote <dark_gray>·· <#FFD700>B$<preco-terreno-1>"
+      - "<gray>2º lote <dark_gray>·· <#FFD700>B$<preco-terreno-2>"
+      - "<gray>3º lote <dark_gray>·· <#FFD700>B$<preco-terreno-3>"
       - ""
       - "<dark_gray>Cada um custa o triplo do anterior:"
       - "<dark_gray>é de propósito, para a terra não acabar."
