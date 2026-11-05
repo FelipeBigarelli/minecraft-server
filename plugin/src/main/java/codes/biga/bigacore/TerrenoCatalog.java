@@ -1,5 +1,6 @@
 package codes.biga.bigacore;
 
+import org.bukkit.Material;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
@@ -139,6 +140,57 @@ public final class TerrenoCatalog {
 
     public String mensagemSaida() {
         return dados.getString("mensagem-saida", "");
+    }
+
+    // ------------------------------------------------------------------
+    // Cerca
+    // ------------------------------------------------------------------
+
+    public boolean cercaAtiva() {
+        return dados.getBoolean("cerca.ativa", true);
+    }
+
+    public Material cercaMaterial() {
+        return material("cerca.material", Material.OAK_FENCE);
+    }
+
+    public Material cercaCanto() {
+        return material("cerca.canto", Material.OAK_LOG);
+    }
+
+    public int cercaBuscaAcima() {
+        return Math.clamp(dados.getInt("cerca.busca-acima", 8), 0, 64);
+    }
+
+    public int cercaBuscaAbaixo() {
+        return Math.clamp(dados.getInt("cerca.busca-abaixo", 24), 0, 128);
+    }
+
+    public int cercaPorTique() {
+        return Math.clamp(dados.getInt("cerca.por-tique", 48), 1, 512);
+    }
+
+    /**
+     * Le um material do arquivo, avisando no log quando o nome nao existe.
+     *
+     * Material.matchMaterial devolve null para nome errado. Sem este aviso,
+     * trocar OAK_FENCE por "cerca de carvalho" no YAML nao daria erro nenhum:
+     * a cerca simplesmente nunca apareceria, e o jogador acharia que o
+     * comando esta quebrado.
+     */
+    private Material material(String chave, Material padrao) {
+        String nome = dados.getString(chave);
+        if (nome == null || nome.isBlank()) {
+            return padrao;
+        }
+
+        Material achado = Material.matchMaterial(nome.trim().toUpperCase(Locale.ROOT));
+        if (achado == null || !achado.isBlock()) {
+            plugin.getLogger().warning("[terreno] " + chave + ": \"" + nome
+                    + "\" nao e um bloco valido. Usando " + padrao + ".");
+            return padrao;
+        }
+        return achado;
     }
 
     // ------------------------------------------------------------------

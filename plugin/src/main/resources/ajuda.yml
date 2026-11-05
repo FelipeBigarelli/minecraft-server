@@ -72,18 +72,25 @@ layout:
 
 # Cada item vira um painel. A ordem aqui é a ordem na parede,
 # da esquerda para a direita.
+# Cor dos comandos: <#6FD3FF>, um azul claro.
+#
+# Comando e a unica coisa do painel que a pessoa vai DIGITAR, entao ele precisa
+# se separar do texto em volta num relance. Azul claro contra o dourado do
+# titulo e o cinza da explicacao da esse contraste sem brigar com a paleta.
+# Argumento que a pessoa troca (<white>nome, <white>20) continua em branco.
+
 paineis:
   - titulo: "<gradient:#FF6A00:#FFD700><bold>COMO COMEÇAR</bold></gradient>"
     linhas:
-      - "<gray>/spawn <dark_gray>— volta para cá, sempre"
-      - "<gray>/tpa <white>jogador <dark_gray>— pede teleporte"
-      - "<gray>/list <dark_gray>— quem está online"
+      - "<#6FD3FF>/spawn <dark_gray>— volta para cá, sempre"
+      - "<#6FD3FF>/tpa <white>jogador <dark_gray>— pede teleporte"
+      - "<#6FD3FF>/list <dark_gray>— quem está online"
       - ""
       - "<gray>Sua casa — pode ter mais de uma:"
-      - "<gray>/sethome <white>nome <dark_gray>— cria"
-      - "<gray>/home <dark_gray>— lista as suas"
-      - "<gray>/home <white>nome <dark_gray>— vai até ela"
-      - "<gray>/delhome <white>nome <dark_gray>— apaga"
+      - "<#6FD3FF>/sethome <white>nome <dark_gray>— cria"
+      - "<#6FD3FF>/home <dark_gray>— lista as suas"
+      - "<#6FD3FF>/home <white>nome <dark_gray>— vai até ela"
+      - "<#6FD3FF>/delhome <white>nome <dark_gray>— apaga"
       - ""
       - "<#E03131>Cuidado:<gray> aqui é mundo de ilhas."
       - "<gray>Marcar casa no ar é queda."
@@ -92,26 +99,26 @@ paineis:
     linhas:
       - "<gray>Você começa com <#FFD700><simbolo><moeda-inicial></#FFD700>."
       - ""
-      - "<gray>/saldo <dark_gray>— quanto você tem"
-      - "<gray>/pay <white>jogador valor <dark_gray>— transferir"
-      - "<gray>/baltop <dark_gray>— os mais ricos"
-      - "<gray>/worth <dark_gray>— o valor do item na mão"
+      - "<#6FD3FF>/saldo <dark_gray>— quanto você tem"
+      - "<#6FD3FF>/pay <white>jogador valor <dark_gray>— transferir"
+      - "<#6FD3FF>/baltop <dark_gray>— os mais ricos"
+      - "<#6FD3FF>/worth <dark_gray>— o valor do item na mão"
       - ""
       - "<gray>O dinheiro entra vendendo para outros"
       - "<gray>jogadores. A loja do servidor é só"
       - "<gray>uma rede de segurança."
       - ""
-      - "<gray>/biga eco regras <dark_gray>— as regras"
+      - "<#6FD3FF>/biga eco regras <dark_gray>— as regras"
 
   - titulo: "<gradient:#FF6A00:#FFD700><bold>SEU TERRENO</bold></gradient>"
     linhas:
       - "<gray>No survival você <white>compra o chão<gray>."
       - "<gray>Lá dentro ninguém mexe no que é seu."
       - ""
-      - "<gray>/terreno preco <white>20 <dark_gray>— só o orçamento"
-      - "<gray>/terreno comprar <white>20 <dark_gray>— marca 20x20"
-      - "<gray>/terreno ver <dark_gray>— acende as bordas"
-      - "<gray>/terreno convidar <white>nome <dark_gray>— libera"
+      - "<#6FD3FF>/terreno preco <white>20 <dark_gray>— só o orçamento"
+      - "<#6FD3FF>/terreno comprar <white>20 <dark_gray>— marca 20x20"
+      - "<#6FD3FF>/terreno ver <dark_gray>— acende as bordas"
+      - "<#6FD3FF>/terreno convidar <white>nome <dark_gray>— libera"
       - ""
       - "<#FFD700><simbolo><terreno-bloco><gray> por bloco de chão:"
       - "<gray>16x16 <dark_gray>·· <#FFD700><simbolo><terreno-preco-16>"
@@ -123,10 +130,10 @@ paineis:
       - "<gray>Um mundo à parte, só para construir."
       - "<gray>Lá o lote já vem pronto e plano."
       - ""
-      - "<gray>/plot auto <dark_gray>— pega um lote livre"
-      - "<gray>/plot home <dark_gray>— volta para o seu"
-      - "<gray>/plot trust <white>nome <dark_gray>— libera alguém"
-      - "<gray>/plot abandon <dark_gray>— devolve o lote"
+      - "<#6FD3FF>/plot auto <dark_gray>— pega um lote livre"
+      - "<#6FD3FF>/plot home <dark_gray>— volta para o seu"
+      - "<#6FD3FF>/plot trust <white>nome <dark_gray>— libera alguém"
+      - "<#6FD3FF>/plot abandon <dark_gray>— devolve o lote"
       - ""
       - "<gray>1º lote <dark_gray>·· <#FFD700>B$<preco-terreno-1>"
       - "<gray>2º lote <dark_gray>·· <#FFD700>B$<preco-terreno-2>"

@@ -1,5 +1,8 @@
 package codes.biga.bigacore;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Uma caixa de blocos, inclusiva nas duas pontas.
  *
@@ -103,6 +106,66 @@ public record Caixa(int x1, int y1, int z1, int x2, int y2, int z2) {
     /** Caixa com a mesma area, presa entre dois limites de altura. */
     public Caixa comAltura(int yMin, int yMax) {
         return new Caixa(minX(), yMin, minZ(), maxX(), yMax, maxZ());
+    }
+
+    /** Uma coluna do mundo, sem altura: so o par x/z. */
+    public record Ponto(int x, int z) {
+    }
+
+    /**
+     * As colunas da borda, uma volta completa sem repetir canto.
+     *
+     * Serve para a cerca: cada ponto vira um poste. A ordem e horario
+     * comecando no canto noroeste, de proposito — a cerca sobe desenhando a
+     * volta em vez de aparecer de uma vez, e da para ver de onde ate onde vai
+     * enquanto ela se levanta.
+     *
+     * Uma caixa de lado 1 devolve um ponto so, nao quatro: os quatro cantos
+     * sao o mesmo bloco. E o tipo de caso que, sem cuidado, poe quatro cercas
+     * na mesma coordenada e conta quatro blocos colocados.
+     */
+    public List<Ponto> perimetro() {
+        List<Ponto> volta = new ArrayList<>();
+        int minX = minX();
+        int maxX = maxX();
+        int minZ = minZ();
+        int maxZ = maxZ();
+
+        if (minX == maxX && minZ == maxZ) {
+            volta.add(new Ponto(minX, minZ));
+            return volta;
+        }
+
+        for (int x = minX; x <= maxX; x++) {
+            volta.add(new Ponto(x, minZ));
+        }
+        for (int z = minZ + 1; z <= maxZ; z++) {
+            volta.add(new Ponto(maxX, z));
+        }
+        if (minZ != maxZ) {
+            for (int x = maxX - 1; x >= minX; x--) {
+                volta.add(new Ponto(x, maxZ));
+            }
+        }
+        if (minX != maxX) {
+            for (int z = maxZ - 1; z > minZ; z--) {
+                volta.add(new Ponto(minX, z));
+            }
+        }
+        return volta;
+    }
+
+    /** Os quatro cantos. Numa caixa de lado 1 os quatro sao o mesmo ponto. */
+    public List<Ponto> cantos() {
+        List<Ponto> saida = new ArrayList<>();
+        for (Ponto canto : List.of(
+                new Ponto(minX(), minZ()), new Ponto(maxX(), minZ()),
+                new Ponto(maxX(), maxZ()), new Ponto(minX(), maxZ()))) {
+            if (!saida.contains(canto)) {
+                saida.add(canto);
+            }
+        }
+        return saida;
     }
 
     public boolean contemHorizontal(int x, int z) {

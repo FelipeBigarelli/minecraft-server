@@ -207,6 +207,7 @@ public final class TerrenoVenda {
         }
 
         wg().salvarDepois(mundo);
+        cercar(jogador, orcamento.caixa());
 
         plugin.getLogger().info("[terreno] " + jogador.getName() + " comprou " + id
                 + " (" + orcamento.tamanho() + "x" + orcamento.tamanho() + ", "
@@ -302,6 +303,12 @@ public final class TerrenoVenda {
         }
 
         wg().salvarDepois(mundo);
+
+        // Em sequencia, nao em paralelo: as duas voltas mexem em bloco em
+        // lotes por tique, e derrubar enquanto levanta e pedir para a ordem
+        // decidir quem ganha.
+        descercar(jogador, atual, () -> cercar(jogador, nova));
+
         plugin.getLogger().info("[terreno] " + jogador.getName() + " expandiu " + terreno.id()
                 + " de " + tamanhoAtual + " para " + novoTamanho + " por " + preco + ".");
 
@@ -352,6 +359,8 @@ public final class TerrenoVenda {
         }
 
         wg().salvarDepois(mundo);
+        descercar(jogador, terreno.caixa(), null);
+
         plugin.getLogger().info("[terreno] " + jogador.getName() + " vendeu " + terreno.id()
                 + " e recebeu " + volta + ".");
 
@@ -403,6 +412,50 @@ public final class TerrenoVenda {
     // ------------------------------------------------------------------
     // Apoio
     // ------------------------------------------------------------------
+
+    /**
+     * Levanta a cerca, se ela estiver ligada no terrenos.yml.
+     *
+     * A altura de referencia e a do jogador, nao a do terreno: o terreno vai
+     * do fundo ao teto do mundo e nao tem "altura" util nenhuma para isso.
+     * Quem comprou esta de pe na ilha em que quer construir, e e nessa faixa
+     * que a cerca procura chao.
+     */
+    public void cercar(Player jogador, Caixa caixa) {
+        if (!catalogo().cercaAtiva()) {
+            return;
+        }
+
+        int yReferencia = jogador.getLocation().getBlockY();
+        plugin.cercaTerreno().levantar(jogador.getWorld(), caixa, yReferencia, relatorio -> {
+            if (!jogador.isOnline()) {
+                return;
+            }
+            jogador.sendMessage(net.kyori.adventure.text.Component.text(
+                    "Cerca levantada: " + relatorio.postos() + " blocos"
+                            + (relatorio.pulados() > 0
+                            ? " (" + relatorio.pulados() + " colunas sem chao, puladas)" : "")
+                            + ".",
+                    net.kyori.adventure.text.format.NamedTextColor.GRAY));
+        });
+    }
+
+    /** Tira a cerca e, terminando, roda o que vier depois. */
+    public void descercar(Player jogador, Caixa caixa, Runnable depois) {
+        if (!catalogo().cercaAtiva()) {
+            if (depois != null) {
+                depois.run();
+            }
+            return;
+        }
+
+        int yReferencia = jogador.getLocation().getBlockY();
+        plugin.cercaTerreno().derrubar(jogador.getWorld(), caixa, yReferencia, relatorio -> {
+            if (depois != null) {
+                depois.run();
+            }
+        });
+    }
 
     /** Devolve null quando o saldo cobre; devolve a recusa pronta quando nao. */
     private Resultado conferirSaldo(Player jogador, long preco) {

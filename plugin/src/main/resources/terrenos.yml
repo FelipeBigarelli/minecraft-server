@@ -108,3 +108,37 @@ altura-total: true
 # atravessa uma rua com terreno dos dois lados.
 mensagem-entrada: "&8▎ &7Terreno de &f<dono>"
 mensagem-saida: ""
+
+# ---------------------------------------------------------------------------
+# Cerca de madeira
+# ---------------------------------------------------------------------------
+
+# Uma cerca aparece na borda do terreno assim que ele e comprado, e acompanha
+# o /terreno expandir. Vendeu, ela sai.
+#
+# Existe porque as particulas do /terreno ver duram dez segundos. Isso responde
+# "onde fica a borda" na hora de comprar e nao responde mais nada: quem volta
+# no dia seguinte para construir nao sabe onde pode encostar a parede.
+#
+# A cerca nunca apaga bloco de ninguem. Cada poste so entra onde ja existe ar
+# ou mato, e coluna sem chao — a beirada de uma ilha flutuante — e pulada.
+cerca:
+  ativa: true
+
+  # O poste comum e o dos quatro cantos. Canto diferente deixa achar a quina
+  # de longe, que e o que a pessoa procura quando esta medindo a construcao.
+  material: OAK_FENCE
+  canto: OAK_LOG
+
+  # A busca pelo chao comeca na altura de quem mandou e desce. Nao usa o bloco
+  # mais alto da coluna de proposito: num mundo de ilhas empilhadas, o ponto
+  # mais alto de um x/z pode estar numa ilha trinta blocos acima da que a
+  # pessoa escolheu, e a cerca sairia no telhado da ilha errada.
+  busca-acima: 8
+  busca-abaixo: 24
+
+  # Quantos postes por tique. Um terreno de 64x64 tem 252 postes espalhados
+  # por ate 25 chunks, e ler bloco de chunk descarregado forca o carregamento
+  # na hora, na thread do servidor: tudo de uma vez e engasgo para todo mundo
+  # online. Em lotes o custo some, e a cerca aparece desenhando a volta.
+  por-tique: 48

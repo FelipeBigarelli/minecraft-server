@@ -34,6 +34,7 @@ public final class BigaCore extends JavaPlugin {
     private WorldGuardBridge worldGuard;
     private TerrenoCatalog terrenoCatalog;
     private TerrenoVenda terrenoVenda;
+    private CercaTerreno cercaTerreno;
 
     @Override
     public void onEnable() {
@@ -84,6 +85,7 @@ public final class BigaCore extends JavaPlugin {
         this.worldGuard = new WorldGuardBridge(this);
         this.terrenoCatalog = new TerrenoCatalog(this);
         this.terrenoVenda = new TerrenoVenda(this);
+        this.cercaTerreno = new CercaTerreno(this);
 
         // Precisa vir depois do ChestShop no softdepend, senão o plugin ainda
         // não está registrado e o hook do teto não encontra a classe do evento.
@@ -229,6 +231,7 @@ public final class BigaCore extends JavaPlugin {
         plotApi = null;
         painelAjuda = null;
         terrenoVenda = null;
+        cercaTerreno = null;
         terrenoCatalog = null;
         worldGuard = null;
         spawnShopBuilder = null;
@@ -308,6 +311,10 @@ public final class BigaCore extends JavaPlugin {
 
     public TerrenoVenda terrenoVenda() {
         return terrenoVenda;
+    }
+
+    public CercaTerreno cercaTerreno() {
+        return cercaTerreno;
     }
 
     /** Recarrega os dois arquivos que pertencem ao BigaCore. */

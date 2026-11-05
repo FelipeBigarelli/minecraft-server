@@ -2,6 +2,7 @@ package codes.biga.bigacore;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -36,7 +37,20 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBCOMANDOS = List.of(
             "preco", "comprar", "expandir", "vender", "info", "listar",
-            "ver", "convidar", "remover");
+            "ver", "cerca", "convidar", "remover");
+
+    //
+    // Paleta. O cinza-escuro saiu do corpo das mensagens: #555555 em cima de
+    // grama clara e ceu e praticamente invisivel, e era com ele que estavam
+    // escritas as explicacoes de todo comando. Sobrou so na barra, que e um
+    // tracinho e nao precisa ser lida.
+    //
+    private static final TextColor COMANDO = NamedTextColor.YELLOW;
+    private static final TextColor TEXTO = NamedTextColor.GRAY;
+    private static final TextColor DESTAQUE = NamedTextColor.GOLD;
+    private static final TextColor VALOR = NamedTextColor.WHITE;
+    private static final TextColor ALERTA = NamedTextColor.RED;
+    private static final TextColor FEITO = NamedTextColor.GREEN;
 
     private final BigaCore plugin;
 
@@ -51,13 +65,13 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
         if (!(sender instanceof Player jogador)) {
             sender.sendMessage(Component.text(
                     "/terreno so funciona dentro do jogo — ele depende de onde voce esta.",
-                    NamedTextColor.RED));
+                    ALERTA));
             return true;
         }
 
         if (!jogador.hasPermission(PERM_USO)) {
             jogador.sendMessage(Component.text(
-                    "Voce nao tem permissao para comprar terreno.", NamedTextColor.RED));
+                    "Voce nao tem permissao para comprar terreno.", ALERTA));
             return true;
         }
 
@@ -74,6 +88,7 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
             case "info" -> info(jogador);
             case "listar" -> listar(jogador);
             case "ver" -> ver(jogador);
+            case "cerca" -> cerca(jogador);
             case "convidar" -> convidado(jogador, label, args, true);
             case "remover" -> convidado(jogador, label, args, false);
             default -> ajuda(jogador, label);
@@ -90,41 +105,53 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
         TerrenoCatalog cfg = plugin.terrenoCatalog();
         EconomyCatalog eco = plugin.economyCatalog();
 
-        jogador.sendMessage(Component.text("TERRENO NO SURVIVAL", NamedTextColor.GOLD)
-                .decorate(TextDecoration.BOLD));
+        cabecalho(jogador, "TERRENO NO SURVIVAL");
         jogador.sendMessage(Component.text("Voce marca um quadrado em volta de onde esta "
-                + "e paga pelo tamanho.", NamedTextColor.GRAY));
+                + "e paga pelo tamanho.", TEXTO));
         jogador.sendMessage(Component.empty());
 
-        linhaAjuda(jogador, "/" + label + " preco <tamanho>", "quanto custa, sem comprar");
-        linhaAjuda(jogador, "/" + label + " comprar <tamanho>", "compra o quadrado");
-        linhaAjuda(jogador, "/" + label + " ver", "mostra as bordas com particulas");
-        linhaAjuda(jogador, "/" + label + " info", "de quem e o chao onde voce esta");
-        linhaAjuda(jogador, "/" + label + " listar", "seus terrenos neste mundo");
-        linhaAjuda(jogador, "/" + label + " expandir <tamanho>", "aumenta o terreno de baixo dos pes");
-        linhaAjuda(jogador, "/" + label + " convidar <jogador>", "deixa alguem construir");
-        linhaAjuda(jogador, "/" + label + " remover <jogador>", "tira a permissao de alguem");
-        linhaAjuda(jogador, "/" + label + " vender", "devolve o terreno por "
-                + cfg.reembolsoPercent() + "% do preco base");
+        linhaAjuda(jogador, "/" + label + " preco", "<tamanho>", "quanto custa");
+        linhaAjuda(jogador, "/" + label + " comprar", "<tamanho>", "compra o quadrado");
+        linhaAjuda(jogador, "/" + label + " ver", null, "acende as bordas");
+        linhaAjuda(jogador, "/" + label + " cerca", null, "refaz a cerca de madeira");
+        linhaAjuda(jogador, "/" + label + " info", null, "de quem e este chao");
+        linhaAjuda(jogador, "/" + label + " listar", null, "os seus terrenos");
+        linhaAjuda(jogador, "/" + label + " expandir", "<tamanho>", "aumenta o seu");
+        linhaAjuda(jogador, "/" + label + " convidar", "<jogador>", "libera alguem");
+        linhaAjuda(jogador, "/" + label + " remover", "<jogador>", "tira a permissao");
+        linhaAjuda(jogador, "/" + label + " vender", null,
+                "devolve por " + cfg.reembolsoPercent() + "%");
 
         jogador.sendMessage(Component.empty());
-        jogador.sendMessage(Component.text("Preco: ", NamedTextColor.DARK_GRAY)
-                .append(Component.text(eco.money(cfg.precoPorBloco()) + " por bloco de chao",
-                        NamedTextColor.GRAY)));
-        jogador.sendMessage(Component.text("Tamanho: ", NamedTextColor.DARK_GRAY)
-                .append(Component.text("de " + cfg.tamanhoMinimo() + "x" + cfg.tamanhoMinimo()
-                        + " a " + cfg.tamanhoMaximo() + "x" + cfg.tamanhoMaximo(),
-                        NamedTextColor.GRAY)));
-        jogador.sendMessage(Component.text("Limite: ", NamedTextColor.DARK_GRAY)
-                .append(Component.text(cfg.limitePorJogador() + " terreno(s) por pessoa",
-                        NamedTextColor.GRAY)));
-        jogador.sendMessage(Component.text("O terreno pega do fundo ao teto do mundo, "
-                + "entao ninguem cava por baixo.", NamedTextColor.DARK_GRAY));
+        campo(jogador, "Preco", eco.money(cfg.precoPorBloco()) + " por bloco de chao");
+        campo(jogador, "Tamanho", "de " + cfg.tamanhoMinimo() + "x" + cfg.tamanhoMinimo()
+                + " a " + cfg.tamanhoMaximo() + "x" + cfg.tamanhoMaximo());
+        campo(jogador, "Limite", cfg.limitePorJogador() + " por pessoa");
+        jogador.sendMessage(Component.text("Vai do fundo ao teto do mundo: "
+                + "ninguem cava por baixo.", TEXTO));
     }
 
-    private void linhaAjuda(Player jogador, String comando, String explicacao) {
-        jogador.sendMessage(Component.text(comando, NamedTextColor.GRAY)
-                .append(Component.text(" — " + explicacao, NamedTextColor.DARK_GRAY)));
+    /** Cabecalho no tema do servidor: barra fina, titulo em dourado. */
+    private void cabecalho(Player jogador, String titulo) {
+        jogador.sendMessage(Component.text("▎ ", NamedTextColor.DARK_GRAY)
+                .append(Component.text(titulo, DESTAQUE).decorate(TextDecoration.BOLD)));
+    }
+
+    /**
+     * Uma linha de ajuda: comando em amarelo, argumento em branco, explicacao
+     * em cinza claro.
+     *
+     * O comando precisa saltar da explicacao, e nao o contrario — quem abre a
+     * ajuda esta procurando o que digitar. Antes era o oposto: comando em
+     * cinza, explicacao em cinza-escuro, e as duas sumiam no mato.
+     */
+    private void linhaAjuda(Player jogador, String comando, String argumento,
+                            String explicacao) {
+        Component linha = Component.text("  " + comando, COMANDO);
+        if (argumento != null) {
+            linha = linha.append(Component.text(" " + argumento, VALOR));
+        }
+        jogador.sendMessage(linha.append(Component.text("  " + explicacao, TEXTO)));
     }
 
     // ------------------------------------------------------------------
@@ -141,17 +168,16 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
         EconomyCatalog eco = plugin.economyCatalog();
 
         if (!orcamento.ok()) {
-            jogador.sendMessage(Component.text(orcamento.motivo(), NamedTextColor.RED));
+            jogador.sendMessage(Component.text(orcamento.motivo(), ALERTA));
             if (!orcamento.colisoes().isEmpty()) {
                 jogador.sendMessage(Component.text("Encosta em: "
-                        + String.join(", ", orcamento.colisoes()), NamedTextColor.DARK_GRAY));
+                        + String.join(", ", orcamento.colisoes()), TEXTO));
             }
             return;
         }
 
         Caixa caixa = orcamento.caixa();
-        jogador.sendMessage(Component.text("ORCAMENTO", NamedTextColor.GOLD)
-                .decorate(TextDecoration.BOLD));
+        cabecalho(jogador, "ORCAMENTO");
         campo(jogador, "Tamanho", tamanho + "x" + tamanho + " (" + caixa.area() + " blocos)");
         campo(jogador, "Canto a canto",
                 caixa.minX() + ", " + caixa.minZ() + " ate " + caixa.maxX() + ", " + caixa.maxZ());
@@ -162,7 +188,7 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
         }
         campo(jogador, "Preco", eco.money(orcamento.preco()));
         jogador.sendMessage(Component.text("Para comprar: /" + label + " comprar "
-                + tamanho + " CONFIRMAR", NamedTextColor.DARK_GRAY));
+                + tamanho + " CONFIRMAR", TEXTO));
     }
 
     // ------------------------------------------------------------------
@@ -178,32 +204,32 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
         if (!confirmou(args, 2)) {
             TerrenoVenda.Orcamento orcamento = plugin.terrenoVenda().orcar(jogador, tamanho);
             if (!orcamento.ok()) {
-                jogador.sendMessage(Component.text(orcamento.motivo(), NamedTextColor.RED));
+                jogador.sendMessage(Component.text(orcamento.motivo(), ALERTA));
                 if (!orcamento.colisoes().isEmpty()) {
                     jogador.sendMessage(Component.text("Encosta em: "
-                            + String.join(", ", orcamento.colisoes()), NamedTextColor.DARK_GRAY));
+                            + String.join(", ", orcamento.colisoes()), TEXTO));
                 }
                 return;
             }
             jogador.sendMessage(Component.text("Vai comprar " + tamanho + "x" + tamanho
                     + " por " + plugin.economyCatalog().money(orcamento.preco()) + ".",
-                    NamedTextColor.GRAY));
+                    TEXTO));
             jogador.sendMessage(Component.text("Confirme: /" + label + " comprar "
-                    + tamanho + " CONFIRMAR", NamedTextColor.GOLD));
+                    + tamanho + " CONFIRMAR", DESTAQUE));
             return;
         }
 
         TerrenoVenda.Resultado resultado = plugin.terrenoVenda().comprar(jogador, tamanho);
         if (!resultado.ok()) {
-            jogador.sendMessage(Component.text(resultado.mensagem(), NamedTextColor.RED));
+            jogador.sendMessage(Component.text(resultado.mensagem(), ALERTA));
             return;
         }
 
-        jogador.sendMessage(Component.text("Terreno seu. ", NamedTextColor.GREEN)
+        jogador.sendMessage(Component.text("Terreno seu. ", FEITO)
                 .append(Component.text(tamanho + "x" + tamanho + " por "
-                        + plugin.economyCatalog().money(resultado.valor()), NamedTextColor.GRAY)));
+                        + plugin.economyCatalog().money(resultado.valor()), TEXTO)));
         jogador.sendMessage(Component.text("Regiao " + resultado.id()
-                + ". Use /" + label + " ver para enxergar as bordas.", NamedTextColor.DARK_GRAY));
+                + ". Use /" + label + " ver para enxergar as bordas.", TEXTO));
         desenharBordas(jogador);
     }
 
@@ -220,21 +246,21 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
         if (!confirmou(args, 2)) {
             jogador.sendMessage(Component.text("Isso vai aumentar o terreno onde voce esta "
                     + "para " + tamanho + "x" + tamanho + " e cobrar a area nova.",
-                    NamedTextColor.GRAY));
+                    TEXTO));
             jogador.sendMessage(Component.text("Confirme: /" + label + " expandir "
-                    + tamanho + " CONFIRMAR", NamedTextColor.GOLD));
+                    + tamanho + " CONFIRMAR", DESTAQUE));
             return;
         }
 
         TerrenoVenda.Resultado resultado = plugin.terrenoVenda().expandir(jogador, tamanho);
         if (!resultado.ok()) {
-            jogador.sendMessage(Component.text(resultado.mensagem(), NamedTextColor.RED));
+            jogador.sendMessage(Component.text(resultado.mensagem(), ALERTA));
             return;
         }
 
-        jogador.sendMessage(Component.text(resultado.mensagem() + " ", NamedTextColor.GREEN)
+        jogador.sendMessage(Component.text(resultado.mensagem() + " ", FEITO)
                 .append(Component.text("Custou "
-                        + plugin.economyCatalog().money(resultado.valor()), NamedTextColor.GRAY)));
+                        + plugin.economyCatalog().money(resultado.valor()), TEXTO)));
         desenharBordas(jogador);
     }
 
@@ -247,7 +273,7 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
             Optional<WorldGuardBridge.Terreno> talvez = plugin.terrenoVenda().onde(jogador);
             if (talvez.isEmpty()) {
                 jogador.sendMessage(Component.text(
-                        "Fique dentro do terreno que voce quer vender.", NamedTextColor.RED));
+                        "Fique dentro do terreno que voce quer vender.", ALERTA));
                 return;
             }
             TerrenoCatalog cfg = plugin.terrenoCatalog();
@@ -255,23 +281,23 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
                     cfg.precoPorBloco(), cfg.reembolsoPercent());
             jogador.sendMessage(Component.text("Vender " + talvez.get().id() + " devolve "
                     + plugin.economyCatalog().money(volta) + " ("
-                    + cfg.reembolsoPercent() + "% do preco base).", NamedTextColor.GRAY));
+                    + cfg.reembolsoPercent() + "% do preco base).", TEXTO));
             jogador.sendMessage(Component.text("A protecao sai e qualquer um pode construir "
-                    + "ali. Nao da para desfazer.", NamedTextColor.RED));
+                    + "ali. Nao da para desfazer.", ALERTA));
             jogador.sendMessage(Component.text("Confirme: /" + label + " vender CONFIRMAR",
-                    NamedTextColor.GOLD));
+                    DESTAQUE));
             return;
         }
 
         TerrenoVenda.Resultado resultado = plugin.terrenoVenda().vender(jogador);
         if (!resultado.ok()) {
-            jogador.sendMessage(Component.text(resultado.mensagem(), NamedTextColor.RED));
+            jogador.sendMessage(Component.text(resultado.mensagem(), ALERTA));
             return;
         }
 
-        jogador.sendMessage(Component.text("Terreno vendido. ", NamedTextColor.GREEN)
+        jogador.sendMessage(Component.text("Terreno vendido. ", FEITO)
                 .append(Component.text("Voltaram "
-                        + plugin.economyCatalog().money(resultado.valor()), NamedTextColor.GRAY)));
+                        + plugin.economyCatalog().money(resultado.valor()), TEXTO)));
     }
 
     // ------------------------------------------------------------------
@@ -282,15 +308,14 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
         Optional<WorldGuardBridge.Terreno> talvez = plugin.terrenoVenda().onde(jogador);
         if (talvez.isEmpty()) {
             jogador.sendMessage(Component.text(
-                    "Este chao nao e terreno de ninguem.", NamedTextColor.GRAY));
+                    "Este chao nao e terreno de ninguem.", TEXTO));
             return;
         }
 
         WorldGuardBridge.Terreno terreno = talvez.get();
         Caixa caixa = terreno.caixa();
 
-        jogador.sendMessage(Component.text("TERRENO " + terreno.id(), NamedTextColor.GOLD)
-                .decorate(TextDecoration.BOLD));
+        cabecalho(jogador, "TERRENO " + terreno.id());
         campo(jogador, "Dono", nomes(terreno.donos()));
         campo(jogador, "Convidados", terreno.membros().isEmpty()
                 ? "ninguem" : nomes(terreno.membros()));
@@ -298,7 +323,7 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
                 + " (" + caixa.area() + " blocos)");
         campo(jogador, "Altura", caixa.minY() + " a " + caixa.maxY());
         if (terreno.ehDono(jogador.getUniqueId())) {
-            jogador.sendMessage(Component.text("E seu.", NamedTextColor.GREEN));
+            jogador.sendMessage(Component.text("E seu.", FEITO));
         }
     }
 
@@ -306,40 +331,39 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
         List<WorldGuardBridge.Terreno> meus = plugin.terrenoVenda().meus(jogador);
         if (meus.isEmpty()) {
             jogador.sendMessage(Component.text("Voce nao tem terreno neste mundo. "
-                    + "Use /terreno preco 16 para ver quanto custa.", NamedTextColor.GRAY));
+                    + "Use /terreno preco 16 para ver quanto custa.", TEXTO));
             return;
         }
 
-        jogador.sendMessage(Component.text("SEUS TERRENOS (" + meus.size() + "/"
-                + plugin.terrenoCatalog().limitePorJogador() + ")", NamedTextColor.GOLD)
-                .decorate(TextDecoration.BOLD));
+        cabecalho(jogador, "SEUS TERRENOS (" + meus.size() + "/"
+                + plugin.terrenoCatalog().limitePorJogador() + ")");
         for (WorldGuardBridge.Terreno terreno : meus) {
             Caixa caixa = terreno.caixa();
-            jogador.sendMessage(Component.text(terreno.id(), NamedTextColor.WHITE)
+            jogador.sendMessage(Component.text(terreno.id(), VALOR)
                     .append(Component.text(" " + caixa.larguraX() + "x" + caixa.larguraZ()
                             + " em " + caixa.centroX() + ", " + caixa.centroZ(),
-                            NamedTextColor.GRAY)));
+                            TEXTO)));
         }
     }
 
     private void convidado(Player jogador, String label, String[] args, boolean adicionar) {
         if (args.length < 2) {
             jogador.sendMessage(Component.text("Use /" + label + " "
-                    + (adicionar ? "convidar" : "remover") + " <jogador>", NamedTextColor.RED));
+                    + (adicionar ? "convidar" : "remover") + " <jogador>", ALERTA));
             return;
         }
 
         OfflinePlayer alvo = procurar(args[1]);
         if (alvo == null) {
             jogador.sendMessage(Component.text("Nunca vi ninguem chamado " + args[1]
-                    + " neste servidor.", NamedTextColor.RED));
+                    + " neste servidor.", ALERTA));
             return;
         }
 
         TerrenoVenda.Resultado resultado =
                 plugin.terrenoVenda().convidado(jogador, alvo, adicionar);
         jogador.sendMessage(Component.text(resultado.mensagem(),
-                resultado.ok() ? NamedTextColor.GREEN : NamedTextColor.RED));
+                resultado.ok() ? FEITO : ALERTA));
     }
 
     /**
@@ -358,6 +382,39 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
         return Bukkit.getOfflinePlayerIfCached(nome);
     }
 
+    /**
+     * Refaz a cerca do terreno onde o jogador esta.
+     *
+     * Existe porque o chao muda: o jogador aplaina o terreno, abre um fosso,
+     * sobe uma plataforma — e a cerca, que foi posta sobre o relevo do dia da
+     * compra, fica flutuando ou enterrada. Derruba e levanta de novo em vez de
+     * tentar corrigir poste a poste, que daria no mesmo com mais codigo.
+     */
+    private void cerca(Player jogador) {
+        if (!plugin.terrenoCatalog().cercaAtiva()) {
+            jogador.sendMessage(Component.text(
+                    "A cerca esta desligada no terrenos.yml.", TEXTO));
+            return;
+        }
+
+        Optional<WorldGuardBridge.Terreno> talvez = plugin.terrenoVenda().onde(jogador);
+        if (talvez.isEmpty()) {
+            jogador.sendMessage(Component.text(
+                    "Fique dentro do seu terreno para refazer a cerca.", ALERTA));
+            return;
+        }
+
+        WorldGuardBridge.Terreno terreno = talvez.get();
+        if (!terreno.ehDono(jogador.getUniqueId())) {
+            jogador.sendMessage(Component.text("Este terreno nao e seu.", ALERTA));
+            return;
+        }
+
+        jogador.sendMessage(Component.text("Refazendo a cerca...", TEXTO));
+        plugin.terrenoVenda().descercar(jogador, terreno.caixa(),
+                () -> plugin.terrenoVenda().cercar(jogador, terreno.caixa()));
+    }
+
     // ------------------------------------------------------------------
     // Bordas com particulas
     // ------------------------------------------------------------------
@@ -365,11 +422,11 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
     private void ver(Player jogador) {
         if (plugin.terrenoVenda().onde(jogador).isEmpty()) {
             jogador.sendMessage(Component.text(
-                    "Fique dentro de um terreno para ver as bordas.", NamedTextColor.GRAY));
+                    "Fique dentro de um terreno para ver as bordas.", TEXTO));
             return;
         }
         jogador.sendMessage(Component.text(
-                "Bordas marcadas por 10 segundos.", NamedTextColor.GRAY));
+                "Bordas marcadas por 10 segundos.", TEXTO));
         desenharBordas(jogador);
     }
 
@@ -436,8 +493,8 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
     // ------------------------------------------------------------------
 
     private void campo(Player jogador, String rotulo, String valor) {
-        jogador.sendMessage(Component.text(rotulo + ": ", NamedTextColor.DARK_GRAY)
-                .append(Component.text(valor, NamedTextColor.WHITE)));
+        jogador.sendMessage(Component.text("  " + rotulo + ": ", TEXTO)
+                .append(Component.text(valor, VALOR)));
     }
 
     private String nomes(java.util.Collection<java.util.UUID> ids) {
@@ -452,9 +509,9 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
     private Integer lerTamanho(Player jogador, String label, String[] args, String sub) {
         if (args.length < 2) {
             jogador.sendMessage(Component.text("Use /" + label + " " + sub + " <tamanho>",
-                    NamedTextColor.RED));
+                    ALERTA));
             jogador.sendMessage(Component.text("Tamanho e o lado do quadrado, em blocos. "
-                    + "Exemplo: 16 faz um 16x16.", NamedTextColor.DARK_GRAY));
+                    + "Exemplo: 16 faz um 16x16.", TEXTO));
             return null;
         }
 
@@ -462,7 +519,7 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
             return Integer.parseInt(args[1].trim());
         } catch (NumberFormatException erro) {
             jogador.sendMessage(Component.text("\"" + args[1] + "\" nao e um numero.",
-                    NamedTextColor.RED));
+                    ALERTA));
             return null;
         }
     }

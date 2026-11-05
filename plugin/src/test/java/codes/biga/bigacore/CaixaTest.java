@@ -134,6 +134,62 @@ class CaixaTest {
         assertEquals(1, caixa.distanciaAte(110, 105));
     }
 
+    @ParameterizedTest
+    @ValueSource(ints = {2, 3, 8, 16, 20, 64})
+    @DisplayName("o perimetro tem 4n-4 pontos, sem repetir canto")
+    void perimetroNaoRepeteCanto(int lado) {
+        // Cada ponto do perimetro vira um poste de cerca. Canto contado duas
+        // vezes nao da erro: poe a cerca duas vezes no mesmo bloco e relata
+        // mais postes do que existem.
+        var volta = Caixa.centradaEm(0, 0, lado, 0, 10).perimetro();
+
+        assertEquals(4 * lado - 4, volta.size(),
+                "a volta de um quadrado de lado " + lado);
+        assertEquals(volta.size(), new java.util.HashSet<>(volta).size(),
+                "o perimetro repetiu algum ponto");
+    }
+
+    @Test
+    @DisplayName("caixa de um bloco tem um ponto de perimetro, nao quatro")
+    void perimetroDeUmBlocoSo() {
+        // Os quatro cantos sao o mesmo bloco. A formula 4n-4 daria zero aqui,
+        // e o caso precisa de tratamento proprio.
+        Caixa unica = Caixa.centradaEm(5, 5, 1, 0, 10);
+
+        assertEquals(1, unica.perimetro().size());
+        assertEquals(1, unica.cantos().size());
+        assertEquals(new Caixa.Ponto(5, 5), unica.perimetro().get(0));
+    }
+
+    @Test
+    @DisplayName("todo ponto do perimetro encosta na borda")
+    void perimetroSoTemBorda() {
+        Caixa caixa = Caixa.centradaEm(0, 0, 10, 0, 10);
+
+        for (Caixa.Ponto ponto : caixa.perimetro()) {
+            boolean naBorda = ponto.x() == caixa.minX() || ponto.x() == caixa.maxX()
+                    || ponto.z() == caixa.minZ() || ponto.z() == caixa.maxZ();
+            assertTrue(naBorda, "o ponto " + ponto + " está no meio do terreno");
+            assertTrue(caixa.contemHorizontal(ponto.x(), ponto.z()),
+                    "o ponto " + ponto + " caiu fora do terreno");
+        }
+    }
+
+    @Test
+    @DisplayName("os quatro cantos são os quatro extremos")
+    void cantosSaoOsExtremos() {
+        Caixa caixa = Caixa.centradaEm(0, 0, 16, 0, 10);
+        var cantos = caixa.cantos();
+
+        assertEquals(4, cantos.size());
+        assertTrue(cantos.contains(new Caixa.Ponto(caixa.minX(), caixa.minZ())));
+        assertTrue(cantos.contains(new Caixa.Ponto(caixa.maxX(), caixa.maxZ())));
+        for (Caixa.Ponto canto : cantos) {
+            assertTrue(caixa.perimetro().contains(canto),
+                    "o canto " + canto + " não está no perímetro");
+        }
+    }
+
     @Test
     @DisplayName("comAltura troca so a altura")
     void comAlturaPreservaOChao() {
