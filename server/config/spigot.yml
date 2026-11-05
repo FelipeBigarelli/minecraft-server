@@ -55,6 +55,7 @@ players:
   disable-saving: false
 world-settings:
   default:
+    seed-abandonedcamp: 91231127
     seed-ancientcity: 20083232
     seed-trailruins: 83469867
     seed-trialchambers: 94251327

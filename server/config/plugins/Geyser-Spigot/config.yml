@@ -1,0 +1,44 @@
+# =============================================================
+#  Geyser-Spigot — ponte para Minecraft Bedrock (Switch, celular)
+#
+#  Subconjunto CURADO, no mesmo estilo do config do ChestShop:
+#  só o que decidimos de propósito. O plugin gera o resto
+#  (~200 linhas) sozinho no primeiro boot, com os defaults dele.
+#
+#  Contexto e passo a passo: docs/bedrock-switch.md
+# =============================================================
+
+bedrock:
+  # 0.0.0.0 aceita de qualquer interface da máquina. Precisa ser
+  # amplo porque o console entra pela LAN, não pelo localhost.
+  address: 0.0.0.0
+
+  # 19132 é a porta padrão do Bedrock, e tem que ser esta: os
+  # "servidores em destaque" que o Switch lista apontam todos
+  # para 19132, e é nela que o sequestro de DNS vai cair.
+  port: 19132
+
+  # 0 = usa a "port" acima também para NetherNet. O Switch entrou
+  # por NetherNet, não por RakNet, então é esta porta que precisa
+  # de encaminhamento no roteador se um dia o servidor sair da LAN.
+  webrtc-port: 0
+
+java:
+  # Como o Geyser decide QUEM é o jogador do Bedrock no lado Java.
+  #
+  #   online    — exige login de conta Java/Microsoft. Inviável no
+  #               console: teria que digitar senha no controle.
+  #   offline   — usa a gamertag do Xbox como nome Java. É o nosso
+  #               caso, e combina com online-mode=false.
+  #   floodgate — exige o plugin Floodgate; permite /linkaccount
+  #               para amarrar a conta Bedrock à Java.
+  #
+  # 🔴 Em "offline" a gamertag É a identidade. Gamertag diferente =
+  #    jogador diferente, com UUID, dinheiro, homes e permissões
+  #    próprios. Foi o que aconteceu: zBigaBiga (PC) e I_LoB_I_Biga
+  #    (Switch) são duas contas distintas no servidor.
+  auth-type: offline
+
+motd:
+  # Mostra o MOTD real do servidor no Bedrock, em vez de "Geyser".
+  passthrough-motd: true

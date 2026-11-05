@@ -330,6 +330,9 @@ o `.gitignore` não protege arquivos enviados manualmente como assets de Release
 | [COMO-RODAR.md](COMO-RODAR.md) | guia operacional do dia a dia |
 | [ECONOMIA.md](ECONOMIA.md) | moeda, catálogo, Admin Shop e recompra |
 | [LOJA-SPAWN.md](LOJA-SPAWN.md) | a Biga Market: detecção de terreno, preview e rollback |
+| [docs/bedrock-switch.md](docs/bedrock-switch.md) | jogar pelo Nintendo Switch e outros Bedrock |
+| [docs/mundos-multiverse.md](docs/mundos-multiverse.md) | mundos separados: criativo, plots, minigames |
+| [docs/economia-balanceamento.md](docs/economia-balanceamento.md) | preços, ralos de dinheiro e torneiras |
 | [docs/sessoes/](docs/sessoes/) | histórico resumido das sessões |
 | [rodadas/](rodadas/) | canal de trabalho entre Felipe, ChatGPT e Claude Code |
 
