@@ -270,7 +270,7 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
 
     private void vender(Player jogador, String label, String[] args) {
         if (!confirmou(args, 1)) {
-            Optional<WorldGuardBridge.Terreno> talvez = plugin.terrenoVenda().onde(jogador);
+            Optional<Terreno> talvez = plugin.terrenoVenda().onde(jogador);
             if (talvez.isEmpty()) {
                 jogador.sendMessage(Component.text(
                         "Fique dentro do terreno que voce quer vender.", ALERTA));
@@ -305,14 +305,14 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
     // ------------------------------------------------------------------
 
     private void info(Player jogador) {
-        Optional<WorldGuardBridge.Terreno> talvez = plugin.terrenoVenda().onde(jogador);
+        Optional<Terreno> talvez = plugin.terrenoVenda().onde(jogador);
         if (talvez.isEmpty()) {
             jogador.sendMessage(Component.text(
                     "Este chao nao e terreno de ninguem.", TEXTO));
             return;
         }
 
-        WorldGuardBridge.Terreno terreno = talvez.get();
+        Terreno terreno = talvez.get();
         Caixa caixa = terreno.caixa();
 
         cabecalho(jogador, "TERRENO " + terreno.id());
@@ -328,7 +328,7 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
     }
 
     private void listar(Player jogador) {
-        List<WorldGuardBridge.Terreno> meus = plugin.terrenoVenda().meus(jogador);
+        List<Terreno> meus = plugin.terrenoVenda().meus(jogador);
         if (meus.isEmpty()) {
             jogador.sendMessage(Component.text("Voce nao tem terreno neste mundo. "
                     + "Use /terreno preco 16 para ver quanto custa.", TEXTO));
@@ -337,7 +337,7 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
 
         cabecalho(jogador, "SEUS TERRENOS (" + meus.size() + "/"
                 + plugin.terrenoCatalog().limitePorJogador() + ")");
-        for (WorldGuardBridge.Terreno terreno : meus) {
+        for (Terreno terreno : meus) {
             Caixa caixa = terreno.caixa();
             jogador.sendMessage(Component.text(terreno.id(), VALOR)
                     .append(Component.text(" " + caixa.larguraX() + "x" + caixa.larguraZ()
@@ -397,14 +397,14 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        Optional<WorldGuardBridge.Terreno> talvez = plugin.terrenoVenda().onde(jogador);
+        Optional<Terreno> talvez = plugin.terrenoVenda().onde(jogador);
         if (talvez.isEmpty()) {
             jogador.sendMessage(Component.text(
                     "Fique dentro do seu terreno para refazer a cerca.", ALERTA));
             return;
         }
 
-        WorldGuardBridge.Terreno terreno = talvez.get();
+        Terreno terreno = talvez.get();
         if (!terreno.ehDono(jogador.getUniqueId())) {
             jogador.sendMessage(Component.text("Este terreno nao e seu.", ALERTA));
             return;
@@ -441,7 +441,7 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
      * aparecer onde ele esta mesmo quando a regiao vai de -64 a 319.
      */
     private void desenharBordas(Player jogador) {
-        Optional<WorldGuardBridge.Terreno> talvez = plugin.terrenoVenda().onde(jogador);
+        Optional<Terreno> talvez = plugin.terrenoVenda().onde(jogador);
         if (talvez.isEmpty()) {
             return;
         }

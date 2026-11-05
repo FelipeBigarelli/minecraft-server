@@ -90,16 +90,16 @@ public final class TerrenoVenda {
         return jogador.hasPermission("bigacore.terreno.ilimitado");
     }
 
-    public List<WorldGuardBridge.Terreno> meus(Player jogador) {
-        if (!wg().disponivel()) {
+    public List<Terreno> meus(Player jogador) {
+        if (!plugin.terrenoDisponivel()) {
             return List.of();
         }
         return wg().terrenosDe(jogador.getWorld(), jogador.getUniqueId(), catalogo().prefixo());
     }
 
     /** O terreno em que o jogador esta pisando, se for nosso. */
-    public Optional<WorldGuardBridge.Terreno> onde(Player jogador) {
-        if (!wg().disponivel()) {
+    public Optional<Terreno> onde(Player jogador) {
+        if (!plugin.terrenoDisponivel()) {
             return Optional.empty();
         }
         Location local = jogador.getLocation();
@@ -114,7 +114,7 @@ public final class TerrenoVenda {
     public Orcamento orcar(Player jogador, int tamanho) {
         TerrenoCatalog cfg = catalogo();
 
-        if (!wg().disponivel()) {
+        if (!plugin.terrenoDisponivel()) {
             return Orcamento.recusado(
                     "O WorldGuard nao esta respondendo, entao nao da para proteger terreno agora.");
         }
@@ -144,7 +144,7 @@ public final class TerrenoVenda {
                     + folgaSpawn + " blocos dele, e este fica a " + distancia + ".");
         }
 
-        List<WorldGuardBridge.Terreno> ja = wg().terrenosDe(
+        List<Terreno> ja = wg().terrenosDe(
                 mundo, jogador.getUniqueId(), cfg.prefixo());
         int limite = cfg.limitePorJogador();
         if (!semLimite(jogador) && ja.size() >= limite) {
@@ -233,16 +233,16 @@ public final class TerrenoVenda {
      * terreno — o multiplicador de quantidade viraria decoracao.
      */
     public Resultado expandir(Player jogador, int novoTamanho) {
-        if (!wg().disponivel()) {
+        if (!plugin.terrenoDisponivel()) {
             return Resultado.nao("O WorldGuard nao esta respondendo.");
         }
 
-        Optional<WorldGuardBridge.Terreno> talvez = onde(jogador);
+        Optional<Terreno> talvez = onde(jogador);
         if (talvez.isEmpty()) {
             return Resultado.nao("Fique dentro do seu terreno para expandir.");
         }
 
-        WorldGuardBridge.Terreno terreno = talvez.get();
+        Terreno terreno = talvez.get();
         if (!terreno.ehDono(jogador.getUniqueId())) {
             return Resultado.nao("Este terreno nao e seu.");
         }
@@ -321,16 +321,16 @@ public final class TerrenoVenda {
     // ------------------------------------------------------------------
 
     public Resultado vender(Player jogador) {
-        if (!wg().disponivel()) {
+        if (!plugin.terrenoDisponivel()) {
             return Resultado.nao("O WorldGuard nao esta respondendo.");
         }
 
-        Optional<WorldGuardBridge.Terreno> talvez = onde(jogador);
+        Optional<Terreno> talvez = onde(jogador);
         if (talvez.isEmpty()) {
             return Resultado.nao("Fique dentro do terreno que voce quer vender.");
         }
 
-        WorldGuardBridge.Terreno terreno = talvez.get();
+        Terreno terreno = talvez.get();
         if (!terreno.ehDono(jogador.getUniqueId())) {
             return Resultado.nao("Este terreno nao e seu.");
         }
@@ -372,16 +372,16 @@ public final class TerrenoVenda {
     // ------------------------------------------------------------------
 
     public Resultado convidado(Player jogador, OfflinePlayer alvo, boolean adicionar) {
-        if (!wg().disponivel()) {
+        if (!plugin.terrenoDisponivel()) {
             return Resultado.nao("O WorldGuard nao esta respondendo.");
         }
 
-        Optional<WorldGuardBridge.Terreno> talvez = onde(jogador);
+        Optional<Terreno> talvez = onde(jogador);
         if (talvez.isEmpty()) {
             return Resultado.nao("Fique dentro do seu terreno.");
         }
 
-        WorldGuardBridge.Terreno terreno = talvez.get();
+        Terreno terreno = talvez.get();
         if (!terreno.ehDono(jogador.getUniqueId())) {
             return Resultado.nao("Este terreno nao e seu.");
         }
@@ -503,9 +503,9 @@ public final class TerrenoVenda {
      * terrenos deixa o preco estavel: o seu terreno numero 2 custa o preco de
      * segundo terreno hoje e depois de voce vender e recomprar o primeiro.
      */
-    static int proximoSlot(List<WorldGuardBridge.Terreno> ja, String prefixo, String nome) {
+    static int proximoSlot(List<Terreno> ja, String prefixo, String nome) {
         List<Integer> usados = new ArrayList<>();
-        for (WorldGuardBridge.Terreno terreno : ja) {
+        for (Terreno terreno : ja) {
             int slot = slotDoId(terreno.id());
             if (slot > 0) {
                 usados.add(slot);

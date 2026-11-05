@@ -55,19 +55,6 @@ public final class WorldGuardBridge {
     }
 
     /**
-     * Dados de um terreno, em tipos que o resto do plugin entende.
-     *
-     * Os nomes dos donos nao vem aqui: o WorldGuard guarda UUID, e resolver
-     * nome a partir de UUID e trabalho de quem vai mostrar na tela.
-     */
-    public record Terreno(String id, Caixa caixa, Set<UUID> donos, Set<UUID> membros) {
-
-        public boolean ehDono(UUID jogador) {
-            return donos.contains(jogador);
-        }
-    }
-
-    /**
      * Diz se da para mexer em regiao agora.
      *
      * So guarda o resultado quando e positivo. Guardar o negativo seria

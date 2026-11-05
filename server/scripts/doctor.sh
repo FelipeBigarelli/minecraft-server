@@ -199,10 +199,22 @@ else
     err "eula.txt não contém eula=true."
 fi
 
+# online-mode=false deixou de ser acidente em 05/11/2026: é o que permite o
+# crossplay com Bedrock, para jogar no Nintendo Switch (docs/bedrock-switch.md).
+# O risco não desapareceu, mudou de lugar — sem validação na Mojang, quem
+# digita o nick É o jogador, inclusive o nick de um operador. A whitelist é o
+# que fecha essa porta, e por isso ela tem de vir ANTES de qualquer
+# encaminhamento de porta no roteador.
 if grep -q '^online-mode=true$' "$SERVER_DIR/server.properties" 2>/dev/null; then
-    ok "online-mode=true."
+    ok "online-mode=true (contas validadas na Mojang)."
+elif grep -q '^online-mode=false$' "$SERVER_DIR/server.properties" 2>/dev/null; then
+    if grep -q '^white-list=true$' "$SERVER_DIR/server.properties" 2>/dev/null; then
+        ok "online-mode=false com whitelist ligada (crossplay Bedrock)."
+    else
+        warn "online-mode=false SEM whitelist: qualquer um entra com qualquer nick, inclusive o de um operador. Só é aceitável enquanto o servidor vive na LAN. Ligue white-list=true antes de encaminhar qualquer porta."
+    fi
 else
-    err "online-mode=true não foi encontrado em server.properties."
+    err "online-mode não foi encontrado em server.properties."
 fi
 
 if grep -q '^enable-rcon=true$' "$SERVER_DIR/server.properties" 2>/dev/null; then
@@ -211,16 +223,20 @@ else
     ok "RCON não está habilitado."
 fi
 
-# O crossplay com Bedrock/Switch saiu do projeto em 28/10/2026. Se sobrou
-# algum resto de uma instalação antiga, avisa: Geyser carregado sem o restante
-# da stack abre uma porta UDP que ninguém mais mantém.
-if [ -e "$SERVER_DIR/plugins/Geyser-Spigot.jar" ] \
-    || [ -e "$SERVER_DIR/plugins/floodgate-spigot.jar" ] \
-    || [ -d "$SERVER_DIR/plugins/Geyser-Spigot" ] \
-    || [ -d "$SERVER_DIR/plugins/floodgate" ]; then
-    warn "Resíduo de crossplay em plugins/. O projeto não usa mais Geyser/Floodgate; mova para fora de plugins/."
+# O crossplay com Bedrock saiu do projeto em 28/10/2026 e voltou em
+# 05/11/2026, para jogar no Nintendo Switch. Então o Geyser agora é esperado,
+# e o que merece aviso é ele configurado de um jeito que o console não
+# consegue usar. Veja docs/bedrock-switch.md.
+if ls "$SERVER_DIR"/plugins/Geyser-Spigot*.jar >/dev/null 2>&1 \
+    || [ -d "$SERVER_DIR/plugins/Geyser-Spigot" ]; then
+    ok "Crossplay ativo (Geyser)."
+    # auth-type fica indentado dentro de "java:", daí o ^[[:space:]].
+    if grep -qE '^[[:space:]]+auth-type:[[:space:]]*online[[:space:]]*$' \
+        "$SERVER_DIR/plugins/Geyser-Spigot/config.yml" 2>/dev/null; then
+        warn "Geyser com auth-type: online. No console não há como digitar um login da Mojang; use offline (gamertag como nick) ou floodgate (/linkaccount)."
+    fi
 else
-    ok "Sem resíduo de crossplay (servidor somente Java)."
+    ok "Sem crossplay (servidor somente Java)."
 fi
 
 MUNDOS=()

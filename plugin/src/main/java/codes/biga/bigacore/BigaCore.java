@@ -82,7 +82,17 @@ public final class BigaCore extends JavaPlugin {
         this.shopDisplays = new ShopDisplays(this);
         this.shopDisplays.start();
         this.painelAjuda = new PainelAjuda(this);
-        this.worldGuard = new WorldGuardBridge(this);
+        // So construir a ponte se o WorldGuard estiver carregado. Nao e zelo
+        // excessivo: ligar a classe faz a JVM resolver com/sk89q/..., e num
+        // servidor sem WorldGuard isso lanca NoClassDefFoundError aqui dentro
+        // do onEnable, derrubando o BigaCore INTEIRO — economia, lojas e
+        // painel junto. Foi o que aconteceu: o smoke test do CI nao instala
+        // WorldGuard e ficou vermelho de 4e41c89 ate aqui.
+        if (getServer().getPluginManager().getPlugin("WorldGuard") != null) {
+            this.worldGuard = new WorldGuardBridge(this);
+        } else {
+            this.worldGuard = null;
+        }
         this.terrenoCatalog = new TerrenoCatalog(this);
         this.terrenoVenda = new TerrenoVenda(this);
         this.cercaTerreno = new CercaTerreno(this);
@@ -185,8 +195,14 @@ public final class BigaCore extends JavaPlugin {
      * descobriria pela reclamacao de um jogador.
      */
     private void relatarTerrenoSurvival() {
+        if (worldGuard == null) {
+            getLogger().warning("[survival] /terreno desligado — WorldGuard nao esta instalado.");
+            return;
+        }
+
         if (!worldGuard.disponivel()) {
-            getLogger().warning("[survival] /terreno desligado — WorldGuard nao encontrado.");
+            getLogger().warning("[survival] /terreno desligado — WorldGuard instalado mas a API "
+                    + "de regioes nao respondeu. Confira a versao do plugin.");
             return;
         }
 
@@ -303,6 +319,18 @@ public final class BigaCore extends JavaPlugin {
 
     public WorldGuardBridge worldGuard() {
         return worldGuard;
+    }
+
+    /**
+     * Diz se da para mexer em terreno agora.
+     *
+     * Passa por aqui, e nao direto no {@code worldGuard.disponivel()}, porque
+     * a ponte e nula quando o WorldGuard nao esta instalado. O curto-circuito
+     * do && e justamente o que impede a JVM de ligar a classe da ponte nesse
+     * caso. Veja o comentario no onEnable.
+     */
+    public boolean terrenoDisponivel() {
+        return worldGuard != null && worldGuard.disponivel();
     }
 
     public TerrenoCatalog terrenoCatalog() {

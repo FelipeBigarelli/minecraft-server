@@ -164,7 +164,7 @@ class TerrenoPrecoTest {
     void proximoSlotPreencheBuraco() {
         // Quem tem os slots 1 e 3 e vendeu o 2 volta a pagar preco de segundo
         // terreno, nao de terceiro. E o que torna o preco previsivel.
-        List<WorldGuardBridge.Terreno> meus = new ArrayList<>();
+        List<Terreno> meus = new ArrayList<>();
         meus.add(terreno("t_biga_1"));
         meus.add(terreno("t_biga_3"));
 
@@ -180,7 +180,7 @@ class TerrenoPrecoTest {
     @Test
     @DisplayName("slots em sequencia dao o proximo numero")
     void slotSeguinte() {
-        List<WorldGuardBridge.Terreno> meus = List.of(
+        List<Terreno> meus = List.of(
                 terreno("t_biga_1"), terreno("t_biga_2"), terreno("t_biga_3"));
 
         assertEquals(4, TerrenoVenda.proximoSlot(meus, "t", "biga"));
@@ -209,8 +209,8 @@ class TerrenoPrecoTest {
         assertEquals("", TerrenoVenda.textoDeFlag(null, "Biga"));
     }
 
-    private static WorldGuardBridge.Terreno terreno(String id) {
-        return new WorldGuardBridge.Terreno(id,
+    private static Terreno terreno(String id) {
+        return new Terreno(id,
                 Caixa.centradaEm(0, 0, 16, -64, 319),
                 Set.of(UUID.randomUUID()), Set.of());
     }
