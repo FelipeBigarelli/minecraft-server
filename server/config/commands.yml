@@ -13,3 +13,17 @@ ignore-vanilla-permissions: false
 aliases:
   icanhasbukkit:
   - version $1-
+  # --- Nossos apelidos em português -----------------------------
+  # /saldo não existe em plugin nenhum: o do Essentials é /balance
+  # (apelidos bal, ebal, ebalance, money, emoney). O paredão de ajuda
+  # (/biga painel) e a mensagem de "saldo insuficiente" do ChestShop
+  # ensinam /saldo, então o apelido mora AQUI — num arquivo do servidor,
+  # não dentro de um jar patcheado que o próximo update apagaria.
+  #
+  # O $1- repassa os argumentos: /saldo vira /balance, e /saldo Fulano
+  # vira /balance Fulano. A permissão continua sendo a do comando de
+  # destino (essentials.balance.others no segundo caso).
+  #
+  # commands.yml só é lido no boot. Mexer aqui pede restart.
+  saldo:
+  - balance $1-

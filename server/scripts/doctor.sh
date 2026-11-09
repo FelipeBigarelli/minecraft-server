@@ -239,6 +239,17 @@ else
     ok "Sem crossplay (servidor somente Java)."
 fi
 
+# O paredão de ajuda (/biga painel) e a mensagem de saldo insuficiente do
+# ChestShop ensinam /saldo, que não existe em plugin nenhum — é um apelido
+# nosso em commands.yml apontando para o /balance do Essentials. Se o arquivo
+# for recriado (update do Paper, reinstalação), o apelido some e a parede passa
+# a ensinar um comando que o jogador digita e não acontece nada.
+if grep -qE '^[[:space:]]+saldo:[[:space:]]*$' "$SERVER_DIR/commands.yml" 2>/dev/null; then
+    ok "Apelido /saldo presente em commands.yml."
+else
+    warn "commands.yml sem o apelido /saldo. O paredão de ajuda ensina esse comando, mas no jogo ele não existe (no Essentials é /balance, /bal ou /money). Copie o bloco de server/config/commands.yml e reinicie."
+fi
+
 MUNDOS=()
 for mundo in world world_nether world_the_end; do
     [ -d "$SERVER_DIR/$mundo" ] && MUNDOS+=("$mundo")
