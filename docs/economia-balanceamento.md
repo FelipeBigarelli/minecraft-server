@@ -528,6 +528,91 @@ comando digitado por engano apagaria tudo — sem confirmação e sem desfazer.
 
 ---
 
+## 7. Aplicado em 10/11/2026 — dar uso ao dinheiro e fazer ele circular
+
+### O diagnóstico
+
+Três meses depois do primeiro ajuste, os números diziam que a economia não
+tinha começado:
+
+| medida | valor |
+|---|---|
+| Transações no `ChestShop.log` | **3**, na história inteira |
+| Dessas, entre jogadores | **0** — as três foram na loja do servidor |
+| Última | 30/10/2026 |
+| Carteiras intactas nos 2.000 iniciais | **3 de 4** |
+| Total em circulação | B$7.088 |
+
+O modo de falha histórico da seção 5 — "economia irrelevante de novo" — não era
+um risco futuro. Era o estado atual.
+
+A causa não era falta de mecanismo. Existiam ChestShop, loja do servidor, venda
+de terreno e `/pedreiro`, e nenhum moveu um centavo entre duas pessoas. O que
+faltava eram as duas condições anteriores a qualquer mecanismo:
+
+1. **Ninguém precisava de dinheiro.** Tudo que o jogo dá, o jogador consegue
+   jogando. B$ era placar, não ferramenta.
+2. **Ninguém tinha o que o outro não conseguisse sozinho.** Sem assimetria não
+   há motivo para pagar uma pessoa em vez de ir minerar.
+
+### O que entrou
+
+**Ralo diário — `command-costs` do EssentialsX.** Estava vazio desde sempre.
+Ancorado na mesma régua do catálogo (~562 B$/hora, ou ~9,4 B$/minuto):
+
+| comando | custo | equivale a |
+|---|---:|---|
+| `/home` | 25 | 2,5 min |
+| `/tpa` | 50 | 5 min |
+| `/back` | 100 | 10 min |
+| `/sethome` | 200 | 21 min |
+
+Duas ressalvas que ficam registradas porque não são óbvias:
+
+- O Essentials cobra **flat por uso**. Não existe "da segunda casa em diante",
+  então o `/sethome` custa 200 já na primeira.
+- Quem tem `essentials.nocommandcost.<comando>` não paga, e **OP tem todas as
+  permissões**. O dono passa de graça até isso ser negado no LuckPerms — pelo
+  mesmo motivo que `bigacore.plot.isento` é `false` e não `op`.
+
+**Circulação — `/encomenda`.** O quadro de pedidos: alguém paga adiantado por
+um item, qualquer outro jogador entrega e leva o dinheiro.
+
+A escolha de desenho foi contra a casa de leilões. Leilão precisa de estoque
+parado e de plateia; encomenda precisa apenas de alguém *querendo* uma coisa, e
+por isso funciona com duas pessoas — que é o tamanho real deste servidor.
+
+O dinheiro fica em **custódia**: sai da conta de quem pede no instante da
+criação e só aparece na de quem entrega. Isso resolve o problema que mata
+negócio entre amigos (quem paga primeiro) e, mais importante para este
+documento, **não cria moeda**. Todo depósito tem um saque antes, o que explica
+por que este caminho não passa pelo teto diário, diferente da recompra da loja.
+Entregar o próprio pedido é recusado, então também não há ciclo de uma pessoa
+só. O raciocínio está no javadoc do `VaultEconomyBridge.deposit`.
+
+### O que foi recusado, e por quê
+
+**Pagar por hora online.** A proposta era ~100 B$/hora conectado. Recusada: ela
+premia *estar logado*, não jogar. Oito horas de sono com o jogo aberto rendem
+800, exatamente o teto diário inteiro, sem tocar no teclado — e o teto de 800
+vigia só a recompra, então essa seria uma segunda bica sem medidor. Pior,
+compete com jogar: se ficar parado rende igual, minerar vira burrice.
+
+A alternativa guardada para depois são as **conquistas curadas**: pagam
+progresso, e têm teto conhecido (são 15 ou 20 marcos escolhidos a dedo, então
+dá para calcular no papel quanto entra por jogador na vida inteira). Tempo não
+tem teto. É o item 7 da seção 6, que continua esperando uma semana de `/baltop`
+para comparar.
+
+### O gargalo que continua aberto
+
+A torneira de 562 B$/h é **teórica enquanto a Biga Market não estiver no chão**.
+Foi por isso que o `ChestShop.log` parou em três linhas: não há onde vender. O
+schematic já existe (`plugins/WorldEdit/schematics/bigamarket.schem`), e colar
+é a ação mais barata com o maior efeito. Continua sendo o item 6 da seção 6.
+
+---
+
 ## Fontes
 
 Princípios gerais de faucet/sink e de escala de SMP vieram de:

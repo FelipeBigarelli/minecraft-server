@@ -1,0 +1,40 @@
+# =====================================================================
+#  encomendas.yml — o quadro de pedidos entre jogadores
+#
+#  Para que serve: ate 10/11/2026 o dinheiro deste servidor so andava
+#  entre jogador e servidor. O ChestShop exige estoque parado e alguem
+#  passando na frente da placa, e com quatro pessoas isso nunca
+#  aconteceu — 3 transacoes em tres meses, todas na loja do servidor.
+#
+#  Uma encomenda precisa apenas de alguem QUERENDO uma coisa. Por isso
+#  funciona com duas pessoas, e por isso ela e a peca que faz a moeda
+#  passar de mao em vez de so entrar e sair.
+#
+#  IMPORTANTE: nenhuma moeda e criada aqui. O valor sai da conta de
+#  quem pede no instante da criacao e fica em custodia ate a entrega.
+#  Todo deposito tem um saque antes. E por isso que este caminho NAO
+#  precisa de teto diario, diferente da recompra da loja.
+# =====================================================================
+version: 1
+
+# Desliga o comando inteiro sem precisar tirar o plugin.
+ativo: true
+
+# Quantos pedidos abertos cada jogador pode ter ao mesmo tempo.
+#
+# O limite nao e burocracia: cada pedido aberto e dinheiro PARADO em
+# custodia. Sem teto, alguem tranca a propria carteira inteira em
+# pedidos que ninguem vai entregar e depois reclama que "sumiu".
+limite-por-jogador: 5
+
+# Faixa de preco aceita no pedido inteiro (nao por unidade).
+#
+# O minimo evita pedido de brincadeira entupindo o quadro. O maximo e
+# uma rede contra erro de digitacao: 50000 com um zero a mais some com
+# a reserva de uma semana sem pedir confirmacao.
+preco-minimo: 10
+preco-maximo: 100000
+
+# Teto de itens por pedido. 1728 = 27 pilhas cheias, um bau duplo de
+# material empilhavel.
+quantidade-maxima: 1728

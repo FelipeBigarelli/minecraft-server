@@ -61,7 +61,13 @@ public final class VaultEconomyBridge {
      *    então comprar e vender em sequência dá prejuízo garantido. Não existe
      *    ciclo com lucro para automatizar, então não há o que capear.
      *
-     * Antes de abrir o terceiro caminho, a pergunta é essa: o jogador consegue
+     *  - {@link EncomendaCommand}: NÃO passa por teto, e aqui está o porquê.
+     *    Todo depósito de encomenda é precedido de um saque do MESMO valor na
+     *    conta de quem pediu, no momento em que o pedido foi criado. O
+     *    dinheiro não nasce: ele troca de dono. Entregar o próprio pedido é
+     *    recusado, então também não existe ciclo de uma pessoa só.
+     *
+     * Antes de abrir o quarto caminho, a pergunta é essa: o jogador consegue
      * repetir isso de graça? Se consegue, precisa de teto.
      */
     public boolean deposit(OfflinePlayer player, double amount) {

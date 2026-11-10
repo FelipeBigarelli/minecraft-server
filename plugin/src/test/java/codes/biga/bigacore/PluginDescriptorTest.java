@@ -113,6 +113,31 @@ class PluginDescriptorTest {
         assertNotNull(comandos.get("biga").get("usage"), "comando 'biga' sem usage");
     }
 
+    /**
+     * O /encomenda precisa existir no descritor e carregar no ponto certo.
+     *
+     * O comando mexe em dinheiro em custodia: se o setExecutor achar null, o
+     * Paper registra o comando mesmo assim e ele responde "Unknown command"
+     * para o jogador enquanto o console avisa uma unica vez, no boot.
+     */
+    @Test
+    void comandoEncomendaEstaDeclarado() throws Exception {
+        PluginDescriptionFile descricao = carregar();
+        Map<String, Map<String, Object>> comandos = descricao.getCommands();
+
+        assertTrue(comandos.containsKey("encomenda"),
+                "comando 'encomenda' sumiu do plugin.yml");
+        assertEquals(EncomendaCommand.PERM_USO,
+                comandos.get("encomenda").get("permission"),
+                "o no do comando precisa bater com a constante da classe");
+
+        Map<?, ?> permissoes = permissoesDeclaradas(descricao);
+        assertTrue(permissoes.containsKey(EncomendaCommand.PERM_USO),
+                EncomendaCommand.PERM_USO + " precisa estar declarado");
+        assertTrue(permissoes.containsKey(EncomendaCommand.PERM_ADMIN),
+                EncomendaCommand.PERM_ADMIN + " precisa estar declarado");
+    }
+
     @Test
     void permissaoAdminContinuaSendoOp() throws Exception {
         boolean achou = carregar().getPermissions().stream()

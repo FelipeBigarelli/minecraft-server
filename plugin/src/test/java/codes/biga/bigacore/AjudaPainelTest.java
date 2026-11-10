@@ -42,7 +42,9 @@ class AjudaPainelTest {
             "<moeda-inicial>", "<lojas-limite>", "<taxa-loja>", "<simbolo>",
             "<preco-terreno-1>", "<preco-terreno-2>", "<preco-terreno-3>",
             "<terreno-bloco>", "<terreno-min>", "<terreno-max>",
-            "<terreno-limite>", "<terreno-reembolso>");
+            "<terreno-limite>", "<terreno-reembolso>",
+            "<encomenda-limite>", "<encomenda-min>", "<encomenda-max>",
+            "<encomenda-qtd>");
 
     /** O <terreno-preco-N> aceita qualquer lado, entao casa por padrao. */
     private static final Pattern PRECO_POR_LADO =
@@ -57,7 +59,7 @@ class AjudaPainelTest {
      * manter uma lista de cores aqui dentro.
      */
     private static final Pattern CANDIDATO =
-            Pattern.compile("<(?:moeda|preco|lojas|taxa|simbolo|terreno)[^<>]*>");
+            Pattern.compile("<(?:moeda|preco|lojas|taxa|simbolo|terreno|encomenda)[^<>]*>");
 
     @SuppressWarnings("unchecked")
     private static Map<String, Object> carregar() throws Exception {

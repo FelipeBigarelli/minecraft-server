@@ -43,6 +43,12 @@ commands:
     aliases: [lote, tr]
     permission: bigacore.terreno
 
+  encomenda:
+    description: Quadro de pedidos entre jogadores, com o dinheiro em custodia
+    usage: "/encomenda <criar|lista|minhas|entregar|retirar|cancelar>"
+    aliases: [enc, pedido]
+    permission: bigacore.encomenda
+
   pedreiro:
     description: Estuda uma construcao existente e refaz em outro lugar
     usage: "/pedreiro <p1|p2|estudar|obras|construir|parar|desfazer|amostra|organizar>"
@@ -83,6 +89,14 @@ permissions:
   bigacore.terreno.ilimitado:
     description: Ignora o limite-por-jogador do terrenos.yml
     default: false
+  bigacore.encomenda:
+    description: Permite abrir, entregar e cancelar encomendas
+    default: true
+  bigacore.encomenda.admin:
+    description: Cancela a encomenda de qualquer jogador, devolvendo o dinheiro ao dono
+    # Existe porque o dinheiro fica em custodia: se um jogador sumir com tres
+    # pedidos abertos, sem isso o valor ficaria preso para sempre.
+    default: op
   bigacore.admin:
     description: Acesso administrativo a reload, voo e construção da loja do spawn
     default: op

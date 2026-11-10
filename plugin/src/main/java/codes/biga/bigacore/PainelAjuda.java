@@ -311,6 +311,7 @@ public final class PainelAjuda {
     private String resolver(String texto) {
         EconomyCatalog eco = plugin.economyCatalog();
         TerrenoCatalog terreno = plugin.terrenoCatalog();
+        EncomendaCatalog encomenda = plugin.encomendaCatalog();
 
         String saida = texto
                 .replace("<moeda-inicial>", String.valueOf(eco.startingBalance()))
@@ -321,7 +322,11 @@ public final class PainelAjuda {
                 .replace("<terreno-min>", String.valueOf(terreno.tamanhoMinimo()))
                 .replace("<terreno-max>", String.valueOf(terreno.tamanhoMaximo()))
                 .replace("<terreno-limite>", String.valueOf(terreno.limitePorJogador()))
-                .replace("<terreno-reembolso>", String.valueOf(terreno.reembolsoPercent()));
+                .replace("<terreno-reembolso>", String.valueOf(terreno.reembolsoPercent()))
+                .replace("<encomenda-limite>", String.valueOf(encomenda.limitePorJogador()))
+                .replace("<encomenda-min>", String.valueOf(encomenda.precoMinimo()))
+                .replace("<encomenda-max>", String.valueOf(encomenda.precoMaximo()))
+                .replace("<encomenda-qtd>", String.valueOf(encomenda.quantidadeMaxima()));
 
         List<Integer> precos = eco.plotPrices();
         for (int i = 0; i < 3; i++) {

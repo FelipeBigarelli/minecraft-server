@@ -35,6 +35,8 @@ public final class BigaCore extends JavaPlugin {
     private TerrenoCatalog terrenoCatalog;
     private TerrenoVenda terrenoVenda;
     private CercaTerreno cercaTerreno;
+    private EncomendaCatalog encomendaCatalog;
+    private EncomendaLivro encomendaLivro;
 
     @Override
     public void onEnable() {
@@ -69,6 +71,15 @@ public final class BigaCore extends JavaPlugin {
             saveResource("terrenos.yml", false);
         }
 
+        // encomendas.yml: limites do quadro de pedidos. Os pedidos em si
+        // moram em encomendas-abertas.yml, que nasce vazio em tempo de
+        // execucao — regra e dado em arquivos diferentes, para um update do
+        // plugin nunca sobrescrever pedido de jogador.
+        File encomendasFile = new File(getDataFolder(), "encomendas.yml");
+        if (!encomendasFile.exists()) {
+            saveResource("encomendas.yml", false);
+        }
+
         this.economyCatalog = new EconomyCatalog(this);
         this.economyBridge = new VaultEconomyBridge();
         this.spawnShopBuilder = new SpawnShopBuilder(this);
@@ -96,6 +107,8 @@ public final class BigaCore extends JavaPlugin {
         this.terrenoCatalog = new TerrenoCatalog(this);
         this.terrenoVenda = new TerrenoVenda(this);
         this.cercaTerreno = new CercaTerreno(this);
+        this.encomendaCatalog = new EncomendaCatalog(this);
+        this.encomendaLivro = new EncomendaLivro(this);
 
         // Precisa vir depois do ChestShop no softdepend, senão o plugin ainda
         // não está registrado e o hook do teto não encontra a classe do evento.
@@ -131,6 +144,15 @@ public final class BigaCore extends JavaPlugin {
             getLogger().severe("Comando 'terreno' não declarado no plugin.yml — verifique o arquivo.");
         }
 
+        var cmdEncomenda = getCommand("encomenda");
+        if (cmdEncomenda != null) {
+            var executorEncomenda = new EncomendaCommand(this);
+            cmdEncomenda.setExecutor(executorEncomenda);
+            cmdEncomenda.setTabCompleter(executorEncomenda);
+        } else {
+            getLogger().severe("Comando 'encomenda' não declarado no plugin.yml — verifique o arquivo.");
+        }
+
         var cmd = getCommand("biga");
         if (cmd != null) {
             var executor = new BigaCommand(this);
@@ -148,6 +170,7 @@ public final class BigaCore extends JavaPlugin {
 
         relatarVendaDeTerreno();
         relatarTerrenoSurvival();
+        relatarEncomendas();
     }
 
     /**
@@ -220,6 +243,37 @@ public final class BigaCore extends JavaPlugin {
                 + " por pessoa, nos mundos " + String.join(", ", terrenoCatalog.mundos()) + ".");
     }
 
+    /**
+     * Diz no console em que estado o quadro de encomendas subiu.
+     *
+     * Mesmo motivo das linhas [terreno] e [teto]: o pedido guarda dinheiro de
+     * gente. Se o quadro voltar vazio depois de um desligamento sujo, ou se a
+     * economia nao responder, isso precisa aparecer no boot e nao na
+     * reclamacao de quem pagou.
+     */
+    private void relatarEncomendas() {
+        if (!encomendaCatalog.ativo()) {
+            getLogger().info("[encomenda] Quadro desligado — ativo: false no encomendas.yml.");
+            return;
+        }
+
+        if (!economyBridge.available()) {
+            getLogger().warning("[encomenda] Economia Vault indisponivel — /encomenda "
+                    + "recusa criar e entregar ate o provider aparecer.");
+            return;
+        }
+
+        int abertas = encomendaLivro.abertas().size();
+        long emCustodia = 0;
+        for (Encomenda pedido : encomendaLivro.abertas()) {
+            emCustodia += pedido.preco();
+        }
+
+        getLogger().info("[encomenda] Quadro ativo — " + abertas + " pedido(s) aberto(s), "
+                + economyCatalog.money(emCustodia) + " em custodia, limite "
+                + encomendaCatalog.limitePorJogador() + " por jogador.");
+    }
+
     @Override
     public void onDisable() {
         // Cancele tarefas agendadas, feche conexões de banco e salve
@@ -248,6 +302,8 @@ public final class BigaCore extends JavaPlugin {
         painelAjuda = null;
         terrenoVenda = null;
         cercaTerreno = null;
+        encomendaLivro = null;
+        encomendaCatalog = null;
         terrenoCatalog = null;
         worldGuard = null;
         spawnShopBuilder = null;
@@ -345,6 +401,14 @@ public final class BigaCore extends JavaPlugin {
         return cercaTerreno;
     }
 
+    public EncomendaCatalog encomendaCatalog() {
+        return encomendaCatalog;
+    }
+
+    public EncomendaLivro encomendaLivro() {
+        return encomendaLivro;
+    }
+
     /** Recarrega os dois arquivos que pertencem ao BigaCore. */
     public void reloadBigaConfigs() {
         reloadConfig();
@@ -354,6 +418,8 @@ public final class BigaCore extends JavaPlugin {
         plotSale.reload();
         painelAjuda.reload();
         terrenoCatalog.reload();
+        encomendaCatalog.reload();
+        encomendaLivro.reload();
     }
 
     /**
