@@ -613,6 +613,76 @@ schematic já existe (`plugins/WorldEdit/schematics/bigamarket.schem`), e colar
 
 ---
 
+## 8. Correção de 10/11/2026 — a âncora de 562 B$/h é da coluna errada
+
+Ao responder "e como ganha dinheiro mesmo?" a pergunta foi refeita de baixo para
+cima, e o resultado derrubou a âncora que calibrou os custos de comando da
+seção 7.
+
+**562 B$/h é a mediana da coluna `p2p`**, que é o valor de *referência entre
+jogadores*. Mas `/biga eco vender` paga pela coluna `server-buy`, e as duas não
+têm a mesma ordem de grandeza — o spread é proposital (o servidor compra barato
+para não virar impressora), só que a âncora pegou o lado errado do balcão:
+
+| item | lote | `p2p` /item | `server-buy` /item | spread |
+|---|---:|---:|---:|---:|
+| iron_ingot | 16 | 10,00 | 0,81 | 92% |
+| gold_ingot | 16 | 15,00 | 0,12 | 99% |
+| coal | 32 | 2,00 | 1,03 | 49% |
+| obsidian | 16 | 10,00 | 5,00 | 50% |
+| cobblestone | 64 | 0,31 | 0,03 | 90% |
+
+Uma hora de mineração em ramal (≈192 deepslate, 48 carvão, 32 ferro, 24 cobre,
+24 redstone, 12 lápis, 8 ouro) rende **≈173 B$**. Fazenda de trigo e cana rende
+≈46 B$/h. A exceção é obsidiana: 5 B$ por bloco, ≈640 B$/h, o único item que
+chega perto do teto diário de 800.
+
+Ou seja: **a torneira real é ~3,2x menor que a âncora.** Os custos da seção 7,
+lidos de novo nessa régua:
+
+| comando | custo | no papel (562/h) | minerando de verdade (173/h) |
+|---|---:|---:|---:|
+| `/home` | 25 | 3 min | 9 min |
+| `/tpa` | 50 | 5 min | 17 min |
+| `/back` | 100 | 11 min | 35 min |
+| `/sethome` | 200 | 21 min | **69 min** |
+
+A intenção aprovada era "uma casa custa ~20 min". Para preservá-la na régua
+certa, dividir por 3: `/home` 10, `/tpa` 15, `/back` 35, `/sethome` 60.
+
+**Não aplicado ainda** — os valores atuais foram decididos explicitamente, e
+trocá-los é decisão de dono, não correção de bug. A alternativa oposta (subir
+`server-buy` até a âncora) foi descartada: mexer na torneira é irreversível na
+prática, mexer no ralo não é.
+
+Enquanto a coluna `p2p` não tiver transação nenhuma — e até hoje são **zero** —
+ela não é uma torneira, é uma previsão. Nenhuma calibragem deve se ancorar nela
+de novo.
+
+### Dois buracos encontrados no caminho
+
+1. **`essentials.back` não está no grupo `default`.** O nó não é `default: true`
+   no `plugin.yml` do EssentialsX (o padrão do Bukkit é `op`), e o grupo default
+   do LuckPerms é lista explícita, sem `essentials.*`. Resultado: `/back` tinha
+   custo de 100 B$ e aparecia em dois painéis, mas **nenhum jogador comum podia
+   usar** — e o dono, sendo OP, não paga. O ralo mais caro não existia.
+   Conserto: `/lp group default permission set essentials.back true`.
+   Guarda nova no `doctor.sh` confere os 15 nós do Essentials que o paredão cita.
+
+2. **O paredão não dizia o comando de ganhar dinheiro.** O painel DINHEIRO
+   explicava o conceito ("entra vendendo para a loja do servidor") sem nunca
+   escrever `/biga eco vender`. Mesmo erro do `/saldo`, invertido: ali a parede
+   ensinava um comando que não existia, aqui ela escondia o que existe.
+   O painel virou COMO GANHAR e abre com ele.
+
+Também: `/worth` saiu da parede. O `worth.yml` do servidor é o arquivo de
+exemplo do EssentialsX (picareta de diamante 650, madeira 0,50) e não tem
+relação com o catálogo do BigaCore — `/biga eco preco <item>` é a fonte certa.
+E o `/biga eco preco` passou a dizer "B$ 13 a cada 16" em vez de "B$ 13", que
+lia como preço unitário.
+
+---
+
 ## Fontes
 
 Princípios gerais de faucet/sink e de escala de SMP vieram de:

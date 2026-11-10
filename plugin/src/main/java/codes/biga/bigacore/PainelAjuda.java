@@ -326,7 +326,9 @@ public final class PainelAjuda {
                 .replace("<encomenda-limite>", String.valueOf(encomenda.limitePorJogador()))
                 .replace("<encomenda-min>", String.valueOf(encomenda.precoMinimo()))
                 .replace("<encomenda-max>", String.valueOf(encomenda.precoMaximo()))
-                .replace("<encomenda-qtd>", String.valueOf(encomenda.quantidadeMaxima()));
+                .replace("<encomenda-qtd>", String.valueOf(encomenda.quantidadeMaxima()))
+                .replace("<recompra-dia>", String.valueOf(eco.adminBuybackDailyCap()))
+                .replace("<recompra-semana>", String.valueOf(eco.adminBuybackWeeklyCap()));
 
         List<Integer> precos = eco.plotPrices();
         for (int i = 0; i < 3; i++) {

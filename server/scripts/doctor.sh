@@ -250,6 +250,34 @@ else
     warn "commands.yml sem o apelido /saldo. O paredão de ajuda ensina esse comando, mas no jogo ele não existe (no Essentials é /balance, /bal ou /money). Copie o bloco de server/config/commands.yml e reinicie."
 fi
 
+# Mesma armadilha do /saldo, por outro caminho: o paredão pode ensinar um
+# comando que EXISTE no servidor mas que o grupo "default" não tem permissão
+# de usar. Quem é OP testa, funciona, e o buraco só aparece quando um jogador
+# comum digita. O grupo default do LuckPerms é uma lista explícita — não tem
+# essentials.* — então cada comando do Essentials citado na parede precisa
+# estar nela, nominalmente.
+#
+# /back é o caso que motivou esta checagem: ele tem custo em command-costs e
+# aparece em dois painéis, mas essentials.back não é default:true no
+# plugin.yml do EssentialsX (o padrão do Bukkit é "op").
+LP_DEFAULT="$SERVER_DIR/plugins/LuckPerms/yaml-storage/groups/default.yml"
+if [ -f "$LP_DEFAULT" ]; then
+    FALTANDO=()
+    for node in essentials.back essentials.home essentials.sethome essentials.tpa \
+                essentials.balance essentials.pay essentials.balancetop essentials.spawn \
+                essentials.list essentials.kit essentials.msg essentials.near essentials.seen \
+                essentials.mail.send essentials.delhome; do
+        grep -qE "^[[:space:]]*-[[:space:]]*${node}\$" "$LP_DEFAULT" || FALTANDO+=("$node")
+    done
+    if [ ${#FALTANDO[@]} -eq 0 ]; then
+        ok "Grupo default tem permissão para todos os comandos do paredão."
+    else
+        warn "O paredão ensina comandos que o grupo default não pode usar: ${FALTANDO[*]}. Conceda com /lp group default permission set <node> true, ou tire o comando do ajuda.yml."
+    fi
+else
+    ok "LuckPerms não está em yaml-storage; permissões do paredão não conferidas aqui."
+fi
+
 MUNDOS=()
 for mundo in world world_nether world_the_end; do
     [ -d "$SERVER_DIR/$mundo" ] && MUNDOS+=("$mundo")

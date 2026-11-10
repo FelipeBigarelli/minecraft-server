@@ -178,18 +178,20 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(Component.text(entry.key().toUpperCase(Locale.ROOT), NamedTextColor.AQUA)
                 .decorate(TextDecoration.BOLD)
                 .append(Component.text("  [" + entry.tier() + "]", NamedTextColor.DARK_GRAY)));
-        sender.sendMessage(linha("Lote", String.valueOf(entry.lot())));
-        sender.sendMessage(linha("Referencia P2P", catalog.money(entry.p2p())));
+        sender.sendMessage(linha("Lote", String.valueOf(entry.lot()) + " unidades"));
+        sender.sendMessage(linha("Referencia P2P", catalog.money(entry.p2p()) + " / lote"));
 
         String serverBuyText = "P2P somente";
         if (entry.serverBuy() != null) {
-            serverBuyText = catalog.money(entry.serverBuy());
+            serverBuyText = catalog.money(entry.serverBuy()) + " a cada " + entry.lot();
         }
         sender.sendMessage(linha("Servidor compra", serverBuyText));
+        // "B$ 13" sozinho lê como preço de 1 iron. É de 16 (o lote). Sem esta
+        // linha o jogador vende achando que recebe 16x o que recebe de fato.
 
         String serverSellText = "P2P somente";
         if (entry.serverSell() != null) {
-            serverSellText = catalog.money(entry.serverSell());
+            serverSellText = catalog.money(entry.serverSell()) + " a cada " + entry.lot();
         }
         sender.sendMessage(linha("Servidor vende", serverSellText));
 
