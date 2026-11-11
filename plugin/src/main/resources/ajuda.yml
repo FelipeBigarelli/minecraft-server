@@ -166,14 +166,16 @@ paineis:
       - ""
       - "<#6FD3FF>/terreno preco <white>20 <dark_gray>— só o orçamento"
       - "<#6FD3FF>/terreno comprar <white>20 <dark_gray>— marca 20x20"
-      - "<#6FD3FF>/terreno teleportar <white>1 <dark_gray>— te leva lá"
+      - "<#6FD3FF>/terreno teleportar <white>1 <dark_gray>— volta lá"
       - "<#6FD3FF>/terreno ver <dark_gray>— acende as bordas"
       - "<#6FD3FF>/terreno convidar <white>nome <dark_gray>— libera"
       - ""
       - "<#FFD700><simbolo><terreno-bloco><gray> por bloco de chão:"
       - "<gray>16x16 <dark_gray>·· <#FFD700><simbolo><terreno-preco-16>"
       - "<gray>32x32 <dark_gray>·· <#FFD700><simbolo><terreno-preco-32>"
-      - "<dark_gray>Afaste-se <terreno-spawn> blocos do spawn. Até <terreno-limite>."
+      - "<dark_gray>Afaste-se <terreno-spawn> blocos do spawn."
+      - "<dark_gray>Até <terreno-limite> terrenos por pessoa."
+      - "<dark_gray>No teleporte, fique parado <terreno-espera>s."
 
   - titulo: "<gradient:#FF6A00:#FFD700><bold>BAIRRO DE LOTES</bold></gradient>"
     linhas:

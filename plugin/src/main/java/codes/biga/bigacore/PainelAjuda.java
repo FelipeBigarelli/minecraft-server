@@ -324,6 +324,7 @@ public final class PainelAjuda {
                 .replace("<terreno-limite>", String.valueOf(terreno.limitePorJogador()))
                 .replace("<terreno-reembolso>", String.valueOf(terreno.reembolsoPercent()))
                 .replace("<terreno-spawn>", String.valueOf(terreno.folgaDoSpawn()))
+                .replace("<terreno-espera>", String.valueOf(terreno.teleporteEspera()))
                 .replace("<encomenda-limite>", String.valueOf(encomenda.limitePorJogador()))
                 .replace("<encomenda-min>", String.valueOf(encomenda.precoMinimo()))
                 .replace("<encomenda-max>", String.valueOf(encomenda.precoMaximo()))

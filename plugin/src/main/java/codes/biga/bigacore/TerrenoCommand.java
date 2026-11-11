@@ -34,6 +34,7 @@ import java.util.Optional;
 public final class TerrenoCommand implements CommandExecutor, TabCompleter {
 
     static final String PERM_USO = "bigacore.terreno";
+    static final String PERM_TELEPORTE_IMEDIATO = "bigacore.terreno.teleporte.imediato";
 
     private static final List<String> SUBCOMANDOS = List.of(
             "preco", "comprar", "teleportar", "expandir", "vender", "info",
@@ -53,9 +54,11 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
     private static final TextColor FEITO = NamedTextColor.GREEN;
 
     private final BigaCore plugin;
+    private final TerrenoViagem viagem;
 
     public TerrenoCommand(BigaCore plugin) {
         this.plugin = plugin;
+        this.viagem = new TerrenoViagem(plugin);
     }
 
     @Override
@@ -370,7 +373,7 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
 
         if (pouso.isEmpty()) {
             jogador.sendMessage(Component.text("Nao achei onde te por de pe dentro do "
-                    + alvo.terreno().id() + " sem te enterrar.", ALERTA));
+                    + apelido(jogador, alvo) + " sem te enterrar.", ALERTA));
             jogador.sendMessage(Component.text("Abra um vao de dois blocos de altura "
                     + "em algum ponto do terreno e tente de novo. Ele fica em "
                     + caixa.centroX() + ", " + caixa.centroZ()
@@ -378,9 +381,38 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        jogador.teleport(pouso.get());
-        jogador.sendMessage(Component.text("Voce esta no seu terreno "
-                + alvo.terreno().id() + ".", FEITO));
+        // Quem tem a dispensa vai na hora: a espera existe para o survival, e
+        // segurar o dono do servidor cinco segundos a cada teste e so atrito.
+        int espera = jogador.hasPermission(PERM_TELEPORTE_IMEDIATO)
+                ? 0 : plugin.terrenoCatalog().teleporteEspera();
+
+        viagem.iniciar(jogador, pouso.get(), apelido(jogador, alvo), espera);
+    }
+
+    /**
+     * Como o terreno aparece nas mensagens.
+     *
+     * O id da regiao ({@code t_zbigabiga_1}) e nome de banco de dados: ele
+     * aparecia inteiro na tela de quem acabou de chegar em casa. O jogador so
+     * precisa do numero, que e o mesmo que ele digita no comando.
+     *
+     * O mundo entra na frase so quando e outro — "seu terreno #1" dito dentro
+     * do proprio terreno nao precisa dizer onde fica.
+     */
+    private String apelido(Player jogador, TerrenoTeleporte.Destino destino) {
+        Caixa caixa = destino.terreno().caixa();
+        int numero = TerrenoVenda.slotDoId(destino.terreno().id());
+
+        StringBuilder texto = new StringBuilder("seu terreno");
+        if (numero > 0) {
+            texto.append(" #").append(numero);
+        }
+        texto.append(" (").append(caixa.larguraX()).append("x")
+                .append(caixa.larguraZ()).append(")");
+        if (!destino.mundo().equals(jogador.getWorld())) {
+            texto.append(", em ").append(destino.mundo().getName());
+        }
+        return texto.toString();
     }
 
     /** As opcoes do teleporte, com o numero que o jogador tem de digitar. */

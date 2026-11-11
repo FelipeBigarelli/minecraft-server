@@ -90,6 +90,41 @@ class TerrenoTeleporteTest {
     }
 
     @Test
+    @DisplayName("mexer um bloco cancela; girar a cabeca no lugar nao")
+    void cancelaSoQuandoSaiDoBloco() {
+        org.bukkit.Location parado = new org.bukkit.Location(null, 10.2, 64.0, -3.8);
+
+        // Mesmo bloco: mirar para outro lado, pular no lugar, escorregar meio
+        // bloco numa escada. Cancelar aqui faria o comando parecer quebrado.
+        org.bukkit.Location mesmoBloco = new org.bukkit.Location(null, 10.9, 64.4, -3.1);
+        mesmoBloco.setYaw(180f);
+        assertFalse(TerrenoViagem.saiuDoLugar(parado, mesmoBloco));
+
+        assertTrue(TerrenoViagem.saiuDoLugar(parado,
+                new org.bukkit.Location(null, 11.2, 64.0, -3.8)));
+        assertTrue(TerrenoViagem.saiuDoLugar(parado,
+                new org.bukkit.Location(null, 10.2, 65.0, -3.8)));
+        assertTrue(TerrenoViagem.saiuDoLugar(parado,
+                new org.bukkit.Location(null, 10.2, 64.0, -4.8)));
+        assertTrue(TerrenoViagem.saiuDoLugar(parado, null));
+    }
+
+    @Test
+    @DisplayName("a contagem na tela comeca no total e termina em 1, nunca em 0")
+    void contagemNaoMostraZero() {
+        long total = 5 * 20L;
+
+        // Primeira conferida, 5 ticks depois de comecar: faltam 95 ticks.
+        assertEquals(5, TerrenoViagem.segundosRestantes(5, total));
+        assertEquals(4, TerrenoViagem.segundosRestantes(20, total));
+        assertEquals(1, TerrenoViagem.segundosRestantes(95, total));
+
+        // No fim quem fala e a mensagem de chegada, nao a contagem.
+        assertEquals(0, TerrenoViagem.segundosRestantes(100, total));
+        assertEquals(0, TerrenoViagem.segundosRestantes(120, total));
+    }
+
+    @Test
     @DisplayName("o jogador nao aterrissa de pe na lava nem no fogo")
     void pisoPerigosoCobreOQueMata() {
         assertTrue(TerrenoTeleporte.pisoPerigoso(org.bukkit.Material.LAVA));

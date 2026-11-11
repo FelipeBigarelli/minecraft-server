@@ -89,6 +89,12 @@ permissions:
   bigacore.terreno.ilimitado:
     description: Ignora o limite-por-jogador do terrenos.yml
     default: false
+  bigacore.terreno.teleporte.imediato:
+    description: Teleporta para o terreno sem a espera de alguns segundos
+    # Mesmo motivo do isento: com default op, o dono nunca veria a contagem
+    # que ele mesmo pediu, e so descobriria um defeito nela por reclamacao
+    # de jogador.
+    default: false
   bigacore.encomenda:
     description: Permite abrir, entregar e cancelar encomendas
     default: true

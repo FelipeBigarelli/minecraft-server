@@ -112,6 +112,16 @@ public final class TerrenoCatalog {
         return Math.max(0, dados.getInt("distancia-minima-do-spawn", 24));
     }
 
+    /**
+     * Segundos parado antes de o /terreno teleportar levar o jogador.
+     *
+     * Teto de 60 para nao existir configuracao que trava alguem esperando
+     * eternamente por um comando que ele pode ter digitado sem querer.
+     */
+    public int teleporteEspera() {
+        return Math.clamp(dados.getInt("teleporte.espera-segundos", 5), 0, 60);
+    }
+
     public int folgaEntreTerrenos() {
         return Math.max(0, dados.getInt("folga-entre-terrenos", 0));
     }

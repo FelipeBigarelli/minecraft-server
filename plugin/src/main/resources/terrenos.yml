@@ -41,6 +41,16 @@ distancia-minima-do-spawn: 24
 # Espaco obrigatorio entre dois terrenos. 0 deixa encostar.
 folga-entre-terrenos: 0
 
+# Segundos parado antes de /terreno teleportar levar o jogador.
+#
+# Teleporte instantaneo no survival vira tecla de fuga: quem esta perdendo a
+# briga ou viu o creeper acender escapa sem perder nada. Durante a contagem o
+# jogador continua no mundo, visivel e atingivel — andar ou levar dano cancela.
+#
+# 0 desliga a espera. Quem tem bigacore.terreno.teleporte.imediato nao espera.
+teleporte:
+  espera-segundos: 5
+
 # ---------------------------------------------------------------------------
 # Preco
 # ---------------------------------------------------------------------------
