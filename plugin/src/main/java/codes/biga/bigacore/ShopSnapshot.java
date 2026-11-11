@@ -8,7 +8,9 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -65,8 +67,13 @@ public final class ShopSnapshot {
 
         File target = file();
         if (target.isFile()) {
-            return "Já existe um snapshot em " + FILE_NAME
-                    + ". Rode /biga loja desfazer CONFIRMAR ou apague o arquivo antes.";
+            String arquivado = arquivarSeMundoMorreu(target);
+            if (arquivado != null) {
+                plugin.getLogger().info(arquivado);
+            } else {
+                return "Já existe um snapshot em " + FILE_NAME
+                        + ". Rode /biga loja desfazer CONFIRMAR ou renomeie o arquivo antes.";
+            }
         }
 
         int minY = Math.max(world.getMinHeight(), survey.minGroundY());
@@ -132,7 +139,10 @@ public final class ShopSnapshot {
         }
         if (!matchesUuid(world, storedUuid)) {
             return new RestoreResult(false,
-                    "O UUID do mundo mudou desde o snapshot. Restauração recusada.", 0);
+                    "O mundo '" + storedName + "' foi recriado desde este snapshot (UUID diferente),"
+                            + " então restaurar poria blocos antigos em coordenadas de outro mundo."
+                            + " Restauração recusada. O próximo /biga loja criar arquiva este"
+                            + " snapshot sozinho e segue em frente.", 0);
         }
 
         List<String> blocks = yaml.getStringList("blocos");
@@ -165,6 +175,90 @@ public final class ShopSnapshot {
 
         return new RestoreResult(true,
                 "Biga Market desfeita: " + restored + " bloco(s) restaurado(s).", restored);
+    }
+
+    /**
+     * Arquiva um snapshot que nunca mais poderá ser restaurado.
+     *
+     * <h2>O impasse que isto resolve</h2>
+     *
+     * O mundo de terrenos é recriado de vez em quando — {@code /cp generate}
+     * depois de apagar a pasta. O mundo novo nasce com outro UUID. A partir
+     * daí o snapshot antigo trava os dois caminhos ao mesmo tempo:
+     * {@code /biga loja criar} recusa porque já existe snapshot, e
+     * {@code /biga loja desfazer} recusa porque o UUID não bate. Não sobra
+     * saída nenhuma dentro do jogo — em 12/08/2026 e de novo em 11/11/2026 a
+     * única saída foi renomear o arquivo na mão, pelo terminal.
+     *
+     * <h2>Por que arquivar é seguro aqui</h2>
+     *
+     * Só arquiva quando o mundo do snapshot <b>está carregado e tem outro
+     * UUID</b>. Isso é prova de que o mundo foi recriado: os blocos guardados
+     * descrevem coordenadas de um mundo que não existe mais, e aplicá-los seria
+     * errado, não útil. Um snapshot válido nunca cai nesta condição.
+     *
+     * Mundo apenas descarregado NÃO entra aqui de propósito — ele pode voltar
+     * com o mesmo UUID, e aí o snapshot ainda vale. Nesse caso o comando segue
+     * recusando, que é o certo.
+     *
+     * E arquivar não é apagar: o arquivo continua no disco, com a data no
+     * nome, igual ao {@code loja-snapshot.yml.mundo-antigo-20260812} que
+     * sobrou da primeira vez que isso aconteceu.
+     *
+     * @return a mensagem de log quando arquivou, ou null quando não havia
+     *         motivo para arquivar.
+     */
+    private String arquivarSeMundoMorreu(File target) {
+        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(target);
+        String storedName = yaml.getString("mundo-nome", "");
+        String storedUuid = yaml.getString("mundo-uuid", "");
+        if (storedName.isBlank() || storedUuid.isBlank()) {
+            return null;
+        }
+
+        World atual = Bukkit.getWorld(storedName);
+        if (!snapshotOrfao(storedName, storedUuid, atual == null ? null : atual.getUID())) {
+            return null;
+        }
+
+        String carimbo = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date());
+        File destino = new File(target.getParentFile(), FILE_NAME + ".mundo-antigo-" + carimbo);
+        if (!target.renameTo(destino)) {
+            return null;
+        }
+        return "Snapshot antigo arquivado como " + destino.getName()
+                + ": o mundo '" + storedName + "' foi recriado e aquele volume não existe mais.";
+    }
+
+    /**
+     * O snapshot descreve um mundo que não existe mais?
+     *
+     * Estático e visível ao teste porque é a decisão que move um arquivo de
+     * rollback de lugar. Errar para o lado do "sim" descarta a única forma de
+     * desfazer uma construção.
+     *
+     * @param uuidCarregado UUID do mundo que hoje atende por {@code storedName},
+     *                      ou null se nenhum mundo com esse nome está carregado.
+     */
+    static boolean snapshotOrfao(String storedName, String storedUuid, UUID uuidCarregado) {
+        if (storedName == null || storedName.isBlank()
+                || storedUuid == null || storedUuid.isBlank()) {
+            // Snapshot sem identificação de mundo é antigo demais para julgar.
+            // Fica onde está e o comando segue recusando — alguém olha na mão.
+            return false;
+        }
+        if (uuidCarregado == null) {
+            // Mundo só descarregado pode voltar com o MESMO UUID, e aí o
+            // snapshot ainda vale. Nunca arquiva neste caso.
+            return false;
+        }
+        try {
+            return !uuidCarregado.equals(UUID.fromString(storedUuid));
+        } catch (IllegalArgumentException ilegivel) {
+            // UUID gravado corrompido com o mundo carregado: o restore já
+            // recusaria para sempre, então o arquivo só atrapalha.
+            return true;
+        }
     }
 
     private boolean matchesUuid(World world, String storedUuid) {
