@@ -100,9 +100,25 @@ mais perto disso sem instalar mais nada.
 
 ## Separar os inventários — a parte que protege a economia
 
-O Multiverse-Inventories começa com um grupo padrão em que todos os mundos
-compartilham tudo. Ou seja: **instalar não separa nada**. Separar é trabalho de
-grupo.
+> **Medido em 11/11/2026, e corrige o que estava escrito aqui.** A frase antiga
+> era "instalar não separa nada". Não é bem assim: mundo que **não está em grupo
+> nenhum** já fica isolado sozinho, porque o `config.yml` tem
+> `default-ungrouped-worlds: false` ("any world not listed in a group will
+> automatically be assigned to the 'default' group" — está desligado).
+>
+> Prova, não dedução: o `plots` não está em grupo, e às 10:55 o
+> Multiverse-Inventories gravou `Multiverse-Inventories/worlds/plots/zBigaBiga.json`
+> separado de `Multiverse-Inventories/groups/default/zBigaBiga.json`. Dois
+> arquivos = dois inventários. Grupo isolado é `worlds/<mundo>/`, grupo
+> compartilhado é `groups/<grupo>/`.
+>
+> Criar o grupo mesmo assim continua valendo por ser explícito — o que não vale é
+> acreditar que sem grupo está tudo misturado, ou o contrário, ligar criativo
+> achando que depois dá para arrumar.
+
+O grupo `default` de hoje junta `world`, `world_nether` e `world_the_end` com
+`shares: all`. Mundo novo que você **quiser** compartilhando entra nele; mundo
+que tem que ficar isolado é só não colocar em grupo nenhum.
 
 A ideia: mundos no mesmo grupo compartilham; mundos em grupos diferentes ficam
 isolados.
@@ -167,3 +183,71 @@ ninguém comprar 64x64 no meio da arena de minigame.
 
 Se um dia um mundo novo tiver que vender terreno, acrescente o nome lá e dê
 `/biga reload`.
+
+## A armadilha do `/cp delete` (11/11/2026)
+
+O `plots` não é uma pasta de primeiro nível. O Paper guarda ele como **dimensão
+aninhada**, em `world/dimensions/minecraft/plots` — por isso `ls` no servidor
+não mostra pasta `plots/` nenhuma, e por isso o log escreve
+`ServerLevel[world]/minecraft:plots`.
+
+O CreativePlots procura a pasta em `<worldContainer>/plots`. Ela não existe.
+Então `/cp delete plots` **não apaga nada** e o `/cp generate` seguinte carimba
+plots novos por cima do mundo velho.
+
+Como se vê que aconteceu: o cabeçalho de cada arquivo `.mca` guarda um timestamp
+por chunk. Depois do `delete` + `generate` de 11/11 às 10:46, 713 chunks
+continuavam com data de 04/11 15:51, todos na faixa `X -448..608, Z 256..560` —
+terreno natural do mundo anterior, a 82 blocos da borda da grade de plots, bem
+dentro do alcance de visão. É a areia que aparece ao longe.
+
+```sh
+# quantos chunks sobraram do mundo anterior
+cd ~/minecraft/world/dimensions/minecraft/plots/region
+python3 -I -c "
+import struct,glob,os,time
+corte=time.time()-3600
+for p in sorted(glob.glob('r.*.mca')):
+    b=open(p,'rb').read(8192)
+    velhos=sum(1 for i in range(1024)
+               if struct.unpack_from('>I',b,i*4)[0]>>8
+               and struct.unpack_from('>I',b,4096+i*4)[0]<corte)
+    if velhos: print(p, velhos)
+"
+```
+
+**Recriar de verdade** pede o servidor parado e a pasta fora na mão:
+
+```sh
+# com o servidor PARADO
+cd ~/minecraft
+mv world/dimensions/minecraft/plots plots-antigo-$(date +%Y%m%d-%H%M%S)
+# apague tambem a entrada do data.yml, senao o generate reclama de mundo ja registrado
+```
+
+Depois sobe o servidor e `/cp generate plots 324 48 6`.
+
+## A borda não acompanha a grade
+
+O `/cp generate` põe a borda em **centro (0,0)** com o tamanho que você passou.
+A grade de plots, porém, nasce deslocada pelo `NW-Offset` do `config.yml`.
+
+Com `324 48 6` e `NW-Offset: 41`, medido no `world_border.dat` e no `data.yml`:
+
+| | de | até | centro |
+|---|---:|---:|---:|
+| borda | -162 | 162 | 0 |
+| grade de plots | -142 | 174 | **16** |
+
+Os plots passam 12 blocos da borda nos lados +X e +Z, e sobram 20 blocos de nada
+nos lados negativos. É a "barreira comendo plot".
+
+Conserto, dentro do mundo `plots`, sem regerar:
+
+```
+/worldborder center 16 16
+```
+
+A borda passa a ir de -146 a 178 e cobre a grade inteira com 4 blocos de folga.
+Fica gravado em `world/dimensions/minecraft/plots/data/minecraft/world_border.dat`.
+
