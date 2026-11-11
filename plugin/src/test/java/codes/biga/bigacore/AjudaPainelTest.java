@@ -211,4 +211,20 @@ class AjudaPainelTest {
     private static double numero(Object valor) {
         return valor instanceof Number n ? n.doubleValue() : 0.0;
     }
+
+    @Test
+    @DisplayName("o limite de quebra de linha acompanha o painel mais largo")
+    void limiteDeQuebraAcompanhaOTexto() {
+        // O TextDisplay quebra em 200 px por padrao, cerca de 33 caracteres.
+        // As linhas deste ajuda.yml passam disso: a quebra empurrava o painel
+        // para baixo, estourava o fundo e encostava na fileira de baixo — sem
+        // erro nenhum no console, so olhando a parede em jogo.
+        assertEquals(200, PainelAjuda.larguraDeLinha(100),
+                "parede estreita nao precisa mexer no padrao do cliente");
+        assertEquals(200, PainelAjuda.larguraDeLinha(192 - PainelAjuda.FOLGA_DE_LINHA));
+
+        assertTrue(PainelAjuda.larguraDeLinha(230) >= 230 + PainelAjuda.FOLGA_DE_LINHA,
+                "a linha mais larga tem de caber com folga");
+        assertTrue(PainelAjuda.larguraDeLinha(500) > 500);
+    }
 }

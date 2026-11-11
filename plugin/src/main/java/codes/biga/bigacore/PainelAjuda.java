@@ -215,6 +215,34 @@ public final class PainelAjuda {
         return new Relatorio(true, criados, removidos, espacamento, espacamentoV, null);
     }
 
+    /**
+     * Folga, em pixels, entre a linha mais larga e o limite de quebra.
+     *
+     * Oito: dois caracteres estreitos. Sem folga nenhuma, um arredondamento do
+     * medidor de largura para um pixel a menos do que o cliente usa quebraria
+     * justo a linha mais comprida da parede.
+     */
+    static final int FOLGA_DE_LINHA = 8;
+
+    /**
+     * Onde o cliente quebra a linha, em pixels de fonte.
+     *
+     * O padrao do TextDisplay e 200 px — cerca de 33 caracteres. As linhas do
+     * ajuda.yml chegam a 230, entao TODA linha longa estava sendo quebrada no
+     * meio: o painel ficava mais alto do que as contas de espacamento diziam,
+     * o texto passava do fundo e a fileira de baixo subia por cima da de cima.
+     *
+     * Nao da erro, nao aparece no console, e so se ve em jogo olhando a parede
+     * de perto. Foi assim que chegou aqui: por foto.
+     *
+     * O gabarito ja mede a linha mais larga de todos os paineis para igualar
+     * as caixas; esse mesmo numero define o limite de quebra, entao a parede
+     * acompanha o texto em vez de o texto ter de caber num numero fixo.
+     */
+    static int larguraDeLinha(int larguraAlvoPixel) {
+        return Math.max(200, larguraAlvoPixel + FOLGA_DE_LINHA);
+    }
+
     private void criar(World mundo, Location alvo, Painel painel,
                        float escala, float alcance, Color fundo,
                        int larguraAlvo, int linhasAlvo) {
@@ -230,6 +258,7 @@ public final class PainelAjuda {
             novo.setBillboard(Display.Billboard.FIXED);
 
             novo.setAlignment(TextDisplay.TextAlignment.LEFT);
+            novo.setLineWidth(larguraDeLinha(larguraAlvo));
             novo.setBackgroundColor(fundo);
             novo.setShadowed(true);
 
