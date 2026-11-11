@@ -334,3 +334,71 @@ Descoberto na prática: o bloco de comentário escrito às 11:01 explicando o
 `Force-Gamemode` tinha sumido às 14:00, depois de um boot. Por isso o raciocínio
 daquela chave mora aqui, neste documento, e não lá.
 
+## Como mover um mundo para dentro de um grupo sem apagar inventário
+
+Custou os itens do `zBigaBiga` em 11/11/2026. A armadilha não é óbvia e não
+aparece em lugar nenhum da documentação do Multiverse-Inventories.
+
+### O que aconteceu
+
+1. O `plots` estava **fora de grupo**, então tinha inventário próprio. O
+   `zBigaBiga` deslogou dentro dele, de mãos vazias. O `.dat` do Minecraft
+   guardou esse inventário vazio, porque é o que ele estava segurando.
+2. O `plots` **entrou no grupo `default`**.
+3. Ele logou **de dentro do `plots`**. Agora o `plots` é `default`, então o
+   Multiverse-Inventories concluiu que o inventário que ele carregava já era o
+   do grupo — e não carregou nada.
+4. No primeiro `/spawn`, gravou esse inventário vazio por cima do perfil do
+   grupo. `groups/default/zBigaBiga.json` caiu de 1762 para 362 bytes, com
+   `inventoryContents: {}`.
+
+O `.dat` e o `.dat_old` do jogador já estavam vazios nos dois — quem guardava o
+inventário de verdade era o perfil do Multiverse-Inventories, e foi justamente
+ele que o `/spawn` sobrescreveu. Não havia segunda cópia.
+
+### A regra
+
+**Antes de mover um mundo para dentro de um grupo, garanta que ninguém esteja
+deslogado dentro desse mundo.** O inventário que o jogador carrega no `.dat` é
+o do mundo onde ele parou, e ao entrar no grupo esse inventário passa a valer
+como se fosse o do grupo inteiro.
+
+Checagem, com o servidor parado:
+
+```sh
+# em que dimensão cada jogador deslogou
+cd ~/minecraft
+python3 -I -c "
+import gzip,struct,glob,os
+# ... (parser NBT mínimo; veja o histórico do git deste arquivo)
+" 
+# mais simples: procure o nome da dimensão dentro do .dat
+for f in world/players/data/*.dat; do
+  echo "$f: $(zcat "$f" 2>/dev/null | strings | grep -o 'minecraft:[a-z_]*' | head -1)"
+done
+```
+
+### A rede de segurança
+
+`performance.apply-playerdata-on-join: true` no `config.yml` do
+Multiverse-Inventories inverte quem manda no login: em vez de confiar no `.dat`
+do Minecraft, o plugin **aplica o perfil guardado**. O comentário do próprio
+arquivo diz que é para "o caso de você precisar mexer no playerdata do mvinv
+com o jogador offline" — que é exatamente este caso.
+
+Foi ligado em 11/11/2026 para salvar a conta `I_LoB_I_Biga`, que tinha
+deslogado dentro do `plots` com 5 itens e 3 peças de armadura guardadas no
+perfil do grupo e cairia na mesma armadilha no login seguinte.
+
+Deixar ligado é a opção defensiva: o perfil do plugin passa a ser a fonte da
+verdade, e não o arquivo do Minecraft.
+
+### Antes de mexer em grupo, copie os perfis
+
+São kilobytes, e não existe backup automático:
+
+```sh
+cd ~/minecraft/plugins/Multiverse-Inventories
+tar czf ~/mvinv-perfis-$(date +%Y%m%d-%H%M%S).tar.gz groups worlds players
+```
+
