@@ -1,5 +1,6 @@
 package codes.biga.bigacore;
 
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -12,6 +13,7 @@ import org.bukkit.block.sign.Side;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Transformation;
@@ -63,6 +65,16 @@ public final class ShopDisplays {
 
     /** Marca de propriedade. Sem isto não há como limpar com segurança depois. */
     public static final String TAG = "bigacore_market_display";
+
+    /**
+     * Tag do letreiro da fachada, separada da dos itens flutuantes.
+     *
+     * Separada porque sao coisas diferentes com ciclo de vida igual: as duas
+     * nascem na construcao e tem de morrer juntas no rollback. Marcar o
+     * letreiro com a tag dos itens faria o {@code removeAll} contar 83 itens
+     * removidos quando ha 82, e esse numero vai para o relatorio do comando.
+     */
+    public static final String TAG_LETREIRO = "bigacore_loja_letreiro";
 
     /** Item pequeno o suficiente para flutuar sem cobrir a placa. */
     private static final float ESCALA = 0.45f;
@@ -172,7 +184,8 @@ public final class ShopDisplays {
      * Fica um pouco acima do balcão, centralizado no bloco.
      */
     public void spawn(World world, SpawnShopBuilder.Layout layout,
-                      int u, int v, int alturaDaPlaca, EconomyCatalog.PriceEntry item) {
+                      int u, int v, int yDoBarril, double desvioU, double desvioV,
+                      EconomyCatalog.PriceEntry item) {
 
         Material material = Material.matchMaterial(item.key());
         if (material == null || material.isAir()) {
@@ -181,12 +194,18 @@ public final class ShopDisplays {
             return;
         }
 
-        // Na altura da PLACA, nao do piso: o balcao tem duas prateleiras, e
-        // com floorY fixo os itens do andar de cima nasciam todos colados no
-        // chao, longe do barril que representam.
-        Location alvo = layout.block(world, u, v, alturaDaPlaca)
+        // Em cima do barril, e nao na frente da placa.
+        //
+        // Antes o item nascia na altura da placa: com a placa na parede, atras
+        // do barril, o item ficava exatamente na frente do texto e escondia o
+        // preco. A placa desceu para a frente do barril e o item subiu para
+        // cima dele — cada um no seu bloco de ar.
+        //
+        // O meio passo na direcao do corredor tira o item de dentro da tampa
+        // do barril quando o jogador olha de lado.
+        Location alvo = layout.block(world, u, v, yDoBarril)
                 .getLocation()
-                .add(0.5, 0.25, 0.5);
+                .add(0.5 + desvioU * 0.3, 1.1, 0.5 + desvioV * 0.3);
 
         ItemDisplay display = world.spawn(alvo, ItemDisplay.class, novo -> {
             novo.setItemStack(new ItemStack(material));
@@ -202,6 +221,39 @@ public final class ShopDisplays {
     }
 
     /**
+     * O letreiro da fachada: texto grande flutuando acima do telhado.
+     *
+     * TextDisplay e nao placa: placa tem quatro linhas de quinze caracteres,
+     * em preto, e some a dez blocos. O letreiro aceita gradiente do tema,
+     * tamanho maior que um bloco e brilho proprio — e de longe ele e a unica
+     * coisa que diz o que aquele predio e.
+     */
+    public void letreiro(World world, Location alvo, Component texto, float escala) {
+        world.spawn(alvo, TextDisplay.class, novo -> {
+            novo.text(texto);
+            novo.setBillboard(Display.Billboard.FIXED);
+            novo.setAlignment(TextDisplay.TextAlignment.CENTER);
+
+            // Sem fundo: a caixa preta atras do texto funciona numa parede de
+            // ajuda, mas aqui ela viraria um retangulo opaco boiando sobre o
+            // telhado. O brilho maximo faz o texto se sustentar sozinho,
+            // inclusive de noite.
+            novo.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
+            novo.setShadowed(true);
+            novo.setBrightness(new Display.Brightness(15, 15));
+            novo.setLineWidth(400);
+            novo.setViewRange(1.5f);
+            novo.setPersistent(true);
+            novo.addScoreboardTag(TAG_LETREIRO);
+
+            Transformation t = novo.getTransformation();
+            novo.setTransformation(new Transformation(
+                    t.getTranslation(), t.getLeftRotation(),
+                    new Vector3f(escala, escala, escala), t.getRightRotation()));
+        });
+    }
+
+    /**
      * Remove todos os itens flutuantes da loja no mundo indicado.
      *
      * Chamado antes de construir (para não empilhar duas gerações) e no
@@ -211,10 +263,11 @@ public final class ShopDisplays {
         int removidos = 0;
 
         for (Entity entidade : world.getEntities()) {
-            if (!(entidade instanceof ItemDisplay)) {
-                continue;
-            }
-            if (!entidade.getScoreboardTags().contains(TAG)) {
+            boolean item = entidade instanceof ItemDisplay
+                    && entidade.getScoreboardTags().contains(TAG);
+            boolean letreiro = entidade instanceof TextDisplay
+                    && entidade.getScoreboardTags().contains(TAG_LETREIRO);
+            if (!item && !letreiro) {
                 continue;
             }
             entidade.remove();

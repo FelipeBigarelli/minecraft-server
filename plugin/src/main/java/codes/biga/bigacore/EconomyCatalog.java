@@ -117,6 +117,21 @@ public final class EconomyCatalog {
         return config.getBoolean("admin-shop.placa-compra", false);
     }
 
+    /**
+     * Cor da tinta da placa do balcao. Vazio deixa o preto padrao.
+     *
+     * Vai no bloco, nunca no texto: codigo de cor dentro da linha e lido pelo
+     * ChestShop junto com o nome do item, e a placa para de vender.
+     */
+    public String adminShopSignColor() {
+        return config.getString("admin-shop.placa-cor", "ORANGE");
+    }
+
+    /** Placa com texto brilhante — legivel sem tocha do lado. */
+    public boolean adminShopSignGlowing() {
+        return config.getBoolean("admin-shop.placa-brilhante", true);
+    }
+
     /** Usa nomes em português na linha do item da placa. */
     public boolean adminShopPortugueseNames() {
         return config.getBoolean("admin-shop.nomes-em-portugues", false);

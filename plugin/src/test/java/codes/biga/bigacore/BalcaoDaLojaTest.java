@@ -92,4 +92,50 @@ class BalcaoDaLojaTest {
         assertEquals(SpawnShopBuilder.PRATELEIRAS[0], posicoes.get(metade - 1)[2]);
         assertEquals(SpawnShopBuilder.PRATELEIRAS[1], posicoes.get(metade)[2]);
     }
+
+    @Test
+    @DisplayName("nenhuma PLACA cai no bloco de outra placa nem dentro de um barril")
+    void placasNaoDisputamBloco() {
+        // Este teste nasceu de um defeito real, achado antes de ir para o
+        // jogo: quando a placa saiu de cima do barril e foi para a frente
+        // dele, a vaga do fundo em u=+-10 passou a por placa exatamente onde a
+        // placa da coluna lateral iria. Duas placas no mesmo bloco significam
+        // uma escrita por cima da outra e um item sumido da loja — calado.
+        Set<String> placas = new HashSet<>();
+        Set<String> barris = new HashSet<>();
+        List<String> conflitos = new ArrayList<>();
+
+        for (int[] p : SpawnShopBuilder.posicoesDoBalcao()) {
+            barris.add(p[0] + "," + p[1] + "," + p[2]);
+        }
+
+        for (int[] p : SpawnShopBuilder.posicoesDoBalcao()) {
+            int u = p[0] + SpawnShopBuilder.desvioUDaParede(p[3]);
+            int v = p[1] + SpawnShopBuilder.desvioVDaParede(p[3]);
+            String onde = u + "," + v + "," + p[2];
+
+            if (!placas.add(onde)) {
+                conflitos.add("duas placas em " + onde);
+            }
+            if (barris.contains(onde)) {
+                conflitos.add("placa dentro do barril em " + onde);
+            }
+        }
+
+        assertTrue(conflitos.isEmpty(), String.join("; ", conflitos));
+    }
+
+    @Test
+    @DisplayName("a placa fica entre o barril e o corredor, nunca dentro da parede")
+    void placaFicaParaDentroDoSalao() {
+        for (int[] p : SpawnShopBuilder.posicoesDoBalcao()) {
+            int u = p[0] + SpawnShopBuilder.desvioUDaParede(p[3]);
+            int v = p[1] + SpawnShopBuilder.desvioVDaParede(p[3]);
+
+            assertTrue(Math.abs(u) < SpawnShopBuilder.WALL_HALF,
+                    "placa em u=" + u + " entra na parede lateral");
+            assertTrue(v > SpawnShopBuilder.FRONT_V && v < SpawnShopBuilder.BACK_V,
+                    "placa em v=" + v + " entra na parede da frente ou do fundo");
+        }
+    }
 }

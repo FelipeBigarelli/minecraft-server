@@ -108,6 +108,15 @@ admin-shop:
   # false = a placa mostra o nome do Material em inglês (sempre funciona).
   nomes-em-portugues: true
 
+  # Cor da TINTA da placa (nome de DyeColor) e texto brilhante.
+  #
+  # A cor vai no bloco, nunca dentro do texto: codigo de cor no meio da linha
+  # e lido pelo ChestShop junto com o nome do item, e a placa para de vender.
+  # Laranja e a cor de acao do tema The Bigas; o brilho e o que torna a placa
+  # legivel num salao de madeira escura.
+  placa-cor: ORANGE
+  placa-brilhante: true
+
   # Nome do dono nas placas. PRECISA ser igual ao ADMIN_SHOP_NAME do
   # plugins/ChestShop/config.yml, senão a placa vira loja de um jogador
   # chamado "Admin Shop" — que não existe — e ninguém consegue comprar.

@@ -3,6 +3,7 @@ package codes.biga.bigacore;
 import net.kyori.adventure.text.Component;
 import org.bukkit.HeightMap;
 import org.bukkit.Location;
+import org.bukkit.DyeColor;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.World;
@@ -13,6 +14,7 @@ import org.bukkit.block.TileState;
 import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
+import org.bukkit.block.data.type.Bell;
 import org.bukkit.block.data.type.Lantern;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.block.data.type.Stairs;
@@ -604,7 +606,9 @@ public final class SpawnShopBuilder {
             buildTradeCorner(world, layout, floorY);
             buildDecor(world, layout, floorY);
             placeMarketSign(world, layout, floorY);
+            buildTema(world, layout, floorY);
             buildAdminShopWall(world, layout, floorY);
+            buildLetreiro(world, layout, floorY);
         } catch (RuntimeException erro) {
             plugin.getLogger().severe("Falha durante a construção da Biga Market: " + erro);
             return new BuildResult(false,
@@ -1231,6 +1235,92 @@ public final class SpawnShopBuilder {
         }
     }
 
+    // ------------------------------------------------------------------
+    //  Tema The Bigas
+    // ------------------------------------------------------------------
+
+    /**
+     * O que faz o predio parecer de alguem, e nao uma casa seca.
+     *
+     * A paleta do servidor e ouro {@code #FFD700} para marca e laranja
+     * {@code #FF6A00} para acao — a mesma do MOTD, do paredao de ajuda e das
+     * mensagens do plugin. Em bloco, isso vira estandarte laranja e amarelo.
+     *
+     * Usado em pouca area de proposito: a construcao continua de madeira e
+     * pedra, e a cor entra so onde o olho ja vai — a porta, o fundo do salao e
+     * o sino da feira. Pintar a fachada inteira de laranja daria um galpao de
+     * loja de departamento, nao uma casa de mercado.
+     */
+    private void buildTema(World world, Layout layout, int floorY) {
+        // Estandartes acima do balcao do fundo: e a parede que o jogador
+        // encara enquanto compra.
+        for (int u = -8; u <= 8; u += 4) {
+            bandeira(world, layout, u, BACK_V - 1, floorY + 5,
+                    u % 8 == 0 ? Material.ORANGE_WALL_BANNER : Material.YELLOW_WALL_BANNER);
+        }
+
+        // Sino da feira, pendurado no barrote da colunata. Toca de verdade.
+        sino(world, layout, -DOOR_HALF - 3, MIN_V + 2, floorY + 4);
+
+        // Luz quente nas duas pontas da colunata, embutida no barrote.
+        for (int u : new int[]{-WALL_HALF + 2, WALL_HALF - 2}) {
+            layout.block(world, u, MIN_V + 2, floorY + 5)
+                    .setType(Material.SHROOMLIGHT, false);
+        }
+    }
+
+    /** Sino presa pelo teto, virado para quem chega. */
+    private void sino(World world, Layout layout, int u, int v, int y) {
+        Block bloco = layout.block(world, u, v, y);
+        bloco.setType(Material.BELL, false);
+
+        if (bloco.getBlockData() instanceof Bell dados) {
+            dados.setAttachment(Bell.Attachment.CEILING);
+            dados.setFacing(layout.paraDireita());
+            bloco.setBlockData(dados, false);
+        }
+    }
+
+    /**
+     * O letreiro que se le da praca inteira.
+     *
+     * Fica acima da cumeeira, na frente do predio, e nao na fachada: na
+     * fachada ele estaria debaixo do avanco do telhado, visivel so de dentro
+     * do alpendre — justamente de perto, que e quando ninguem precisa mais
+     * saber o nome da loja.
+     */
+    private void buildLetreiro(World world, Layout layout, int floorY) {
+        Location alvo = layout.block(world, 0, MIN_V + 1, floorY + 15)
+                .getLocation()
+                .add(0.5, 0.5, 0.5);
+        alvo.setYaw(yawDe(layout.frontFace()));
+        alvo.setPitch(0f);
+
+        Component texto = plugin.mini().deserialize(
+                "<color:#FFB800>· THE BIGAS ·</color>"
+                        + "<newline><gradient:#FF6A00:#FFD700><bold>BIGA MARKET</bold></gradient>"
+                        + "<newline><color:#AAAAAA>tudo o que a ilha não dá</color>");
+
+        plugin.shopDisplays().letreiro(world, alvo, texto, 2.0f);
+    }
+
+    /**
+     * Para onde o texto tem de olhar.
+     *
+     * O yaw do Bukkit nasce no sul e cresce para oeste. Um TextDisplay mostra
+     * a face escrita na direcao do proprio yaw, entao o letreiro recebe o yaw
+     * da fachada: a loja olha para o spawn, o letreiro tambem.
+     */
+    static float yawDe(BlockFace fachada) {
+        return switch (fachada) {
+            case SOUTH -> 0f;
+            case WEST -> 90f;
+            case NORTH -> 180f;
+            case EAST -> 270f;
+            default -> 0f;
+        };
+    }
+
     private void placeMarketSign(World world, Layout layout, int floorY) {
         Block signBlock = layout.block(world, 0, FRONT_V - 1, floorY + 5);
         signBlock.setType(Material.OAK_WALL_SIGN, false);
@@ -1250,6 +1340,7 @@ public final class SpawnShopBuilder {
             frente.line(1, Component.text("MARKET"));
             frente.line(2, Component.text("B$"));
             frente.line(3, Component.text("Loja do servidor"));
+            pintar(frente);
             sign.update(true, false);
         }
     }
@@ -1293,12 +1384,19 @@ public final class SpawnShopBuilder {
 
             // Laterais: placa olha para o centro do salao.
             //
-            // Para em BACK_V - 2, nao em BACK_V - 1: a fileira do fundo ja
-            // ocupa BACK_V - 1 de u=-(WALL_HALF-1) a u=WALL_HALF-1, que inclui
-            // as duas colunas laterais. Ir ate BACK_V - 1 aqui repetia essas
-            // duas posicoes, e a segunda placa era escrita EM CIMA da
-            // primeira — dois itens do catalogo sumiam sem erro no console.
-            for (int v = FRONT_V + 1; v <= BACK_V - 2; v++) {
+            // Para em BACK_V - 3, e aqui a conta tem duas razoes somadas:
+            //
+            // 1. BACK_V - 1 e a fileira do fundo, que ja ocupa de
+            //    u=-(WALL_HALF-1) a u=WALL_HALF-1 — as duas colunas laterais
+            //    inclusive. Ir ate la repetiria o BARRIL.
+            // 2. BACK_V - 2 faria a PLACA bater: desde que a placa saiu de
+            //    cima do barril e foi para a frente dele, a vaga do fundo em
+            //    u=+-(WALL_HALF-2) poe placa em (u, BACK_V-2), que e
+            //    exatamente onde a placa da lateral iria parar.
+            //
+            // Os dois casos terminam igual: a segunda placa e escrita em cima
+            // da primeira e um item some da loja sem erro no console.
+            for (int v = FRONT_V + 1; v <= BACK_V - 3; v++) {
                 posicoes.add(new int[]{-(WALL_HALF - 1), v, altura, PAREDE_ESQUERDA});
                 posicoes.add(new int[]{WALL_HALF - 1, v, altura, PAREDE_DIREITA});
             }
@@ -1318,7 +1416,7 @@ public final class SpawnShopBuilder {
                 case PAREDE_DIREITA -> right.getOppositeFace();
                 default -> layout.frontFace();
             };
-            vagas.add(new ShopSlot(posicao[0], posicao[1], posicao[2], olhando));
+            vagas.add(new ShopSlot(posicao[0], posicao[1], posicao[2], posicao[3], olhando));
         }
         return vagas;
     }
@@ -1337,7 +1435,35 @@ public final class SpawnShopBuilder {
      */
     static final int[] PRATELEIRAS = {1, 3};
 
-    private record ShopSlot(int u, int v, int altura, BlockFace facing) {
+    /**
+     * Uma vaga do balcao.
+     *
+     * {@code parede} nao e enfeite: e dela que sai para que lado fica o
+     * corredor, e a placa mora no corredor, colada na frente do barril.
+     */
+    private record ShopSlot(int u, int v, int altura, int parede, BlockFace facing) {
+
+        int desvioU() {
+            return desvioUDaParede(parede);
+        }
+
+        int desvioV() {
+            return desvioVDaParede(parede);
+        }
+    }
+
+    /** Passo em u do barril ate o bloco da placa, em direcao ao salao. */
+    static int desvioUDaParede(int parede) {
+        return switch (parede) {
+            case PAREDE_ESQUERDA -> 1;
+            case PAREDE_DIREITA -> -1;
+            default -> 0;
+        };
+    }
+
+    /** Passo em v do barril ate o bloco da placa. */
+    static int desvioVDaParede(int parede) {
+        return parede == PAREDE_FUNDO ? -1 : 0;
     }
 
     /**
@@ -1384,8 +1510,9 @@ public final class SpawnShopBuilder {
             int barrilY = floorY + vaga.altura();
             layout.block(world, vaga.u(), vaga.v(), barrilY)
                     .setType(Material.BARREL, false);
-            placeShopSign(world, layout, vaga, barrilY + 1, dono, item);
-            plugin.shopDisplays().spawn(world, layout, vaga.u(), vaga.v(), barrilY + 1, item);
+            placeShopSign(world, layout, vaga, barrilY, dono, item);
+            plugin.shopDisplays().spawn(world, layout, vaga.u(), vaga.v(), barrilY,
+                    vaga.desvioU(), vaga.desvioV(), item);
             montadas++;
         }
 
@@ -1393,9 +1520,23 @@ public final class SpawnShopBuilder {
                 + " vaga(s) de " + vagas.size() + " disponíveis.");
     }
 
+    /**
+     * A placa, colada na FRENTE do barril — nao mais em cima dele.
+     *
+     * Em cima nao dava: o item flutuante nasce acima do barril e ficava
+     * exatamente na frente do texto. As duas coisas disputavam o mesmo bloco
+     * de ar, e o que o jogador via era o preco atras de um bloco girando.
+     *
+     * O ChestShop acha o container pelas SHOP_FACES, que incluem SELF, UP,
+     * DOWN e os quatro lados: placa de parede grudada na lateral do barril e
+     * casamento valido para ele, igual a placa em cima. Conferido na classe
+     * uBlock do ChestShop 3.13 antes de mudar, e nao por tentativa em jogo com
+     * 82 placas.
+     */
     private void placeShopSign(World world, Layout layout, ShopSlot vaga, int y,
                                String dono, EconomyCatalog.PriceEntry item) {
-        Block signBlock = layout.block(world, vaga.u(), vaga.v(), y);
+        Block signBlock = layout.block(world,
+                vaga.u() + vaga.desvioU(), vaga.v() + vaga.desvioV(), y);
         signBlock.setType(Material.OAK_WALL_SIGN, false);
 
         BlockData data = signBlock.getBlockData();
@@ -1418,7 +1559,35 @@ public final class SpawnShopBuilder {
         for (int n = 0; n < linhas.size(); n++) {
             frente.line(n, Component.text(linhas.get(n)));
         }
+        pintar(frente);
         sign.update(true, false);
+    }
+
+    /**
+     * Cor e brilho da placa.
+     *
+     * A cor vai no BLOCO (a tinta da placa), nunca dentro do texto. Texto
+     * colorido viraria codigo de cor no meio da linha, e quem le essa linha
+     * para saber o item e o preco e o ChestShop: um "§6" grudado no nome do
+     * item e uma placa que nao vende nada.
+     *
+     * O brilho resolve o escuro de verdade — placa com glow e legivel sem
+     * tocha do lado, que era a reclamacao: "ta tudo muito escuro, preto".
+     */
+    private void pintar(SignSide lado) {
+        EconomyCatalog catalog = plugin.economyCatalog();
+
+        String cor = catalog.adminShopSignColor();
+        if (cor != null && !cor.isBlank()) {
+            try {
+                lado.setColor(DyeColor.valueOf(cor.toUpperCase(Locale.ROOT)));
+            } catch (IllegalArgumentException desconhecida) {
+                plugin.getLogger().warning("[admin-shop] placa-cor '" + cor
+                        + "' nao e uma cor de tinta; usando o padrao.");
+            }
+        }
+
+        lado.setGlowingText(catalog.adminShopSignGlowing());
     }
 
     private BlockFace frontFace(int offsetX, int offsetZ) {
