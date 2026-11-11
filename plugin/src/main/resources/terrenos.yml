@@ -31,7 +31,12 @@ mundos:
 # do spawn ficariam compraveis.
 #
 # Serve para manter o spawn, as lojas e as estradas de saida como area publica.
-distancia-minima-do-spawn: 48
+#
+# Era 48 ate 11/11/2026. Baixou para 24 porque 48 empurrava o primeiro terreno
+# para longe demais: quem comecava tinha de andar quase um minuto do spawn ate
+# poder comprar qualquer coisa, e terreno que da trabalho de alcancar nao e
+# comprado. 24 continua segurando a praca, as lojas e as saidas.
+distancia-minima-do-spawn: 24
 
 # Espaco obrigatorio entre dois terrenos. 0 deixa encostar.
 folga-entre-terrenos: 0

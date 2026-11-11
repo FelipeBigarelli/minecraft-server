@@ -106,11 +106,14 @@ mais perto disso sem instalar mais nada.
 > `default-ungrouped-worlds: false` ("any world not listed in a group will
 > automatically be assigned to the 'default' group" — está desligado).
 >
-> Prova, não dedução: o `plots` não está em grupo, e às 10:55 o
+> Prova, não dedução: enquanto o `plots` esteve fora de grupo, às 10:55 o
 > Multiverse-Inventories gravou `Multiverse-Inventories/worlds/plots/zBigaBiga.json`
 > separado de `Multiverse-Inventories/groups/default/zBigaBiga.json`. Dois
 > arquivos = dois inventários. Grupo isolado é `worlds/<mundo>/`, grupo
 > compartilhado é `groups/<grupo>/`.
+>
+> (O `plots` entrou no grupo `default` na tarde do mesmo dia, pelo motivo da
+> seção seguinte. O que vale aqui é o mecanismo, não o exemplo.)
 >
 > Criar o grupo mesmo assim continua valendo por ser explícito — o que não vale é
 > acreditar que sem grupo está tudo misturado, ou o contrário, ligar criativo
@@ -250,4 +253,84 @@ Conserto, dentro do mundo `plots`, sem regerar:
 
 A borda passa a ir de -146 a 178 e cobre a grade inteira com 4 blocos de folga.
 Fica gravado em `world/dimensions/minecraft/plots/data/minecraft/world_border.dat`.
+
+## O mundo de plots virou bairro de sobrevivência (11/11/2026)
+
+De manhã ele foi configurado como mundo criativo isolado. À tarde a decisão
+mudou: **o `plots` é um bairro em sobrevivência**, e é onde a Biga Market vai
+morar. Criativo fica para um segundo mundo de plots, se um dia existir.
+
+Isso inverte as duas chaves da manhã, e a inversão não é simétrica — uma
+depende da outra.
+
+### 1. `Force-Gamemode: false`
+
+Essa chave do CreativePlots só sabe forçar **criativo**; não existe "forçar
+sobrevivência". Com ela em `false` ninguém troca de modo ao atravessar, que é
+exatamente o que se quer: o jogador chega no bairro com o modo que já tinha.
+
+### 2. O `plots` entrou no grupo `default` do Multiverse-Inventories
+
+```yaml
+groups:
+  default:
+    worlds:
+    - world
+    - world_nether
+    - world_the_end
+    - plots          # <- 11/11/2026
+    shares:
+    - all
+```
+
+**Isto é obrigatório para a loja funcionar.** Com inventário separado, o
+jogador chegaria no mercado de mãos vazias: não teria o que vender ao baú nem
+onde guardar o que comprasse, e a compra ficaria presa naquele mundo. Loja com
+inventário isolado não é loja.
+
+Os arquivos `worlds/plots/*.json` que sobraram da manhã ficam inertes — o
+Multiverse-Inventories só os lê enquanto o mundo está fora de grupo. Se um dia
+o `plots` sair do grupo de novo, eles voltam sozinhos.
+
+### A ordem para um mundo criativo futuro
+
+1. tirar aquele mundo do grupo `default` (ou simplesmente nunca colocar)
+2. **só então** ligar o `Force-Gamemode`
+
+Nessa ordem, sempre. Criativo com inventário compartilhado é diamante de graça
+entrando no survival, e a economia inteira depende disso não acontecer.
+
+### Onde a Biga Market vai ficar
+
+O `config.yml` do BigaCore já apontava para o terreno #1 do `plots`, com offset
+21/21. **O offset estava velho**: ele vinha de quando o #1 ia de 6 a 37. Depois
+das regerações o #1 passou a ir de **-34 a 12** nos dois eixos, e 21/21 caía no
+terreno #3.
+
+Recalculado para **-11/-11**, que é o centro do #1: a footprint 29x30 ocupa
+X -25..3 e Z -25..4, com folga larga até a borda de polished_blackstone.
+
+O offset é somado ao spawn **real** do mundo, lido em runtime. Por isso o
+caminho continua sendo o que o próprio comentário do arquivo manda:
+
+```
+/biga loja local      # mostra onde cairia
+/biga loja validar    # reprova se houver relevo, água ou construção
+/biga loja criar CONFIRMAR
+```
+
+E antes disso, **reivindique o terreno #1**. Ele voltou como `available` depois
+da regeração: um `/plot auto` de qualquer jogador pode pegar justamente o
+terreno da loja. A trava `protegidos: - plots:1` no `plots.yml` do BigaCore já
+impede o `/plot abandon`, mas não impede alguém de reivindicar um terreno livre.
+
+### Armadilha: o CreativePlots reescreve o próprio config no boot
+
+Comentários adicionados à mão em `plugins/CreativePlots/config.yml` **não
+sobrevivem a um restart**. O `ConfigUpdater` dele regrava o arquivo, apaga o que
+não é chave conhecida e ainda converte as quebras de linha para CRLF.
+
+Descoberto na prática: o bloco de comentário escrito às 11:01 explicando o
+`Force-Gamemode` tinha sumido às 14:00, depois de um boot. Por isso o raciocínio
+daquela chave mora aqui, neste documento, e não lá.
 

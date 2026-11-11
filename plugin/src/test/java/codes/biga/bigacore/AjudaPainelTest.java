@@ -42,7 +42,7 @@ class AjudaPainelTest {
             "<moeda-inicial>", "<lojas-limite>", "<taxa-loja>", "<simbolo>",
             "<preco-terreno-1>", "<preco-terreno-2>", "<preco-terreno-3>",
             "<terreno-bloco>", "<terreno-min>", "<terreno-max>",
-            "<terreno-limite>", "<terreno-reembolso>",
+            "<terreno-limite>", "<terreno-reembolso>", "<terreno-spawn>",
             "<encomenda-limite>", "<encomenda-min>", "<encomenda-max>",
             "<encomenda-qtd>", "<recompra-dia>", "<recompra-semana>");
 

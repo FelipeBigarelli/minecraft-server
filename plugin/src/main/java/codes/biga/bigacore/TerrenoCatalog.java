@@ -109,7 +109,7 @@ public final class TerrenoCatalog {
     }
 
     public int folgaDoSpawn() {
-        return Math.max(0, dados.getInt("distancia-minima-do-spawn", 48));
+        return Math.max(0, dados.getInt("distancia-minima-do-spawn", 24));
     }
 
     public int folgaEntreTerrenos() {
