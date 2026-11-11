@@ -18,6 +18,7 @@ import org.joml.Vector3f;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -105,6 +106,74 @@ public final class PainelAjuda {
     public void reload() {
         File arquivo = new File(plugin.getDataFolder(), "ajuda.yml");
         this.config = YamlConfiguration.loadConfiguration(arquivo);
+    }
+
+    // ------------------------------------------------------------------
+    //  Totens da praça
+    // ------------------------------------------------------------------
+
+    /**
+     * Largura util de uma linha de placa, em pixels.
+     *
+     * O cliente nao quebra linha em placa: o que passa daqui e simplesmente
+     * cortado na tela, sem aviso nenhum no console. Uma dica cortada no meio
+     * do comando ensina o comando errado, que e pior do que nao ter placa.
+     */
+    public static final int LARGURA_PLACA = 90;
+
+    /** Uma placa de poste da alameda: quatro linhas e a cor da tinta. */
+    public record Totem(String cor, List<String> linhas) {}
+
+    /** Mede uma linha de placa com a mesma fonte dos painéis. */
+    static int larguraDePlaca(String texto) {
+        int total = 0;
+        for (int i = 0; i < texto.length(); i++) {
+            total += larguraPixel(texto.charAt(i));
+        }
+        return total;
+    }
+
+    /** A linha cabe na placa sem ser cortada pelo cliente? */
+    static boolean cabeNaPlaca(String texto) {
+        return larguraDePlaca(texto) <= LARGURA_PLACA;
+    }
+
+    /**
+     * Os totens declarados no ajuda.yml, prontos para a loja erguer.
+     *
+     * Linha que estoura a placa e DESCARTADA com aviso no console, e nao
+     * escrita cortada: placa com meio comando e desinformacao, placa vazia e
+     * so uma placa vazia.
+     */
+    public List<Totem> totens() {
+        List<Map<?, ?>> cru = config.getMapList("totens");
+        List<Totem> totens = new java.util.ArrayList<>();
+
+        for (Map<?, ?> item : cru) {
+            Object linhasCru = item.get("linhas");
+            if (!(linhasCru instanceof List<?> lista)) {
+                continue;
+            }
+
+            List<String> linhas = new java.util.ArrayList<>();
+            for (Object linha : lista) {
+                String texto = resolver(String.valueOf(linha));
+                if (!cabeNaPlaca(texto)) {
+                    plugin.getLogger().warning("[loja] Linha de totem nao cabe na placa ("
+                            + larguraDePlaca(texto) + "px de " + LARGURA_PLACA + "): " + texto);
+                    texto = "";
+                }
+                linhas.add(texto);
+            }
+            while (linhas.size() < 4) {
+                linhas.add("");
+            }
+
+            Object cor = item.get("cor");
+            totens.add(new Totem(cor == null ? "ORANGE" : String.valueOf(cor),
+                    linhas.subList(0, 4)));
+        }
+        return totens;
     }
 
     /** Quantos painéis o ajuda.yml declara hoje. */

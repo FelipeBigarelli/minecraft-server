@@ -82,10 +82,27 @@ public final class ShopSnapshot {
             return "Volume de snapshot inválido (" + minY + ".." + maxY + ").";
         }
 
+        // O volume copiado tem DOIS retangulos, e nao um so.
+        //
+        // Dentro da footprint vai tudo, do chao ao topo do telhado. Fora
+        // dela, na praca, vai so uma faixa rasa: ali a obra assenta piso e
+        // levanta poste, banco e arvore pequena — nada passa de PRACA_ALTURA.
+        //
+        // Copiar o envelope inteiro na altura cheia multiplicaria o arquivo
+        // por tres sem devolver um bloco a mais no desfazer. E copiar SO a
+        // footprint, que era o que acontecia antes da praca existir, deixaria
+        // calcada, alameda e arvore de pe depois de /biga loja desfazer — a
+        // loja sumiria e o quintal ficaria.
         List<String> blocks = new ArrayList<>();
-        for (int u = -SpawnShopBuilder.HALF_WIDTH; u <= SpawnShopBuilder.HALF_WIDTH; u++) {
-            for (int v = SpawnShopBuilder.MIN_V; v <= SpawnShopBuilder.MAX_V; v++) {
-                for (int y = minY; y <= maxY; y++) {
+        for (int u = -SpawnShopBuilder.ENVELOPE_HALF; u <= SpawnShopBuilder.ENVELOPE_HALF; u++) {
+            for (int v = SpawnShopBuilder.ENVELOPE_MIN_V;
+                    v <= SpawnShopBuilder.ENVELOPE_MAX_V; v++) {
+
+                int topo = SpawnShopBuilder.dentroDaFootprint(u, v)
+                        ? maxY
+                        : Math.min(maxY, floorY + SpawnShopBuilder.PRACA_ALTURA);
+
+                for (int y = minY; y <= topo; y++) {
                     Block block = layout.block(world, u, v, y);
                     blocks.add(block.getX() + ";" + block.getY() + ";" + block.getZ()
                             + ";" + block.getBlockData().getAsString());

@@ -215,6 +215,35 @@ admin-shop:
     - dark_oak_sapling
     - birch_sapling
     - moss_block
+# -----------------------------------------------------------------
+#  COMO SE PRECIFICA AQUI: PELA PORTA, NÃO PELO STACK
+#
+#  A tabela original veio de servidor de mundo normal, onde o Nether
+#  é uma caminhada de dois minutos. Num mundo de ilhas flutuantes ela
+#  ficou errada de um jeito específico: a VARA DE BLAZE (fortaleza no
+#  Nether), a PÉROLA DO END (enderman) e o CREME DE MAGMA custavam o
+#  mesmo que um lote de osso. Vender barato o que está atrás de uma
+#  porta não é generosidade — é apagar a porta. Quem pode comprar
+#  pérola a 32 B$ nunca vai caçar um enderman.
+#
+#  Então o preço segue o PORTÃO que o item atravessa:
+#
+#   1. Ilha      — o que a própria ilha dá. Tabela base.
+#   2. Nether    — exige portal, ou seja, obsidiana e isqueiro.  ~4x
+#   3. Fortaleza — exige achar estrutura e matar o bicho certo.  ~6x
+#                  (vara de blaze, lágrima de ghast)
+#   4. End       — exige a cadeia inteira antes.  Em geral só P2P.
+#
+#  A obsidiana é o caso especial e mora no portão 2 de propósito: ela
+#  É o ingresso. A 60 B$ a unidade, um portal custa 600 B$ — uma noite
+#  de jogo. Caro o bastante para ser conquista, barato o bastante para
+#  não ser muro.
+#
+#  Lote menor junto com preço maior NÃO é redundância: um lote de 8
+#  pérolas a 1.000 cada seria 8.000 na placa, e placa de quatro
+#  dígitos some do alcance de quem está começando. Lote de 4 mantém a
+#  decisão do tamanho de uma sessão.
+# -----------------------------------------------------------------
 # tier é uma classificação ECONÔMICA do BigaCore, não a rarity oficial.
 # Campos ausentes server-buy/server-sell significam P2P somente naquele lado.
 catalog:
@@ -234,8 +263,9 @@ catalog:
   #  2. Nenhuma é item de progressão (elytra, netherite, totem...).
   #     Progressão se conquista; raridade de bioma se compra.
   #
-  #  3. O preço é de OUTRA liga. O resto da loja vai até 500 por lote;
-  #     o ovo de aldeão custa 15.000. Com o teto de 4.000/semana por
+  #  3. O preço é de OUTRA liga. Mesmo depois da correção dos portões,
+  #     o resto da loja para em 1.200 por lote (vara de blaze); o ovo
+  #     de aldeão custa 15.000. Com o teto de 4.000/semana por
   #     jogador, é cerca de um mês de meta — longe, alcançável, e o
   #     único ralo grande que a economia tem hoje.
   #
@@ -315,30 +345,30 @@ catalog:
   # A chave precisa ser o nome do Material. O item do Nether é Material.QUARTZ,
   # não "nether_quartz": com a chave errada o /biga eco vender não achava preço
   # e dizia que o servidor não compra quartzo.
-  quartz: { tier: UNCOMMON, lot: 32, p2p: 160, server-buy: 22, server-sell: 240 }
-  amethyst_shard: { tier: UNCOMMON, lot: 32, p2p: 128, server-buy: 66, server-sell: 200 }
-  obsidian: { tier: UNCOMMON, lot: 16, p2p: 160, server-buy: 80, server-sell: 240 }
+  quartz: { tier: UNCOMMON, lot: 32, p2p: 455, server-buy: 22, server-sell: 720 }
+  amethyst_shard: { tier: UNCOMMON, lot: 16, p2p: 300, server-buy: 33, server-sell: 480 }
+  obsidian: { tier: UNCOMMON, lot: 16, p2p: 610, server-buy: 80, server-sell: 960 }
 
   leather: { tier: UNCOMMON, lot: 16, p2p: 120, server-buy: 45, server-sell: 180 }
-  gunpowder: { tier: UNCOMMON, lot: 16, p2p: 180, server-buy: 11, server-sell: 280 }
-  slime_ball: { tier: UNCOMMON, lot: 16, p2p: 200, server-buy: 8, server-sell: 320 }
-  ender_pearl: { tier: UNCOMMON, lot: 8, p2p: 160, server-buy: 4, server-sell: 260 }
-  prismarine_shard: { tier: UNCOMMON, lot: 32, p2p: 96, server-buy: 6, server-sell: 160 }
-  bone: { tier: UNCOMMON, lot: 32, p2p: 64, server-buy: 11, server-sell: 100 }
-  string: { tier: UNCOMMON, lot: 32, p2p: 64, server-buy: 11, server-sell: 100 }
+  gunpowder: { tier: UNCOMMON, lot: 16, p2p: 355, server-buy: 11, server-sell: 560 }
+  slime_ball: { tier: UNCOMMON, lot: 16, p2p: 405, server-buy: 8, server-sell: 640 }
+  ender_pearl: { tier: UNCOMMON, lot: 4, p2p: 640, server-buy: 2, server-sell: 1000 }
+  prismarine_shard: { tier: UNCOMMON, lot: 16, p2p: 300, server-buy: 3, server-sell: 480 }
+  bone: { tier: UNCOMMON, lot: 32, p2p: 150, server-buy: 11, server-sell: 240 }
+  string: { tier: UNCOMMON, lot: 32, p2p: 125, server-buy: 11, server-sell: 200 }
   rotten_flesh: { tier: COMMON, lot: 64, p2p: 24, server-buy: 13, server-sell: 40 }
-  spider_eye: { tier: UNCOMMON, lot: 16, p2p: 48, server-buy: 15, server-sell: 76 }
+  spider_eye: { tier: UNCOMMON, lot: 16, p2p: 100, server-buy: 15, server-sell: 160 }
 
   # Progressão: negociada entre jogadores, nunca comprada/vendida pelo servidor
   # (mesmo padrão do emerald abaixo). Sem server-buy/server-sell de propósito.
   diamond: { tier: RARE, lot: 1, p2p: 120 }
   emerald: { tier: RARE, lot: 8, p2p: 160 }
-  blaze_rod: { tier: RARE, lot: 8, p2p: 240, server-buy: 6, server-sell: 380 }
-  ghast_tear: { tier: RARE, lot: 4, p2p: 320, server-buy: 38, server-sell: 500 }
-  magma_cream: { tier: RARE, lot: 8, p2p: 180, server-buy: 8, server-sell: 280 }
-  nautilus_shell: { tier: RARE, lot: 8, p2p: 320, server-buy: 166, server-sell: 500 }
-  name_tag: { tier: RARE, lot: 1, p2p: 180, server-sell: 280 }
-  saddle: { tier: RARE, lot: 1, p2p: 160, server-sell: 250 }
+  blaze_rod: { tier: RARE, lot: 4, p2p: 760, server-buy: 3, server-sell: 1200 }
+  ghast_tear: { tier: RARE, lot: 2, p2p: 570, server-buy: 19, server-sell: 900 }
+  magma_cream: { tier: RARE, lot: 4, p2p: 380, server-buy: 4, server-sell: 600 }
+  nautilus_shell: { tier: RARE, lot: 4, p2p: 440, server-buy: 83, server-sell: 700 }
+  name_tag: { tier: RARE, lot: 1, p2p: 570, server-sell: 900 }
+  saddle: { tier: RARE, lot: 1, p2p: 380, server-sell: 600 }
   shulker_shell: { tier: RARE, lot: 1, p2p: 300 }
   shulker_box: { tier: RARE, lot: 1, p2p: 650 }
   heart_of_the_sea: { tier: RARE, lot: 1, p2p: 500 }

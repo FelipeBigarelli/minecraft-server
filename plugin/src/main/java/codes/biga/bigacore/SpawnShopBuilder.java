@@ -116,6 +116,30 @@ public final class SpawnShopBuilder {
      */
     static final int CENTER_V = (MIN_V + MAX_V) / 2;
 
+    /**
+     * Quanto a praca avanca para fora da construcao, em blocos.
+     *
+     * O lote do CreativePlots tem 48 (47 uteis) e a loja ocupa 29x30: sobrava
+     * um anel de grama vazia maior que a propria loja, que e o que a foto
+     * mostrava. Estes tres numeros gastam essa sobra sem passar da rua.
+     *
+     * Nada aqui e chutado em cima da coordenada do lote: buildPraca() so
+     * assenta piso onde o chao e NATURAL (roleOf == GROUND). Quartzo da rua e
+     * blackstone da borda sao MAN_MADE e param a pavimentacao sozinhos. Se um
+     * dia o lote mudar de tamanho, a praca encolhe junto em vez de invadir.
+     */
+    static final int PRACA_LADO = 7;
+    static final int PRACA_FRENTE = 11;
+    static final int PRACA_FUNDO = 6;
+
+    /** Retangulo que a obra inteira pode tocar — e que o snapshot copia. */
+    static final int ENVELOPE_HALF = HALF_WIDTH + PRACA_LADO;
+    static final int ENVELOPE_MIN_V = MIN_V - PRACA_FRENTE;
+    static final int ENVELOPE_MAX_V = MAX_V + PRACA_FUNDO;
+
+    /** Altura util da praca. Fora da footprint, so isto e copiado e devolvido. */
+    static final int PRACA_ALTURA = 6;
+
     /** Vão livre da entrada, para cada lado do centro. */
     static final int DOOR_HALF = 3;
 
@@ -607,6 +631,8 @@ public final class SpawnShopBuilder {
             buildDecor(world, layout, floorY);
             placeMarketSign(world, layout, floorY);
             buildTema(world, layout, floorY);
+            buildBaias(world, layout, floorY);
+            buildPraca(world, layout, floorY);
             buildAdminShopWall(world, layout, floorY);
             buildLetreiro(world, layout, floorY);
         } catch (RuntimeException erro) {
@@ -1150,20 +1176,10 @@ public final class SpawnShopBuilder {
                     layout.paraEsquerda(), false);
         }
 
-        // Vasos ao longo do corredor.
-        for (int v = FRONT_V + 5; v <= BACK_V - 3; v += 5) {
-            layout.block(world, -2, v, floorY + 1).setType(Material.POTTED_FERN, false);
-            layout.block(world, 2, v, floorY + 1).setType(Material.POTTED_FERN, false);
-        }
-
-        // Iluminacao do salao: lanterna pendurada na propria telha, e nao
-        // encostada no alto da parede. Como o telhado sobe para o meio, cada
-        // fileira pendura numa altura diferente e o teto ganha profundidade.
-        for (int u = -WALL_HALF + 3; u <= WALL_HALF - 3; u += 5) {
-            for (int v = FRONT_V + 3; v <= BACK_V - 2; v += 5) {
-                lanternaPendurada(world, layout, u, v, roofHeight(u, floorY) - 1);
-            }
-        }
+        // A luz do salao e os vasos sairam daqui e foram para buildBaias():
+        // lanterna solta no meio do vao, em grade propria, briga com a grade
+        // dos pilares e deixa duas malhas concorrentes no mesmo teto. Luz
+        // pendurada na estrutura e o que faz o teto parecer construido.
     }
 
     // ------------------------------------------------------------------
@@ -1236,6 +1252,527 @@ public final class SpawnShopBuilder {
     }
 
     // ------------------------------------------------------------------
+    //  Baias: o que transforma estante de deposito em loja
+    // ------------------------------------------------------------------
+
+    /**
+     * A estrutura que o olho le ANTES de ler a mercadoria.
+     *
+     * O defeito da primeira versao nao era de bloco nenhum em particular: era
+     * nao ter hierarquia. Tudo tinha a mesma importancia visual — 114 barris
+     * iguais, do canto ao canto, duas vezes, debaixo de uma parede lisa e de
+     * um teto vazio. Construcao sem hierarquia le como deposito, e foi
+     * exatamente a palavra que a foto devolveu.
+     *
+     * Os quatro movimentos aqui sao os mesmos de qualquer interior construido
+     * a mao que funciona:
+     *
+     * 1. RITMO — pilar a cada cinco colunas. A prateleira para, a madeira
+     *    sobe, a prateleira recomeca. Quatro baias de quatro em vez de uma
+     *    fila de dezoito.
+     * 2. PROFUNDIDADE — o pilar fica na linha da prateleira e ganha um
+     *    console de escada avancando sobre o corredor. A parede deixa de ser
+     *    um plano: ela tem partes mais perto e mais longe do jogador.
+     * 3. REMATE — cornija de escada invertida em cima da prateleira de cima e
+     *    friso de tronco descascado embaixo do teto. Sem remate, a prateleira
+     *    termina no meio do nada e a faixa de parede que sobra parece sobra.
+     * 4. TETO — barrote travando pilar com pilar, na altura certa, com a luz
+     *    pendurada NELE. Luz presa na estrutura e o que faz o teto existir.
+     *
+     * De proposito, nada disto rouba vaga util: os pilares ocupam as colunas
+     * que posicoesDoBalcao() ja pula, e cornija, friso e barrote vivem em
+     * alturas que o balcao nunca usa (+5 e +6 contra +1..+4).
+     */
+    private void buildBaias(World world, Layout layout, int floorY) {
+        int indice = 0;
+
+        // Pilares do fundo. Estes sobem ate o telhado, nao ate o alto da
+        // parede: a empena do fundo e a maior superficie fechada do salao, e
+        // quatro colunas altas e o que da escala a ela. Do corredor, sao elas
+        // que o jogador ve ao entrar.
+        for (int u : PILARES_FUNDO) {
+            pilar(world, layout, u, BACK_V - 1, 0, -1, floorY,
+                    roofHeight(u, floorY) - 1, indice++);
+        }
+
+        // Pilares das laterais, travando no barrote do teto.
+        for (int v : PILARES_LATERAL) {
+            pilar(world, layout, -(WALL_HALF - 1), v, 1, 0, floorY,
+                    floorY + WALL_HEIGHT, indice++);
+            pilar(world, layout, WALL_HALF - 1, v, -1, 0, floorY,
+                    floorY + WALL_HEIGHT, indice++);
+        }
+
+        cornijaEFriso(world, layout, floorY);
+        barrotesDoTeto(world, layout, floorY);
+        pisoEmBaias(world, layout, floorY);
+    }
+
+    /**
+     * Uma coluna de baia, do piso ao travamento, com o que pendura nela.
+     *
+     * {@code du/dv} aponta para o corredor: e lá que vao o console, a luz e o
+     * vaso, porque e de la que a coluna e vista.
+     */
+    private void pilar(World world, Layout layout, int u, int v, int du, int dv,
+                       int floorY, int topoY, int indice) {
+        for (int y = floorY + 1; y <= topoY; y++) {
+            layout.block(world, u, v, y).setType(VIGA, false);
+        }
+
+        // Base de pedra: a coluna nasce do alicerce em vez de brotar do
+        // assoalho. Dois blocos, so o bastante para o olho entender o apoio.
+        for (int y = floorY + 1; y <= floorY + 2; y++) {
+            layout.block(world, u, v, y).setType(PAREDE_BASE, false);
+        }
+
+        int corredorU = u + du;
+        int corredorV = v + dv;
+        BlockFace paraOCorredor = du != 0
+                ? (du > 0 ? layout.paraDireita() : layout.paraEsquerda())
+                : (dv > 0 ? layout.paraDentro() : layout.paraFora());
+
+        // Console avancando sobre o corredor, no alto da coluna. E o que tira
+        // a parede do plano: tem sombra embaixo dele.
+        degrau(world, layout, corredorU, corredorV, floorY + WALL_HEIGHT,
+                CONSOLE, paraOCorredor.getOppositeFace(), true);
+
+        // Alternando luz e estandarte. Uma coluna so de luz vira poste; uma
+        // coluna so de bandeira vira parede de festa. Alternado, o salao tem
+        // compasso: luz, cor, luz, cor.
+        if (indice % 2 == 0) {
+            lanternaPendurada(world, layout, corredorU, corredorV, floorY + WALL_HEIGHT - 1);
+        } else {
+            Block estandarte = layout.block(world, corredorU, corredorV, floorY + 4);
+            estandarte.setType(indice % 4 == 1
+                    ? Material.ORANGE_WALL_BANNER : Material.YELLOW_WALL_BANNER, false);
+            if (estandarte.getBlockData() instanceof Directional direcional) {
+                direcional.setFacing(paraOCorredor);
+                estandarte.setBlockData(direcional, false);
+            }
+        }
+
+        // Pe da coluna: vaso na baia de luz, engradado na de bandeira.
+        if (indice % 2 == 0) {
+            layout.block(world, corredorU, corredorV, floorY + 1)
+                    .setType(Material.POTTED_FERN, false);
+        } else {
+            layout.block(world, corredorU, corredorV, floorY + 1)
+                    .setType(Material.BARREL, false);
+        }
+    }
+
+    /**
+     * Cornija em cima da prateleira de cima, friso embaixo do teto.
+     *
+     * A escada invertida em +5 fecha o armario: dai para cima a parede e
+     * parede, dai para baixo e movel. Sem essa linha, as duas coisas se
+     * misturam e a prateleira parece inacabada — e o que aparecia na foto como
+     * "faixa de tabua sobrando".
+     */
+    private void cornijaEFriso(World world, Layout layout, int floorY) {
+        int cornija = floorY + WALL_HEIGHT - 1;
+        int friso = floorY + WALL_HEIGHT;
+
+        for (int u = -(WALL_HALF - 1); u <= WALL_HALF - 1; u++) {
+            if (ehPilar(PILARES_FUNDO, u)) {
+                continue;
+            }
+            degrau(world, layout, u, BACK_V - 1, cornija, CONSOLE,
+                    layout.paraDentro(), true);
+            layout.block(world, u, BACK_V - 1, friso).setType(MOLDURA, false);
+        }
+
+        for (int v = FRONT_V + 1; v <= BACK_V - 2; v++) {
+            if (ehPilar(PILARES_LATERAL, v)) {
+                continue;
+            }
+            degrau(world, layout, -(WALL_HALF - 1), v, cornija, CONSOLE,
+                    layout.paraEsquerda(), true);
+            degrau(world, layout, WALL_HALF - 1, v, cornija, CONSOLE,
+                    layout.paraDireita(), true);
+            layout.block(world, -(WALL_HALF - 1), v, friso).setType(MOLDURA, false);
+            layout.block(world, WALL_HALF - 1, v, friso).setType(MOLDURA, false);
+        }
+
+        // Parede da frente, dos dois lados da porta.
+        for (int u = 5; u <= WALL_HALF - 2; u++) {
+            for (int lado : new int[]{-1, 1}) {
+                degrau(world, layout, lado * u, FRONT_V + 1, cornija, CONSOLE,
+                        layout.paraFora(), true);
+                layout.block(world, lado * u, FRONT_V + 1, friso)
+                        .setType(MOLDURA, false);
+            }
+        }
+    }
+
+    /**
+     * Barrotes travando pilar com pilar, com a luz do salao pendurada neles.
+     *
+     * Ficam na mesma linha dos pilares das laterais de proposito: barrote fora
+     * do eixo da coluna nao parece estrutura, parece tabua atravessada.
+     */
+    private void barrotesDoTeto(World world, Layout layout, int floorY) {
+        int altura = floorY + WALL_HEIGHT;
+
+        for (int v : PILARES_LATERAL) {
+            for (int u = -(WALL_HALF - 1); u <= WALL_HALF - 1; u++) {
+                layout.block(world, u, v, altura).setType(VIGA, false);
+            }
+            for (int u : new int[]{-6, 6}) {
+                lanternaPendurada(world, layout, u, v, altura - 1);
+            }
+        }
+    }
+
+    /**
+     * O piso repetindo as baias.
+     *
+     * Linha escura no assoalho embaixo de cada barrote. Custa quase nada e e o
+     * que amarra o chao na estrutura: sem isso, o piso e um tabuado continuo
+     * que denuncia o tamanho vazio do salao.
+     */
+    private void pisoEmBaias(World world, Layout layout, int floorY) {
+        for (int v : PILARES_LATERAL) {
+            for (int u = -(WALL_HALF - 2); u <= WALL_HALF - 2; u++) {
+                layout.block(world, u, v, floorY).setType(PISO_SALAO_TRILHO, false);
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------
+    //  Praca: o resto do lote
+    // ------------------------------------------------------------------
+
+    /**
+     * O que acontece fora das paredes.
+     *
+     * A loja ficava no meio de um lote vazio: anel fino de pedra, e grama ate
+     * a rua. Terreno vazio em volta de uma construcao nao le como jardim, le
+     * como obra que parou.
+     *
+     * O desenho tem tres partes, e nenhuma delas e "pavimentar tudo" —
+     * praca toda de pedra e tao vazia quanto grama toda, so que cinza:
+     *
+     *  - CALCADA de dois blocos abracando o predio, continuando a borda que
+     *    ja existia;
+     *  - ALAMEDA saindo da porta ate a rua, com os totens de dica dos dois
+     *    lados, poste de luz e banco;
+     *  - GRAMADO no resto, com canteiro de flor e arvore, que e o que da
+     *    escala a construcao e esconde o quanto o lote e quadrado.
+     *
+     * Cada bloco assentado passa por podePavimentar(): so chao natural vira
+     * piso. E assim que a praca para sozinha na rua do lote, sem o plugin
+     * precisar saber onde a rua fica.
+     */
+    private void buildPraca(World world, Layout layout, int floorY) {
+        int assentados = 0;
+
+        for (int u = -ENVELOPE_HALF; u <= ENVELOPE_HALF; u++) {
+            for (int v = ENVELOPE_MIN_V; v <= ENVELOPE_MAX_V; v++) {
+                if (dentroDaFootprint(u, v)) {
+                    continue;
+                }
+                Material piso = pisoDaPraca(u, v);
+                if (piso == null) {
+                    continue;
+                }
+                if (assentarPiso(world, layout, u, v, floorY, piso)) {
+                    assentados++;
+                }
+            }
+        }
+
+        buildTotens(world, layout, floorY);
+        buildMobiliarioDaPraca(world, layout, floorY);
+
+        plugin.getLogger().info("[loja] Praça: " + assentados + " bloco(s) de piso.");
+    }
+
+    /** O retangulo da construcao, que ja foi tratado por buildFloor(). */
+    static boolean dentroDaFootprint(int u, int v) {
+        return Math.abs(u) <= HALF_WIDTH && v >= MIN_V && v <= MAX_V;
+    }
+
+    /**
+     * O piso de cada coluna da praca, ou null para deixar gramado.
+     *
+     * Estatico e sem World pelo mesmo motivo de pisoDe(): desenho de chao
+     * errado nao da erro, da mancha — e so aparece com a obra pronta.
+     */
+    static Material pisoDaPraca(int u, int v) {
+        boolean calcada = Math.abs(u) <= HALF_WIDTH + 2
+                && v >= MIN_V - 2 && v <= MAX_V + 2;
+        boolean alameda = Math.abs(u) <= 4 && v < MIN_V;
+
+        if (!calcada && !alameda) {
+            return null;
+        }
+
+        if (alameda) {
+            if (Math.abs(u) == 4) {
+                return PISO_BORDA;
+            }
+            if (Math.abs(u) == 3) {
+                return PISO_PRACA_LINHA;
+            }
+            // Travessa clara a cada quatro blocos: a alameda deixa de ser um
+            // corredor sem fim e passa a ter passos contados.
+            return v % 4 == 0 ? PISO_TAPETE : PISO_PRACA;
+        }
+
+        boolean beirada = Math.abs(u) == HALF_WIDTH + 2
+                || v == MIN_V - 2 || v == MAX_V + 2;
+        return beirada ? PISO_BORDA : PISO_PRACA_LINHA;
+    }
+
+    /**
+     * Assenta um bloco de piso — se, e so se, ali for chao natural.
+     *
+     * Devolve false sem tocar em nada quando a coluna e rua, borda de lote,
+     * construcao de alguem ou buraco. Esta e a unica protecao que a praca
+     * tem contra invadir o lote vizinho, e e de proposito que ela seja uma
+     * pergunta sobre o bloco, e nao uma conta de coordenada.
+     */
+    private boolean assentarPiso(World world, Layout layout, int u, int v,
+                                 int floorY, Material piso) {
+        Block chao = layout.block(world, u, v, floorY);
+        if (roleOf(chao) != BlockRole.GROUND) {
+            return false;
+        }
+
+        chao.setType(piso, false);
+
+        // Tufo de grama e flor que ficariam flutuando sobre o piso novo.
+        for (int y = floorY + 1; y <= floorY + 2; y++) {
+            Block acima = layout.block(world, u, v, y);
+            if (roleOf(acima) == BlockRole.VEGETATION) {
+                acima.setType(Material.AIR, false);
+            }
+        }
+        return true;
+    }
+
+    /**
+     * O chao desta coluna aceita um enfeite em pe?
+     *
+     * Aceita grama (gramado do lote) e o piso que ESTA obra acabou de
+     * assentar — nada mais. Aceitar "construido" em geral era um furo com
+     * cara de detalhe: a rua do lote e a borda de blackstone tambem sao
+     * construidas, e bastava um canteiro cair perto da divisa para o plugin
+     * plantar arvore no meio da rua do bairro.
+     */
+    private boolean chaoFirme(World world, Layout layout, int u, int v, int floorY) {
+        Block chao = layout.block(world, u, v, floorY);
+        boolean aceito = roleOf(chao) == BlockRole.GROUND || PISOS_DA_PRACA.contains(chao.getType());
+        if (!aceito) {
+            return false;
+        }
+        BlockRole acima = roleOf(layout.block(world, u, v, floorY + 1));
+        return acima == BlockRole.AIR || acima == BlockRole.VEGETATION;
+    }
+
+    /** O que buildPraca() assenta — e, portanto, pode receber enfeite em cima. */
+    private static final java.util.Set<Material> PISOS_DA_PRACA = java.util.Set.of(
+            PISO_PRACA, PISO_PRACA_LINHA, PISO_BORDA, PISO_TAPETE);
+
+    /**
+     * Os postes de dica da alameda.
+     *
+     * Ficam no gramado, encostados na alameda, virados para quem sobe — texto
+     * se le andando, nao parando. O texto vem do ajuda.yml para poder ser
+     * corrigido sem recompilar: dica errada e divida, e divida se paga rapido.
+     */
+    private void buildTotens(World world, Layout layout, int floorY) {
+        java.util.List<PainelAjuda.Totem> totens = plugin.painelAjuda().totens();
+        if (totens.isEmpty()) {
+            return;
+        }
+
+        int[] linhasV = {MIN_V - 3, MIN_V - 6, MIN_V - 9, MIN_V - 12};
+        int postos = 0;
+
+        for (int i = 0; i < totens.size(); i++) {
+            int lado = (i % 2 == 0) ? -1 : 1;
+            int v = linhasV[(i / 2) % linhasV.length];
+            int u = lado * 5;
+
+            if (!chaoFirme(world, layout, u, v, floorY)) {
+                continue;
+            }
+            if (poste(world, layout, u, v, floorY, lado, totens.get(i))) {
+                postos++;
+            }
+        }
+
+        plugin.getLogger().info("[loja] Alameda: " + postos + " totem(ns) de dica.");
+    }
+
+    /** Um poste: tronco, placa virada para a alameda e lanterna em cima. */
+    private boolean poste(World world, Layout layout, int u, int v, int floorY,
+                          int lado, PainelAjuda.Totem totem) {
+        layout.block(world, u, v, floorY + 1).setType(VIGA, false);
+        layout.block(world, u, v, floorY + 2).setType(VIGA, false);
+        layout.block(world, u, v, floorY + 3).setType(Material.LANTERN, false);
+
+        Block placa = layout.block(world, u - lado, v, floorY + 2);
+        placa.setType(Material.SPRUCE_WALL_SIGN, false);
+
+        BlockFace olhando = lado < 0 ? layout.paraDireita() : layout.paraEsquerda();
+        if (placa.getBlockData() instanceof Directional direcional) {
+            direcional.setFacing(olhando);
+            placa.setBlockData(direcional, false);
+        }
+
+        if (!(placa.getState() instanceof Sign sign)) {
+            return false;
+        }
+
+        SignSide frente = sign.getSide(Side.FRONT);
+        for (int n = 0; n < 4 && n < totem.linhas().size(); n++) {
+            frente.line(n, Component.text(totem.linhas().get(n)));
+        }
+
+        // Cor e brilho vao no BLOCO, nunca em codigo dentro do texto: placa
+        // de loja ja ensinou essa licao — codigo de cor na linha e lido junto
+        // com o conteudo e estraga o que a linha significa.
+        try {
+            frente.setColor(DyeColor.valueOf(totem.cor()));
+        } catch (IllegalArgumentException erro) {
+            frente.setColor(DyeColor.ORANGE);
+        }
+        frente.setGlowingText(true);
+        sign.setWaxed(true);
+        sign.update(true, false);
+        return true;
+    }
+
+    /**
+     * Poste de luz, banco, canteiro e arvore.
+     *
+     * Tudo preso ao eixo da alameda ou ao canto do lote — enfeite espalhado
+     * no gramado sem relacao com a construcao e o que faz jardim parecer
+     * sobra de obra.
+     */
+    private void buildMobiliarioDaPraca(World world, Layout layout, int floorY) {
+        // Postes de luz ladeando a boca da alameda e o meio do caminho.
+        for (int v : new int[]{MIN_V - 4, MIN_V - 10}) {
+            for (int lado : new int[]{-1, 1}) {
+                posteDeLuz(world, layout, lado * 7, v, floorY);
+            }
+        }
+
+        // Bancos virados para a alameda, na sombra dos canteiros.
+        for (int lado : new int[]{-1, 1}) {
+            for (int v : new int[]{MIN_V - 7, MIN_V - 8}) {
+                if (!chaoFirme(world, layout, lado * 7, v, floorY)) {
+                    continue;
+                }
+                degrau(world, layout, lado * 7, v, floorY + 1, Material.SPRUCE_STAIRS,
+                        lado < 0 ? layout.paraDireita() : layout.paraEsquerda(), false);
+            }
+        }
+
+        // Canteiros de flor: dois na frente, nos cantos do gramado.
+        for (int lado : new int[]{-1, 1}) {
+            canteiro(world, layout, lado * 11, MIN_V - 6, floorY);
+            canteiro(world, layout, lado * 11, MIN_V - 11, floorY);
+        }
+
+        // Arvore em cada canto do lote. Da escala ao predio e tira o quadrado
+        // do terreno — de dentro da loja, e o que aparece pela janela.
+        for (int lado : new int[]{-1, 1}) {
+            arvore(world, layout, lado * 18, MIN_V - 8, floorY);
+            arvore(world, layout, lado * 18, CENTER_V, floorY);
+            arvore(world, layout, lado * 18, MAX_V + 5, floorY);
+        }
+    }
+
+    /** Poste de cerca com lanterna no alto. */
+    private void posteDeLuz(World world, Layout layout, int u, int v, int floorY) {
+        if (!chaoFirme(world, layout, u, v, floorY)) {
+            return;
+        }
+        for (int y = floorY + 1; y <= floorY + 3; y++) {
+            layout.block(world, u, v, y).setType(Material.SPRUCE_FENCE, false);
+        }
+        layout.block(world, u, v, floorY + 4).setType(Material.LANTERN, false);
+    }
+
+    /** Canteiro 3x3 com flor no meio e folhagem na borda. */
+    private void canteiro(World world, Layout layout, int u, int v, int floorY) {
+        Material[] flores = {Material.POPPY, Material.DANDELION, Material.ORANGE_TULIP,
+                Material.CORNFLOWER, Material.OXEYE_DAISY};
+
+        for (int du = -1; du <= 1; du++) {
+            for (int dv = -1; dv <= 1; dv++) {
+                int cu = u + du;
+                int cv = v + dv;
+                if (!chaoFirme(world, layout, cu, cv, floorY)) {
+                    continue;
+                }
+
+                boolean borda = du != 0 || dv != 0;
+                layout.block(world, cu, cv, floorY)
+                        .setType(borda ? Material.COARSE_DIRT : Material.PODZOL, false);
+
+                if (borda) {
+                    // Deterministico de proposito: canteiro sorteado muda a
+                    // cada obra e nao da para corrigir pela foto.
+                    int sorte = Math.floorMod(cu * 31 + cv * 17, flores.length);
+                    layout.block(world, cu, cv, floorY + 1).setType(flores[sorte], false);
+                } else {
+                    layout.block(world, cu, cv, floorY + 1)
+                            .setType(Material.FLOWERING_AZALEA, false);
+                }
+            }
+        }
+    }
+
+    /** Spruce pequena, de folha que nao apodrece. */
+    private void arvore(World world, Layout layout, int u, int v, int floorY) {
+        if (!chaoFirme(world, layout, u, v, floorY)) {
+            return;
+        }
+
+        int tronco = 4;
+        for (int y = 1; y <= tronco; y++) {
+            layout.block(world, u, v, floorY + y).setType(Material.SPRUCE_LOG, false);
+        }
+
+        for (int du = -2; du <= 2; du++) {
+            for (int dv = -2; dv <= 2; dv++) {
+                int raio = Math.abs(du) + Math.abs(dv);
+                if (raio > 2) {
+                    continue;
+                }
+                for (int y = tronco - 1; y <= tronco + 1; y++) {
+                    if (du == 0 && dv == 0 && y <= tronco) {
+                        continue;
+                    }
+                    if (raio == 2 && y != tronco - 1) {
+                        continue;
+                    }
+                    folhaDeCopa(layout.block(world, u + du, v + dv, floorY + y));
+                }
+            }
+        }
+        folhaDeCopa(layout.block(world, u, v, floorY + tronco + 2));
+    }
+
+    /** Folha de spruce persistente: sem tronco vizinho suficiente, ela cairia. */
+    private void folhaDeCopa(Block bloco) {
+        if (!bloco.getType().isAir()) {
+            return;
+        }
+        bloco.setType(Material.SPRUCE_LEAVES, false);
+        if (bloco.getBlockData() instanceof Leaves folhas) {
+            folhas.setPersistent(true);
+            bloco.setBlockData(folhas, false);
+        }
+    }
+
+    // ------------------------------------------------------------------
     //  Tema The Bigas
     // ------------------------------------------------------------------
 
@@ -1252,12 +1789,10 @@ public final class SpawnShopBuilder {
      * loja de departamento, nao uma casa de mercado.
      */
     private void buildTema(World world, Layout layout, int floorY) {
-        // Estandartes acima do balcao do fundo: e a parede que o jogador
-        // encara enquanto compra.
-        for (int u = -8; u <= 8; u += 4) {
-            bandeira(world, layout, u, BACK_V - 1, floorY + 5,
-                    u % 8 == 0 ? Material.ORANGE_WALL_BANNER : Material.YELLOW_WALL_BANNER);
-        }
+        // Os estandartes do salao agora penduram nos pilares, em buildBaias().
+        // Em fila solta no alto da parede eles nao pertenciam a nada: cor
+        // espalhada e cor que o olho ignora. Presa na coluna, cada bandeira
+        // marca uma baia.
 
         // Sino da feira, pendurado no barrote da colunata. Toca de verdade.
         sino(world, layout, -DOOR_HALF - 3, MIN_V + 2, floorY + 4);
@@ -1359,6 +1894,35 @@ public final class SpawnShopBuilder {
     static final int PAREDE_FUNDO = 0;
     static final int PAREDE_ESQUERDA = 1;
     static final int PAREDE_DIREITA = 2;
+    static final int PAREDE_FRENTE = 3;
+
+    /**
+     * Onde a prateleira para e nasce um pilar.
+     *
+     * E a correcao do defeito de projeto da primeira versao: 23 vagas iguais
+     * em fila, do canto ao canto, duas vezes. Plano longo sem quebra nenhuma
+     * le como estante de deposito, por mais caprichada que seja cada vaga —
+     * o olho procura agrupamento e nao acha nenhum.
+     *
+     * Com pilar a cada cinco colunas, a parede vira BAIA: quatro vagas, um
+     * pilar, quatro vagas. O olho le quatro grupos de quatro em vez de uma
+     * fila de dezoito, e cada baia ganha sua propria luz.
+     *
+     * O pilar do meio (u = 0) e o eixo da construcao: ele cai na linha da
+     * porta, do corredor de tapete e da cumeeira. Alinhar o foco com o eixo e
+     * o que faz o salao ter frente e fundo em vez de ser um corredor.
+     */
+    private static final int[] PILARES_FUNDO = {-10, -5, 0, 5, 10};
+    private static final int[] PILARES_LATERAL = {5, 10, 15, 20};
+
+    private static boolean ehPilar(int[] lista, int valor) {
+        for (int pilar : lista) {
+            if (pilar == valor) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * As posicoes do balcao: {u, v, altura do barril, parede}.
@@ -1379,7 +1943,20 @@ public final class SpawnShopBuilder {
         for (int altura : PRATELEIRAS) {
             // Parede do fundo: placa olha para a entrada.
             for (int u = -(WALL_HALF - 1); u <= WALL_HALF - 1; u++) {
+                if (ehPilar(PILARES_FUNDO, u)) {
+                    continue;
+                }
                 posicoes.add(new int[]{u, BACK_V - 1, altura, PAREDE_FUNDO});
+            }
+
+            // Parede da frente, dos dois lados da porta. Estas placas olham
+            // para o fundo: quem le e quem ja esta dentro e se virou.
+            //
+            // Comecam em |u| = 5 para nao encostar no vao da porta, e param em
+            // 9 porque em 10 a placa cairia no bloco do barril da lateral.
+            for (int u = 5; u <= 9; u++) {
+                posicoes.add(new int[]{-u, FRONT_V + 1, altura, PAREDE_FRENTE});
+                posicoes.add(new int[]{u, FRONT_V + 1, altura, PAREDE_FRENTE});
             }
 
             // Laterais: placa olha para o centro do salao.
@@ -1396,7 +1973,10 @@ public final class SpawnShopBuilder {
             //
             // Os dois casos terminam igual: a segunda placa e escrita em cima
             // da primeira e um item some da loja sem erro no console.
-            for (int v = FRONT_V + 1; v <= BACK_V - 3; v++) {
+            for (int v = FRONT_V + 2; v <= BACK_V - 3; v++) {
+                if (ehPilar(PILARES_LATERAL, v)) {
+                    continue;
+                }
                 posicoes.add(new int[]{-(WALL_HALF - 1), v, altura, PAREDE_ESQUERDA});
                 posicoes.add(new int[]{WALL_HALF - 1, v, altura, PAREDE_DIREITA});
             }
@@ -1414,6 +1994,7 @@ public final class SpawnShopBuilder {
             BlockFace olhando = switch (posicao[3]) {
                 case PAREDE_ESQUERDA -> right;
                 case PAREDE_DIREITA -> right.getOppositeFace();
+                case PAREDE_FRENTE -> inward;
                 default -> layout.frontFace();
             };
             vagas.add(new ShopSlot(posicao[0], posicao[1], posicao[2], posicao[3], olhando));
@@ -1463,7 +2044,11 @@ public final class SpawnShopBuilder {
 
     /** Passo em v do barril ate o bloco da placa. */
     static int desvioVDaParede(int parede) {
-        return parede == PAREDE_FUNDO ? -1 : 0;
+        return switch (parede) {
+            case PAREDE_FUNDO -> -1;
+            case PAREDE_FRENTE -> 1;
+            default -> 0;
+        };
     }
 
     /**
@@ -1511,15 +2096,20 @@ public final class SpawnShopBuilder {
             layout.block(world, vaga.u(), vaga.v(), barrilY)
                     .setType(Material.BARREL, false);
 
-            // Tampo de laje sobre o barril.
+            // Tampo de laje sobre o barril: o item POUSA em algo em vez de
+            // flutuar meio enterrado na tampa.
             //
-            // Duas funcoes: o item deixa de flutuar meio enterrado na tampa do
-            // barril (ele agora POUSA em cima de algo) e a fileira ganha uma
-            // linha clara que separa uma prateleira da outra. Pedra lisa
-            // porque item escuro — carvao, obsidiana — some num tampo escuro,
-            // e a parede atras ja e tijolo de pedra.
+            // Cobre encerado, e nao mais pedra lisa. A pedra resolvia o
+            // problema de leitura (item escuro aparece) e criava outro: uma
+            // listra quase branca atravessando a parede inteira, de canto a
+            // canto, virava a coisa mais clara do salao e puxava o olho para
+            // si em vez de para a mercadoria. O cobre encerado tem valor
+            // medio — item escuro continua aparecendo — e e quente, da mesma
+            // familia do laranja da marca. Encerado porque o cobre cru
+            // oxidaria e a loja ficaria esverdeada sozinha em algumas
+            // semanas.
             layout.block(world, vaga.u(), vaga.v(), barrilY + 1)
-                    .setType(Material.SMOOTH_STONE_SLAB, false);
+                    .setType(Material.WAXED_CUT_COPPER_SLAB, false);
             placeShopSign(world, layout, vaga, barrilY, dono, item);
             plugin.shopDisplays().spawn(world, layout, vaga.u(), vaga.v(), barrilY,
                     vaga.desvioU(), vaga.desvioV(), item);

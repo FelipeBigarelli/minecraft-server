@@ -67,8 +67,9 @@ class BalcaoDaLojaTest {
 
             boolean coladaNaLateral = Math.abs(u) == SpawnShopBuilder.WALL_HALF - 1;
             boolean coladaNoFundo = v == SpawnShopBuilder.BACK_V - 1;
+            boolean coladaNaFrente = v == SpawnShopBuilder.FRONT_V + 1;
 
-            assertTrue(coladaNaLateral || coladaNoFundo,
+            assertTrue(coladaNaLateral || coladaNoFundo || coladaNaFrente,
                     "vaga solta no meio do salao: u=" + u + " v=" + v);
         }
     }
@@ -76,8 +77,9 @@ class BalcaoDaLojaTest {
     @Test
     @DisplayName("o balcao comporta o catalogo com folga para as raridades")
     void cabeOCatalogoComFolga() {
-        // 62 itens no economy.yml hoje. A folga existe para a prateleira de
-        // raridades (ovo de aldeao e companhia) entrar sem obra nova.
+        // 82 itens no economy.yml hoje. A folga sobrevive ao corte das
+        // colunas que viraram pilar: a loja perdeu 10 vagas para ganhar
+        // ritmo, e ainda sobra espaco para catalogo novo sem obra.
         assertTrue(SpawnShopBuilder.adminShopSlotCount() >= 100,
                 "o balcao tem so " + SpawnShopBuilder.adminShopSlotCount() + " vagas");
     }

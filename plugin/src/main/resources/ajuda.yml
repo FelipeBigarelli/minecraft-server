@@ -222,3 +222,79 @@ paineis:
       - ""
       - "<#6FD3FF>/pedreiro organizar <dark_gray>— arruma o baú"
       - "<#6FD3FF>/biga eco regras <dark_gray>— as regras da moeda"
+
+# =============================================================
+#  TOTENS DA PRAÇA — as placas da alameda da Biga Market
+#
+#  Vão em postes dos dois lados do caminho da entrada, erguidos
+#  junto com a loja (/biga loja criar). Quem chega lê andando.
+#
+#  REGRA DE OURO: só entra aqui comando que EXISTE e que o
+#  jogador comum pode rodar. Placa com comando errado é pior do
+#  que placa nenhuma — ela ensina errado e some do console.
+#  O paredão de ajuda é o texto longo; aqui é o lembrete.
+#
+#  Cada linha tem no máximo 90 pixels (o limite da placa do
+#  Minecraft). O teste TotensDaPracaTest mede isso com a mesma
+#  tabela de largura de fonte usada nos painéis: linha que
+#  estourar quebra o build, não aparece cortada em jogo.
+#
+#  cor: tinta da placa (ORANGE, YELLOW, WHITE, LIME...).
+#  As placas saem brilhantes, legíveis de noite.
+# =============================================================
+totens:
+  - cor: ORANGE
+    linhas:
+      - "COMECE AQUI"
+      - "/spawn volta"
+      - "/list quem ta on"
+      - "/kit tools"
+
+  - cor: YELLOW
+    linhas:
+      - "GANHAR B$"
+      - "item na mao:"
+      - "/biga eco"
+      - "vender"
+
+  - cor: ORANGE
+    linhas:
+      - "SUA CARTEIRA"
+      - "/saldo"
+      - "/pay nome 100"
+      - "/baltop"
+
+  - cor: YELLOW
+    linhas:
+      - "SUA CASA"
+      - "/sethome casa"
+      - "/home"
+      - "no ar e queda"
+
+  - cor: ORANGE
+    linhas:
+      - "SEU TERRENO"
+      - "/tr preco 20"
+      - "/tr comprar 20"
+      - "/tr teleportar"
+
+  - cor: YELLOW
+    linhas:
+      - "ENCOMENDAS"
+      - "/enc lista"
+      - "/enc criar"
+      - "/enc entregar 3"
+
+  - cor: ORANGE
+    linhas:
+      - "SUA LOJA"
+      - "bau + placa"
+      - "e de graca"
+      - "B vende, V paga"
+
+  - cor: YELLOW
+    linhas:
+      - "SE MORRER"
+      - "fica um tumulo"
+      - "so voce abre"
+      - "/back volta la"
