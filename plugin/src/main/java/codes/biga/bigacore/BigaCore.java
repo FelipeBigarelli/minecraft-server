@@ -124,6 +124,10 @@ public final class BigaCore extends JavaPlugin {
         // o CreativePlots nao estiver instalado.
         getServer().getPluginManager().registerEvents(new PlotPurchaseListener(this), this);
 
+        // Troca as recusas em inglês do CreativePlots por mensagens nossas.
+        // Roda em LOWEST, antes do listener dele, que é ignoreCancelled.
+        getServer().getPluginManager().registerEvents(new PlotAvisoListener(this), this);
+
         this.pedreiro = new Pedreiro(this);
 
         var cmdPedreiro = getCommand("pedreiro");

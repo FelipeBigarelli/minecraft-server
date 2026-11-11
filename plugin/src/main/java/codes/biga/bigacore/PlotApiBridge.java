@@ -2,6 +2,7 @@ package codes.biga.bigacore;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import java.lang.reflect.Constructor;
@@ -40,6 +41,13 @@ public final class PlotApiBridge {
     private Method isPlotWorldLocation;
     private Method getPlotAtLocation;
     private Method getPlotOwnerUuid;
+
+    // Opcionais: usados só pelas mensagens do PlotAvisoListener. Ficam fora do
+    // contrato de available() de propósito. Se uma versão futura do
+    // CreativePlots renomear um destes, a venda de terreno — que é dinheiro —
+    // continua funcionando, e o que se perde é a mensagem bonita.
+    private Method canBuildLocation;
+    private Method getPlotOwnerNome;
 
     /**
      * Sem cache de falha de propósito.
@@ -104,6 +112,48 @@ public final class PlotApiBridge {
         }
     }
 
+    /**
+     * O CreativePlots deixaria este jogador construir aqui?
+     *
+     * Vazio significa "não sei" — API ausente, posição fora de mundo de
+     * terrenos, ou erro de reflexão. Quem chama tem de tratar o vazio como
+     * "não faça nada", nunca como "pode" ou "não pode": é a diferença entre
+     * uma mensagem que não aparece e um jogador impedido de construir no
+     * próprio terreno.
+     *
+     * A resposta vem do mesmo {@code canBuild} que o listener de proteção do
+     * CreativePlots consulta. Reimplementar a regra aqui — dono, convidado,
+     * flags, permissão de bypass — garantiria divergência na primeira
+     * atualização dele.
+     */
+    public Optional<Boolean> podeConstruir(Player jogador, Location local) {
+        if (jogador == null || local == null || !available() || canBuildLocation == null) {
+            return Optional.empty();
+        }
+        try {
+            Object resposta = canBuildLocation.invoke(api, jogador, local);
+            return resposta instanceof Boolean pode ? Optional.of(pode) : Optional.empty();
+        } catch (IllegalAccessException | InvocationTargetException erro) {
+            return Optional.empty();
+        }
+    }
+
+    /** Nome de quem é dono do terreno, para mostrar na mensagem. */
+    public Optional<String> donoNomeDe(String mundo, String terreno) {
+        if (mundo == null || terreno == null || !available() || getPlotOwnerNome == null) {
+            return Optional.empty();
+        }
+        try {
+            Object resposta = getPlotOwnerNome.invoke(api, mundo, terreno);
+            if (resposta instanceof String nome && !nome.isBlank() && !"None".equals(nome)) {
+                return Optional.of(nome);
+            }
+            return Optional.empty();
+        } catch (IllegalAccessException | InvocationTargetException erro) {
+            return Optional.empty();
+        }
+    }
+
     private boolean discover() {
         try {
             Plugin creativePlots = Bukkit.getPluginManager().getPlugin(PLUGIN);
@@ -133,10 +183,22 @@ public final class PlotApiBridge {
             this.getPlotAtLocation = tipoApi.getMethod("getPlotAt", Location.class);
             this.getPlotOwnerUuid = tipoApi.getMethod(
                     "getPlotOwnerUUID", String.class, String.class);
+
+            // Opcionais: ausência aqui não derruba a ponte.
+            this.canBuildLocation = metodoOpcional(tipoApi, "canBuild", Player.class, Location.class);
+            this.getPlotOwnerNome = metodoOpcional(tipoApi, "getPlotOwnerName", String.class, String.class);
             return true;
         } catch (ReflectiveOperationException | RuntimeException erro) {
             this.api = null;
             return false;
+        }
+    }
+
+    private static Method metodoOpcional(Class<?> tipo, String nome, Class<?>... parametros) {
+        try {
+            return tipo.getMethod(nome, parametros);
+        } catch (NoSuchMethodException ausente) {
+            return null;
         }
     }
 }
