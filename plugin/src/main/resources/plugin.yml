@@ -49,6 +49,12 @@ commands:
     aliases: [enc, pedido]
     permission: bigacore.encomenda
 
+  tag:
+    description: Compra e administra o apelido que aparece na lista do TAB
+    usage: "/tag <comprar|cor|cores|remover|lista|ver|limpar>"
+    aliases: [apelido]
+    permission: bigacore.tag
+
   pedreiro:
     description: Estuda uma construcao existente e refaz em outro lugar
     usage: "/pedreiro <p1|p2|estudar|obras|construir|parar|desfazer|amostra|organizar>"
@@ -95,6 +101,14 @@ permissions:
     # que ele mesmo pediu, e so descobriria um defeito nela por reclamacao
     # de jogador.
     default: false
+  bigacore.tag:
+    description: Permite comprar e trocar a tag da lista do TAB
+    default: true
+  bigacore.tag.admin:
+    description: Remove a tag de outro jogador
+    # op, e nao false: moderacao de texto exibido para todo mundo precisa
+    # estar na mao de quem ja pode banir, sem passo extra de LuckPerms.
+    default: op
   bigacore.encomenda:
     description: Permite abrir, entregar e cancelar encomendas
     default: true

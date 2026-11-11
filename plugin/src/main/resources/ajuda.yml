@@ -127,6 +127,9 @@ paineis:
       - "<#6FD3FF>/sethome <dark_gray>······· <#FFD700><simbolo>200"
       - ""
       - "<gray>Abrir loja e vender no baú <white>não custam."
+      - ""
+      - "<gray>Quer seu apelido na lista do TAB?"
+      - "<#6FD3FF>/tag <dark_gray>············ <#FFD700><simbolo><tag-preco>"
 
   - titulo: "<gradient:#FF6A00:#FFD700><bold>ENCOMENDAS</bold></gradient>"
     linhas:

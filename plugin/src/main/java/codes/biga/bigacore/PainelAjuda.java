@@ -428,7 +428,9 @@ public final class PainelAjuda {
                 .replace("<encomenda-max>", String.valueOf(encomenda.precoMaximo()))
                 .replace("<encomenda-qtd>", String.valueOf(encomenda.quantidadeMaxima()))
                 .replace("<recompra-dia>", String.valueOf(eco.adminBuybackDailyCap()))
-                .replace("<recompra-semana>", String.valueOf(eco.adminBuybackWeeklyCap()));
+                .replace("<recompra-semana>", String.valueOf(eco.adminBuybackWeeklyCap()))
+                .replace("<tag-preco>", String.valueOf(plugin.tagCatalog().preco()))
+                .replace("<tag-troca>", String.valueOf(plugin.tagCatalog().precoDaTroca()));
 
         List<Integer> precos = eco.plotPrices();
         for (int i = 0; i < 3; i++) {

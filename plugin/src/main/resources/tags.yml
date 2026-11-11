@@ -1,0 +1,129 @@
+# =============================================================
+#  tags.yml — a lista do TAB e a tag paga
+#
+#  Duas coisas moram aqui porque são a mesma tela: o que o
+#  jogador vê ao segurar TAB, e o apelido que ele pode comprar
+#  para aparecer ali do lado do nome.
+#
+#  POR QUE A TAG É PAGA
+#  A economia do servidor tinha torneira (vender ao servidor,
+#  encomenda) e quase nenhum ralo. Cosmético pago é o ralo mais
+#  honesto que existe: quem compra não ganha vantagem nenhuma
+#  sobre quem não compra, e o dinheiro sai de circulação de vez.
+#
+#  Mexer em preço aqui vale na hora com /biga reload.
+# =============================================================
+version: 1
+
+lista:
+  # Cabeçalho e rodapé do TAB. MiniMessage, igual ao resto.
+  #
+  # Marcadores: <online> <limite> <tps> <mundo> <dia>
+  #             <saldo> <simbolo> <ping> <nome> <tag>
+  cabecalho:
+    - ""
+    - "<gradient:#FF6A00:#FFD700><bold>THE BIGAS</bold></gradient>"
+    - "<gray>mundo de ilhas flutuantes</gray>"
+    - ""
+    - "<dark_gray>▸</dark_gray> <white><online></white><gray>/<limite> online</gray>   <dark_gray>▸</dark_gray> <gray>TPS </gray><tps>   <dark_gray>▸</dark_gray> <gray>dia </gray><white><dia></white>"
+    - ""
+
+  rodape:
+    - ""
+    - "<gray>sua carteira</gray> <#FFD700><simbolo><saldo></#FFD700>   <dark_gray>·</dark_gray>   <gray>seu ping</gray> <ping>"
+    - ""
+    - "<gray>dúvida? o paredão no spawn tem tudo</gray>"
+    - "<#6FD3FF>/tag</#6FD3FF><dark_gray> para o seu apelido na lista</dark_gray>"
+    - ""
+
+  # Como o nome de cada um aparece na lista.
+  # <tag> some sozinho em quem não comprou.
+  formato-do-nome: "<tag><white><nome></white> <ping>"
+  formato-da-tag: "<dark_gray>[</dark_gray><cor><texto></cor><dark_gray>]</dark_gray> "
+
+  # Cor do ping por faixa, em milissegundos.
+  ping:
+    bom: 60
+    medio: 120
+    ruim: 200
+
+  # De quanto em quanto tempo a lista é redesenhada, em ticks.
+  #
+  # 40 (2s) de propósito: o ping e o saldo mudam devagar, e
+  # redesenhar a lista inteira todo tick é trabalho de rede
+  # para ninguém — a lista só existe enquanto alguém segura TAB.
+  intervalo: 40
+
+tag:
+  # Quanto custa, em B$. 0 em qualquer um desliga aquela venda.
+  preco: 2500
+  preco-troca: 800
+  preco-cor: 1200
+
+  # Tamanho do texto, em caracteres visíveis.
+  minimo: 3
+  maximo: 12
+
+  # Cores que o jogador pode escolher depois de comprar o direito.
+  # Nome do NamedTextColor do Adventure, em minúsculas.
+  cores:
+    - gold
+    - yellow
+    - aqua
+    - green
+    - light_purple
+    - red
+    - blue
+    - white
+
+  cor-padrao: gold
+
+  # -----------------------------------------------------------
+  #  Moderação
+  #
+  #  Tag é texto de jogador exibido para todo mundo: é a única
+  #  coisa no servidor em que um jogador escreve na tela dos
+  #  outros. As três regras abaixo existem por isso, e nenhuma
+  #  delas depende de alguém estar online para moderar.
+  #
+  #  A comparação é feita com o texto NORMALIZADO: minúsculo,
+  #  sem acento e com troca de número por letra (4=a, 3=e,
+  #  1=i, 0=o, 5=s, 7=t, @=a, $=s). Sem isso "4dm1n" passaria.
+  # -----------------------------------------------------------
+
+  # Palavra proibida: barra a tag se aparecer em qualquer lugar.
+  proibidas:
+    - admin
+    - adm
+    - dono
+    - staff
+    - mod
+    - moderador
+    - owner
+    - console
+    - server
+    - servidor
+    - suporte
+    - oficial
+    - bigacore
+
+  # Ofensa. Lista curta e aberta: ela não substitui moderação
+  # humana, só evita o óbvio na hora da compra.
+  ofensas:
+    - viado
+    - puta
+    - caralho
+    - buceta
+    - foda
+    - merda
+    - cu
+    - fdp
+    - arrombado
+    - nazi
+    - hitler
+
+  # Só estes caracteres entram numa tag. Letra, número, espaço
+  # e três sinais. Allowlist de propósito: símbolo novo do
+  # Unicode vira caractere invisível, barra de scoreboard ou
+  # nome falso de outro jogador com facilidade.
+  caracteres: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -_."

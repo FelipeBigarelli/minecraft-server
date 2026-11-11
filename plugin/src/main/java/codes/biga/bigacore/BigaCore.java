@@ -37,6 +37,9 @@ public final class BigaCore extends JavaPlugin {
     private CercaTerreno cercaTerreno;
     private EncomendaCatalog encomendaCatalog;
     private EncomendaLivro encomendaLivro;
+    private TagCatalog tagCatalog;
+    private TagStore tagStore;
+    private ListaDeJogadores listaDeJogadores;
 
     @Override
     public void onEnable() {
@@ -80,6 +83,14 @@ public final class BigaCore extends JavaPlugin {
             saveResource("encomendas.yml", false);
         }
 
+        // tags.yml: a lista do TAB e a tag paga. Regra no jar, tag comprada
+        // em tags-jogadores.yml — um update do plugin pode reescrever a
+        // primeira e nunca a segunda.
+        File tagsFile = new File(getDataFolder(), "tags.yml");
+        if (!tagsFile.exists()) {
+            saveResource("tags.yml", false);
+        }
+
         this.economyCatalog = new EconomyCatalog(this);
         this.economyBridge = new VaultEconomyBridge();
         this.spawnShopBuilder = new SpawnShopBuilder(this);
@@ -109,6 +120,11 @@ public final class BigaCore extends JavaPlugin {
         this.cercaTerreno = new CercaTerreno(this);
         this.encomendaCatalog = new EncomendaCatalog(this);
         this.encomendaLivro = new EncomendaLivro(this);
+        this.tagCatalog = new TagCatalog(this);
+        this.tagStore = new TagStore(this);
+        this.listaDeJogadores = new ListaDeJogadores(this);
+        getServer().getPluginManager().registerEvents(listaDeJogadores, this);
+        this.listaDeJogadores.start();
 
         // Precisa vir depois do ChestShop no softdepend, senão o plugin ainda
         // não está registrado e o hook do teto não encontra a classe do evento.
@@ -155,6 +171,15 @@ public final class BigaCore extends JavaPlugin {
             cmdEncomenda.setTabCompleter(executorEncomenda);
         } else {
             getLogger().severe("Comando 'encomenda' não declarado no plugin.yml — verifique o arquivo.");
+        }
+
+        var cmdTag = getCommand("tag");
+        if (cmdTag != null) {
+            var executorTag = new TagCommand(this);
+            cmdTag.setExecutor(executorTag);
+            cmdTag.setTabCompleter(executorTag);
+        } else {
+            getLogger().severe("Comando 'tag' não declarado no plugin.yml — verifique o arquivo.");
         }
 
         var cmd = getCommand("biga");
@@ -293,6 +318,9 @@ public final class BigaCore extends JavaPlugin {
         if (pedreiro != null) {
             pedreiro.desligar();
         }
+        if (listaDeJogadores != null) {
+            listaDeJogadores.parar();
+        }
         pedreiro = null;
         shopPreview = null;
         shopSnapshot = null;
@@ -377,6 +405,18 @@ public final class BigaCore extends JavaPlugin {
         return painelAjuda;
     }
 
+    public TagCatalog tagCatalog() {
+        return tagCatalog;
+    }
+
+    public TagStore tagStore() {
+        return tagStore;
+    }
+
+    public ListaDeJogadores listaDeJogadores() {
+        return listaDeJogadores;
+    }
+
     public WorldGuardBridge worldGuard() {
         return worldGuard;
     }
@@ -424,6 +464,13 @@ public final class BigaCore extends JavaPlugin {
         terrenoCatalog.reload();
         encomendaCatalog.reload();
         encomendaLivro.reload();
+        tagCatalog.reload();
+
+        // A lista do TAB reinicia junto: trocar o intervalo no tags.yml sem
+        // recriar a tarefa deixaria o numero novo no arquivo e o antigo
+        // rodando — o tipo de "nao funcionou" que custa meia hora.
+        listaDeJogadores.reload();
+        listaDeJogadores.start();
     }
 
     /**
