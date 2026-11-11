@@ -212,6 +212,32 @@ if [ -f "$ESSENTIALS_CONFIG" ]; then
     esac
 fi
 
+# A placa da loja mostra o item em português ("Ovo de Aldeao"). Quem traduz
+# isso de volta para o Material é o itemAliases.yml do ChestShop. Faltando a
+# linha de um item lá, a placa daquele item vira enfeite: ela aparece bonita na
+# parede, não vende nada, e NÃO sai erro nenhum no console.
+#
+# Foi o risco que apareceu quando 20 raridades entraram no catálogo de uma vez.
+# Regenerar: python3 server/scripts/gerar-aliases.py --escrever
+ALIASES="$SERVER_DIR/plugins/ChestShop/itemAliases.yml"
+ECONOMIA="$SERVER_DIR/plugins/BigaCore/economy.yml"
+if [ -f "$ALIASES" ] && [ -f "$ECONOMIA" ]; then
+    SEM_APELIDO=()
+    while IFS= read -r item; do
+        MAIUSCULO=$(printf '%s' "$item" | tr '[:lower:]' '[:upper:]')
+        grep -qE "^${MAIUSCULO}:" "$ALIASES" || SEM_APELIDO+=("$item")
+    done < <(sed -n '/^  wall:/,/^  [a-z]/p' "$ECONOMIA" \
+             | sed -n 's/^    - \([a-z0-9_]*\).*/\1/p')
+
+    if [ ${#SEM_APELIDO[@]} -eq 0 ]; then
+        ok "Todo item da loja tem apelido no ChestShop."
+    else
+        err "Itens na parede da loja sem apelido no itemAliases.yml: ${SEM_APELIDO[*]}. A placa deles não vende nada. Rode python3 server/scripts/gerar-aliases.py --escrever e reinicie."
+    fi
+elif [ -f "$ECONOMIA" ]; then
+    warn "ChestShop/itemAliases.yml não existe. Com nomes-em-portugues ligado, nenhuma placa da loja seria reconhecida."
+fi
+
 if grep -q '^eula=true$' "$SERVER_DIR/eula.txt" 2>/dev/null; then
     ok "EULA marcada como aceita pelo setup."
 else

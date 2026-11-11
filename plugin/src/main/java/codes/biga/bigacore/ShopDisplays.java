@@ -172,7 +172,7 @@ public final class ShopDisplays {
      * Fica um pouco acima do balcão, centralizado no bloco.
      */
     public void spawn(World world, SpawnShopBuilder.Layout layout,
-                      int u, int v, int floorY, EconomyCatalog.PriceEntry item) {
+                      int u, int v, int alturaDaPlaca, EconomyCatalog.PriceEntry item) {
 
         Material material = Material.matchMaterial(item.key());
         if (material == null || material.isAir()) {
@@ -181,7 +181,10 @@ public final class ShopDisplays {
             return;
         }
 
-        Location alvo = layout.block(world, u, v, floorY + 2)
+        // Na altura da PLACA, nao do piso: o balcao tem duas prateleiras, e
+        // com floorY fixo os itens do andar de cima nasciam todos colados no
+        // chao, longe do barril que representam.
+        Location alvo = layout.block(world, u, v, alturaDaPlaca)
                 .getLocation()
                 .add(0.5, 0.25, 0.5);
 

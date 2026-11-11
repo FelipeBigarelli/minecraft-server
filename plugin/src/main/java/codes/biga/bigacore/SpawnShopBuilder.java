@@ -10,9 +10,12 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.block.TileState;
+import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
+import org.bukkit.block.data.type.Lantern;
 import org.bukkit.block.data.type.Leaves;
+import org.bukkit.block.data.type.Stairs;
 import org.bukkit.block.sign.Side;
 import org.bukkit.block.sign.SignSide;
 
@@ -702,21 +705,117 @@ public final class SpawnShopBuilder {
         return removidos;
     }
 
+    // ------------------------------------------------------------------
+    //  Paleta
+    //
+    //  Duas regras, e o resto sai delas:
+    //
+    //  1. Pedra fria por fora, madeira quente por dentro. Quem olha de longe
+    //     ve uma construcao de pedra e telhado escuro; quem entra sente que
+    //     mudou de ambiente, em vez de continuar no mesmo tijolo cinza.
+    //
+    //  2. Cinco materiais, nao quinze. A versao anterior tinha pedra,
+    //     andesito, andesito polido, spruce, dark oak, tronco descascado,
+    //     vidro, la azul e la branca espalhados sem hierarquia, e por isso
+    //     parecia remendo. Aqui cada material tem UM papel: tijolo e base,
+    //     spruce e pano de parede, dark oak e moldura, tronco e estrutura.
+    // ------------------------------------------------------------------
+
+    /** Praca em volta da loja. */
+    private static final Material PISO_PRACA = Material.STONE_BRICKS;
+    private static final Material PISO_PRACA_LINHA = Material.POLISHED_ANDESITE;
+    private static final Material PISO_BORDA = Material.DEEPSLATE_TILES;
+    private static final Material PISO_TAPETE = Material.POLISHED_DIORITE;
+
+    /** Salao: tabua, nao tijolo. E o que separa dentro de fora. */
+    private static final Material PISO_SALAO = Material.SPRUCE_PLANKS;
+    private static final Material PISO_SALAO_TRILHO = Material.DARK_OAK_PLANKS;
+
+    private static final Material PAREDE_BASE = Material.STONE_BRICKS;
+    private static final Material PAREDE = Material.SPRUCE_PLANKS;
+    private static final Material PAREDE_FAIXA = Material.DARK_OAK_PLANKS;
+    private static final Material VIGA = Material.STRIPPED_DARK_OAK_LOG;
+    private static final Material MOLDURA = Material.STRIPPED_SPRUCE_LOG;
+
+    private static final Material TELHA = Material.SPRUCE_PLANKS;
+    private static final Material TELHA_ESCURA = Material.DARK_OAK_PLANKS;
+    private static final Material TELHA_DEGRAU = Material.DARK_OAK_STAIRS;
+    private static final Material CONSOLE = Material.DARK_OAK_STAIRS;
+
+    // ------------------------------------------------------------------
+    //  Piso
+    // ------------------------------------------------------------------
+
     private void buildFloor(World world, Layout layout, int floorY) {
         for (int u = -HALF_WIDTH; u <= HALF_WIDTH; u++) {
             for (int v = MIN_V; v <= MAX_V; v++) {
-                Material floorMaterial = Material.STONE_BRICKS;
-
-                boolean border = Math.abs(u) == HALF_WIDTH || v == MIN_V || v == MAX_V;
-                if (border) {
-                    floorMaterial = Material.POLISHED_ANDESITE;
-                } else if ((Math.abs(u) + Math.abs(v)) % 7 == 0) {
-                    floorMaterial = Material.ANDESITE;
-                }
-
-                layout.block(world, u, v, floorY).setType(floorMaterial, false);
+                layout.block(world, u, v, floorY).setType(pisoDe(u, v), false);
             }
         }
+    }
+
+    /**
+     * O bloco de piso de cada coluna.
+     *
+     * Estatico e sem World de proposito: o desenho do chao e a parte que mais
+     * se erra em silencio — um "%" trocado espalha manchas aleatorias e so da
+     * para ver com a loja ja construida, que e quando desfazer custa caro.
+     *
+     * O desenho tem tres zonas, de fora para dentro: borda escura marcando o
+     * limite do terreno, praca clara com um tapete na frente da porta, e o
+     * salao de madeira.
+     */
+    static Material pisoDe(int u, int v) {
+        boolean salao = Math.abs(u) < WALL_HALF && v > FRONT_V && v < BACK_V;
+        if (salao) {
+            boolean junto = Math.abs(u) == WALL_HALF - 1
+                    || v == BACK_V - 1 || v == FRONT_V + 1;
+            return junto ? PISO_SALAO_TRILHO : PISO_SALAO;
+        }
+
+        // Linha de baixo da parede: continua pedra, para a alvenaria nascer do
+        // chao em vez de pousar sobre tabua.
+        if (Math.abs(u) <= WALL_HALF && v >= FRONT_V && v <= BACK_V) {
+            return PAREDE_BASE;
+        }
+
+        if (Math.abs(u) == HALF_WIDTH || v == MIN_V || v == MAX_V) {
+            return PISO_BORDA;
+        }
+
+        boolean tapete = Math.abs(u) <= DOOR_HALF + 1
+                && v >= MIN_V + 2 && v <= FRONT_V - 1;
+        if (tapete) {
+            boolean moldura = Math.abs(u) == DOOR_HALF + 1 || v == MIN_V + 2;
+            return moldura ? PISO_BORDA : PISO_TAPETE;
+        }
+
+        if (Math.abs(u) == HALF_WIDTH - 1 || v == MIN_V + 1 || v == MAX_V - 1) {
+            return PISO_PRACA_LINHA;
+        }
+        return PISO_PRACA;
+    }
+
+    // ------------------------------------------------------------------
+    //  Paredes
+    // ------------------------------------------------------------------
+
+    /**
+     * Alvenaria por altura: embasamento de pedra, pano de spruce, friso escuro
+     * no topo.
+     *
+     * A faixa horizontal e o truque barato que mais muda a leitura de uma
+     * parede: sem ela, seis fileiras do mesmo material viram um paredao: com
+     * ela, a construcao ganha base, corpo e remate.
+     */
+    static Material materialDaParede(int y) {
+        if (y <= 2) {
+            return PAREDE_BASE;
+        }
+        if (y >= WALL_HEIGHT) {
+            return PAREDE_FAIXA;
+        }
+        return PAREDE;
     }
 
     private void buildMainStructure(World world, Layout layout, int floorY) {
@@ -728,45 +827,107 @@ public final class SpawnShopBuilder {
             }
         }
 
-        // Paredes laterais inteiras em tronco, incluindo os cantos.
+        // Laterais, com viga nos cantos e a cada cinco colunas. Antes eram
+        // tronco descascado de ponta a ponta: de fora, dois muros de madeira
+        // escura sem nenhum ritmo.
         for (int v = FRONT_V; v <= BACK_V; v++) {
+            boolean viga = v == FRONT_V || v == BACK_V || (v - FRONT_V) % 5 == 0;
             for (int u : new int[]{-WALL_HALF, WALL_HALF}) {
                 for (int y = 1; y <= WALL_HEIGHT; y++) {
                     layout.block(world, u, v, floorY + y)
-                            .setType(Material.STRIPPED_DARK_OAK_LOG, false);
+                            .setType(viga ? VIGA : materialDaParede(y), false);
                 }
             }
         }
 
-        // Pilares que quebram a monotonia da fachada.
+        // Pilares da fachada.
         for (int u = -WALL_HALF + 4; u <= WALL_HALF - 4; u += 5) {
             for (int y = 1; y <= WALL_HEIGHT - 1; y++) {
-                layout.block(world, u, FRONT_V, floorY + y)
-                        .setType(Material.STRIPPED_DARK_OAK_LOG, false);
+                layout.block(world, u, FRONT_V, floorY + y).setType(VIGA, false);
             }
         }
 
-        // Entrada ampla — circulação boa mesmo com vários jogadores.
+        // Entrada ampla — circulacao boa mesmo com varios jogadores.
         for (int u = -DOOR_HALF; u <= DOOR_HALF; u++) {
             for (int y = 1; y <= WALL_HEIGHT - 2; y++) {
                 layout.block(world, u, FRONT_V, floorY + y).setType(Material.AIR, false);
             }
         }
 
-        // Janelas frontais, dos dois lados da porta.
-        for (int u = DOOR_HALF + 2; u <= WALL_HALF - 2; u += 3) {
-            for (int y = 2; y <= 3; y++) {
-                layout.block(world, u, FRONT_V, floorY + y).setType(Material.GLASS_PANE, false);
-                layout.block(world, -u, FRONT_V, floorY + y).setType(Material.GLASS_PANE, false);
-            }
+        // Verga da porta: a abertura ganha um remate em vez de terminar no ar.
+        for (int u = -DOOR_HALF - 1; u <= DOOR_HALF + 1; u++) {
+            layout.block(world, u, FRONT_V, floorY + WALL_HEIGHT - 1)
+                    .setType(VIGA, false);
         }
 
-        // Janelas laterais.
-        for (int v = FRONT_V + 3; v <= BACK_V - 3; v += 4) {
-            for (int y = 2; y <= 3; y++) {
-                layout.block(world, -WALL_HALF, v, floorY + y).setType(Material.GLASS_PANE, false);
-                layout.block(world, WALL_HALF, v, floorY + y).setType(Material.GLASS_PANE, false);
+        janelas(world, layout, floorY);
+        consolesDoBeiral(world, layout, floorY);
+    }
+
+    /**
+     * Janelas de dois em dois blocos, com moldura.
+     *
+     * Vidro solto na parede le como buraco. A moldura de tronco descascado em
+     * volta e o que transforma o buraco em janela — e e o mesmo material do
+     * batente da porta, entao a fachada inteira fala a mesma lingua.
+     */
+    private void janelas(World world, Layout layout, int floorY) {
+        for (int u = DOOR_HALF + 3; u + 1 <= WALL_HALF - 2; u += 4) {
+            janela(world, layout, u, u + 1, FRONT_V, floorY);
+            janela(world, layout, -u - 1, -u, FRONT_V, floorY);
+        }
+
+        for (int v = FRONT_V + 3; v + 1 <= BACK_V - 3; v += 5) {
+            janelaLateral(world, layout, -WALL_HALF, v, floorY);
+            janelaLateral(world, layout, WALL_HALF, v, floorY);
+        }
+    }
+
+    private void janela(World world, Layout layout, int deU, int ateU, int v, int floorY) {
+        for (int u = deU; u <= ateU; u++) {
+            layout.block(world, u, v, floorY + 2).setType(MOLDURA, false);
+            layout.block(world, u, v, floorY + 5).setType(MOLDURA, false);
+            for (int y = 3; y <= 4; y++) {
+                layout.block(world, u, v, floorY + y).setType(Material.GLASS_PANE, false);
             }
+        }
+    }
+
+    /**
+     * Janela alta na lateral — vidro so na fileira 5.
+     *
+     * Nao e escolha estetica: a prateleira de cima do balcao ocupa as fileiras
+     * 3 e 4 das duas laterais, e placa de parede NAO gruda em vidraca. Janela
+     * baixa aqui apagaria uma vaga de loja sem erro nenhum no console.
+     */
+    private void janelaLateral(World world, Layout layout, int u, int v, int floorY) {
+        layout.block(world, u, v - 1, floorY + 5).setType(MOLDURA, false);
+        layout.block(world, u, v + 2, floorY + 5).setType(MOLDURA, false);
+        for (int passo = 0; passo <= 1; passo++) {
+            layout.block(world, u, v + passo, floorY + 5)
+                    .setType(Material.GLASS_PANE, false);
+        }
+    }
+
+    /**
+     * Cachorros de madeira sob o beiral.
+     *
+     * O telhado avanca um bloco alem da parede nos quatro lados. Sem apoio
+     * visivel ele parece colado no ar; com uma escada de ponta-cabeca embaixo,
+     * parece sustentado. E o detalhe mais barato desta reforma e o que mais
+     * muda a silhueta de longe.
+     */
+    private void consolesDoBeiral(World world, Layout layout, int floorY) {
+        int y = floorY + WALL_HEIGHT;
+
+        for (int u = -WALL_HALF + 4; u <= WALL_HALF - 4; u += 5) {
+            degrau(world, layout, u, FRONT_V - 1, y, CONSOLE, layout.paraDentro(), true);
+            degrau(world, layout, u, BACK_V + 1, y, CONSOLE, layout.paraFora(), true);
+        }
+
+        for (int v = FRONT_V; v <= BACK_V; v += 5) {
+            degrau(world, layout, -WALL_HALF - 1, v, y, CONSOLE, layout.paraDireita(), true);
+            degrau(world, layout, WALL_HALF + 1, v, y, CONSOLE, layout.paraEsquerda(), true);
         }
     }
 
@@ -775,12 +936,7 @@ public final class SpawnShopBuilder {
         if (front && u >= -DOOR_HALF && u <= DOOR_HALF && relativeY <= WALL_HEIGHT - 2) {
             return;
         }
-
-        Material material = Material.SPRUCE_PLANKS;
-        if (relativeY == 1) {
-            material = Material.STONE_BRICKS;
-        }
-        layout.block(world, u, v, worldY).setType(material, false);
+        layout.block(world, u, v, worldY).setType(materialDaParede(relativeY), false);
     }
 
     /**
@@ -805,123 +961,257 @@ public final class SpawnShopBuilder {
         return 0;
     }
 
+    // ------------------------------------------------------------------
+    //  Telhado
+    // ------------------------------------------------------------------
+
     private void buildRoof(World world, Layout layout, int floorY) {
-        // Telhado escalonado: aparência medieval sem depender de WorldEdit.
+        // Telhado escalonado: cada coluna sobe ate a altura da vizinha de
+        // dentro, senao o degrau fica com a face vertical aberta e da para ver
+        // o sotao de lado.
         //
-        // Cada coluna sobe até a altura da vizinha de dentro. Sem isso o degrau
-        // fica com a face vertical aberta: na primeira construção dava para ver
-        // o sótão de lado, e chuva e luz entravam pelas frestas.
+        // A novidade da reforma e o acabamento: a telha que fecha o degrau
+        // deixou de ser um cubo e virou escada virada para a cumeeira. O
+        // serrilhado de blocos inteiros vira um caimento continuo, e o telhado
+        // passa a ler como telhado, nao como escadaria.
         for (int u = -ROOF_HALF_SPAN; u <= ROOF_HALF_SPAN; u++) {
             int roofY = roofHeight(u, floorY);
             int riserTop = roofHeight(towardRidge(u), floorY);
+            BlockFace paraCumeeira = u > 0 ? layout.paraEsquerda() : layout.paraDireita();
 
             for (int v = ROOF_MIN_V; v <= ROOF_MAX_V; v++) {
-                Material material = Material.SPRUCE_PLANKS;
-                if ((v + Math.abs(u)) % 5 == 0) {
-                    material = Material.DARK_OAK_PLANKS;
-                }
+                Material material = (v + Math.abs(u)) % 5 == 0 ? TELHA_ESCURA : TELHA;
+
                 for (int y = roofY; y <= riserTop; y++) {
-                    layout.block(world, u, v, y).setType(material, false);
+                    boolean remate = y == riserTop && riserTop > roofY && u != 0;
+                    if (remate) {
+                        degrau(world, layout, u, v, y, TELHA_DEGRAU, paraCumeeira, false);
+                    } else {
+                        layout.block(world, u, v, y).setType(material, false);
+                    }
                 }
             }
         }
 
-        // Cumeeira APOIADA sobre o telhado, não no lugar dele. Antes o slab
-        // substituía a telha do topo e abria uma calha de meio bloco ao longo
-        // de toda a cumeeira.
+        // Beiral: uma fileira de laje abaixo da primeira telha, avancando sobre
+        // a parede. E o que da sombra na fachada e tira o ar de caixa.
+        for (int v = ROOF_MIN_V; v <= ROOF_MAX_V; v++) {
+            for (int u : new int[]{-ROOF_HALF_SPAN, ROOF_HALF_SPAN}) {
+                layout.block(world, u, v, roofHeight(u, floorY) - 1)
+                        .setType(Material.DARK_OAK_SLAB, false);
+            }
+        }
+
+        // Cumeeira APOIADA sobre o telhado, nao no lugar dele.
         int ridgeY = roofHeight(0, floorY) + 1;
         for (int v = ROOF_MIN_V; v <= ROOF_MAX_V; v++) {
             layout.block(world, 0, v, ridgeY).setType(Material.DARK_OAK_SLAB, false);
         }
 
-        // Gable nas DUAS pontas. Só a da frente existia, então o fundo ficava
-        // com um rombo triangular aberto entre o topo da parede e o telhado.
         buildGable(world, layout, floorY, FRONT_V);
         buildGable(world, layout, floorY, BACK_V);
 
-        // Chaminé, encostada na lateral direita.
+        // Chamine, encostada na lateral direita.
         int chamineU = WALL_HALF - 3;
         int chamineV = BACK_V - 4;
         int topoChamine = roofHeight(chamineU, floorY) + 4;
         for (int y = floorY + WALL_HEIGHT + 1; y <= topoChamine; y++) {
-            layout.block(world, chamineU, chamineV, y).setType(Material.STONE_BRICKS, false);
+            Material tijolo = y == topoChamine
+                    ? Material.CHISELED_STONE_BRICKS : Material.STONE_BRICKS;
+            layout.block(world, chamineU, chamineV, y).setType(tijolo, false);
         }
         layout.block(world, chamineU, chamineV, topoChamine + 1)
                 .setType(Material.CAMPFIRE, false);
     }
 
-    /** Frontão triangular, preenchendo até encostar na telha de cada coluna. */
+    /**
+     * Frontao triangular com moldura e oculo.
+     *
+     * Antes era um triangulo chapado de dark oak — a maior superficie lisa da
+     * construcao inteira, logo acima da porta, que e para onde todo mundo
+     * olha. Agora tem contorno de tronco descascado e uma janelinha no meio,
+     * que de noite acende com a luz do salao.
+     */
     private void buildGable(World world, Layout layout, int floorY, int v) {
         for (int u = -ROOF_HALF_SPAN; u <= ROOF_HALF_SPAN; u++) {
             int topo = roofHeight(u, floorY);
             for (int y = floorY + WALL_HEIGHT; y <= topo; y++) {
-                layout.block(world, u, v, y).setType(Material.DARK_OAK_PLANKS, false);
+                boolean contorno = y == topo || y == floorY + WALL_HEIGHT;
+                layout.block(world, u, v, y)
+                        .setType(contorno ? MOLDURA : TELHA_ESCURA, false);
             }
+        }
+
+        int meio = floorY + WALL_HEIGHT + 2;
+        for (int u = -1; u <= 1; u++) {
+            layout.block(world, u, v, meio).setType(Material.GLASS_PANE, false);
         }
     }
 
+    // ------------------------------------------------------------------
+    //  Frente de feira
+    // ------------------------------------------------------------------
+
+    /**
+     * A frente da loja, debaixo do avanco do telhado.
+     *
+     * O telhado ja cobre cinco fileiras na frente da fachada. Na versao
+     * anterior esse avanco flutuava sobre uma lona de la azul e branca, com
+     * dois postes de cerca perdidos numa ponta: parecia duas construcoes
+     * diferentes empilhadas.
+     *
+     * Agora o avanco e sustentado de verdade — colunata de vigas, barrote
+     * ligando as colunas, cachorros nas pontas — e as barracas ficam embaixo
+     * dele. A la saiu; quem da cor sao as bandeiras nas colunas, que e cor em
+     * pouca area, em vez de um teto inteiro colorido.
+     */
     private void buildMarketAwning(World world, Layout layout, int floorY) {
-        int deU = -WALL_HALF;
-        int ateU = -DOOR_HALF - 2;
+        int frenteV = MIN_V + 2;
 
-        for (int u = deU; u <= ateU; u++) {
-            for (int v = MIN_V + 1; v <= FRONT_V - 1; v++) {
-                Material canopy = Material.BLUE_WOOL;
-                if (Math.abs(u) % 2 == 0) {
-                    canopy = Material.WHITE_WOOL;
-                }
-                layout.block(world, u, v, floorY + 4).setType(canopy, false);
+        // Colunata.
+        for (int u = -WALL_HALF; u <= WALL_HALF; u += 5) {
+            for (int y = 1; y <= 4; y++) {
+                layout.block(world, u, frenteV, floorY + y).setType(VIGA, false);
             }
+            degrau(world, layout, u, frenteV, floorY + 5, CONSOLE, layout.paraDentro(), true);
         }
 
-        for (int u : new int[]{deU, ateU}) {
-            for (int y = 1; y <= 3; y++) {
-                layout.block(world, u, MIN_V + 1, floorY + y).setType(Material.OAK_FENCE, false);
-            }
+        // Barrote ligando as colunas, na altura do capitel.
+        for (int u = -WALL_HALF; u <= WALL_HALF; u++) {
+            layout.block(world, u, frenteV, floorY + 5).setType(VIGA, false);
         }
 
-        // Bancada da feirinha sob a lona.
-        for (int u = deU + 1; u <= ateU - 1; u++) {
+        // Lanternas penduradas entre as colunas.
+        for (int u = -WALL_HALF + 2; u <= WALL_HALF - 2; u += 5) {
+            lanternaPendurada(world, layout, u, frenteV, floorY + 4);
+        }
+
+        // Bandeiras nas duas colunas da entrada.
+        for (int u : new int[]{-DOOR_HALF - 1, DOOR_HALF + 1}) {
+            bandeira(world, layout, u, FRONT_V - 1, floorY + 4,
+                    u < 0 ? Material.ORANGE_WALL_BANNER : Material.WHITE_WALL_BANNER);
+        }
+
+        // Bancada da feirinha, a esquerda de quem chega.
+        for (int u = -WALL_HALF + 1; u <= -DOOR_HALF - 2; u++) {
             layout.block(world, u, FRONT_V - 1, floorY + 1).setType(Material.BARREL, false);
+            degrau(world, layout, u, FRONT_V - 2, floorY + 1, Material.SPRUCE_STAIRS,
+                    layout.paraFora(), false);
         }
     }
 
     /**
-     * Bancas livres para ChestShop de jogador, do lado oposto ao toldo.
+     * Bancas livres para ChestShop de jogador, do lado oposto a feirinha.
      *
-     * A Biga Market é a loja do servidor, mas o projeto continua priorizando
-     * mercado entre jogadores. Estes baús ficam vazios e sem dono.
+     * A Biga Market e a loja do servidor, mas o projeto continua priorizando
+     * mercado entre jogadores. Estes baus ficam vazios e sem dono.
      */
     private void buildTradeCorner(World world, Layout layout, int floorY) {
         for (int u = DOOR_HALF + 2; u <= WALL_HALF - 1; u++) {
-            layout.block(world, u, MIN_V + 2, floorY + 1).setType(Material.CHEST, false);
-            layout.block(world, u, MIN_V + 1, floorY + 1).setType(Material.DARK_OAK_SLAB, false);
+            layout.block(world, u, FRONT_V - 1, floorY + 1).setType(Material.CHEST, false);
+            degrau(world, layout, u, FRONT_V - 2, floorY + 1, Material.SPRUCE_STAIRS,
+                    layout.paraFora(), false);
         }
     }
 
+    // ------------------------------------------------------------------
+    //  Acabamento
+    // ------------------------------------------------------------------
+
     private void buildDecor(World world, Layout layout, int floorY) {
-        // Vasos de azaleia flanqueando a fachada.
-        for (int u : new int[]{-WALL_HALF + 1, WALL_HALF - 1}) {
-            layout.block(world, u, FRONT_V - 1, floorY + 1).setType(Material.BARREL, false);
-            placePersistentLeaves(layout.block(world, u, FRONT_V - 1, floorY + 2));
+        // Vasos ladeando a porta, na linha do tapete.
+        for (int u : new int[]{-DOOR_HALF - 2, DOOR_HALF + 2}) {
+            layout.block(world, u, FRONT_V - 1, floorY + 1)
+                    .setType(Material.POTTED_FLOWERING_AZALEA_BUSH, false);
         }
 
-        // Material.CHAIN não existe na API 26.2 usada pelo projeto; IRON_BARS
-        // mantém o detalhe vertical da luminária sem depender de material legado.
-        //
-        // Fora do alcance do toldo: a lanterna chegou a apagar um bloco da lona.
+        // Luz no tapete da entrada, nas quinas.
         for (int u : new int[]{-DOOR_HALF - 1, DOOR_HALF + 1}) {
-            layout.block(world, u, FRONT_V - 1, floorY + 5).setType(Material.IRON_BARS, false);
-            layout.block(world, u, FRONT_V - 1, floorY + 4).setType(Material.LANTERN, false);
+            layout.block(world, u, MIN_V + 3, floorY + 1).setType(Material.LANTERN, false);
         }
 
-        // Iluminação interna: uma malha, não três lanternas perdidas num salão
-        // que agora tem quase o triplo da área.
-        for (int u = -WALL_HALF + 3; u <= WALL_HALF - 3; u += 6) {
-            for (int v = FRONT_V + 3; v <= BACK_V - 2; v += 6) {
-                layout.block(world, u, v, floorY + WALL_HEIGHT - 1)
-                        .setType(Material.LANTERN, false);
+        // Corredor de tapete, da porta ate o balcao do fundo.
+        for (int v = FRONT_V + 1; v <= BACK_V - 2; v++) {
+            for (int u = -1; u <= 1; u++) {
+                layout.block(world, u, v, floorY + 1)
+                        .setType(Material.ORANGE_CARPET, false);
             }
+        }
+
+        // Bancos virados um para o outro, logo depois da entrada.
+        for (int v = FRONT_V + 2; v <= FRONT_V + 3; v++) {
+            degrau(world, layout, -3, v, floorY + 1, Material.SPRUCE_STAIRS,
+                    layout.paraDireita(), false);
+            degrau(world, layout, 3, v, floorY + 1, Material.SPRUCE_STAIRS,
+                    layout.paraEsquerda(), false);
+        }
+
+        // Vasos ao longo do corredor.
+        for (int v = FRONT_V + 5; v <= BACK_V - 3; v += 5) {
+            layout.block(world, -2, v, floorY + 1).setType(Material.POTTED_FERN, false);
+            layout.block(world, 2, v, floorY + 1).setType(Material.POTTED_FERN, false);
+        }
+
+        // Iluminacao do salao: lanterna pendurada na propria telha, e nao
+        // encostada no alto da parede. Como o telhado sobe para o meio, cada
+        // fileira pendura numa altura diferente e o teto ganha profundidade.
+        for (int u = -WALL_HALF + 3; u <= WALL_HALF - 3; u += 5) {
+            for (int v = FRONT_V + 3; v <= BACK_V - 2; v += 5) {
+                lanternaPendurada(world, layout, u, v, roofHeight(u, floorY) - 1);
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------
+    //  Ferramentas de acabamento
+    // ------------------------------------------------------------------
+
+    /**
+     * Escada com direcao e metade explicitas.
+     *
+     * setType() sozinho deixa a escada virada para o norte, no chao, sempre —
+     * e no mundo girado da loja isso aponta para qualquer lado. Toda escada
+     * desta construcao passa por aqui.
+     */
+    private void degrau(World world, Layout layout, int u, int v, int y,
+                        Material material, BlockFace face, boolean teto) {
+        Block bloco = layout.block(world, u, v, y);
+        bloco.setType(material, false);
+
+        if (bloco.getBlockData() instanceof Stairs escada) {
+            escada.setFacing(face);
+            escada.setHalf(teto ? Bisected.Half.TOP : Bisected.Half.BOTTOM);
+            bloco.setBlockData(escada, false);
+        }
+    }
+
+    /**
+     * Lanterna pendurada no bloco de cima, com uma grade fazendo de corrente.
+     *
+     * Material.CHAIN nao existe nesta API — ja estava anotado na versao
+     * anterior —, entao a corrente e IRON_BARS. Pendurada e nao apoiada: a
+     * lanterna em pe no chao do teto fica meio bloco acima e nao parece presa
+     * em nada.
+     */
+    private void lanternaPendurada(World world, Layout layout, int u, int v, int y) {
+        layout.block(world, u, v, y).setType(Material.IRON_BARS, false);
+
+        Block lanterna = layout.block(world, u, v, y - 1);
+        lanterna.setType(Material.LANTERN, false);
+        if (lanterna.getBlockData() instanceof Lantern dados) {
+            dados.setHanging(true);
+            lanterna.setBlockData(dados, false);
+        }
+    }
+
+    /** Bandeira de parede virada para quem chega. */
+    private void bandeira(World world, Layout layout, int u, int v, int y, Material material) {
+        Block bloco = layout.block(world, u, v, y);
+        bloco.setType(material, false);
+
+        if (bloco.getBlockData() instanceof Directional direcional) {
+            direcional.setFacing(layout.paraFora());
+            bloco.setBlockData(direcional, false);
         }
     }
 
@@ -974,32 +1264,80 @@ public final class SpawnShopBuilder {
      * A placa encosta na parede e olha para dentro do salão — por isso a
      * direção muda conforme a parede, e não dá para usar sempre a fachada.
      */
-    private java.util.List<ShopSlot> adminShopSlots(Layout layout) {
-        java.util.List<ShopSlot> vagas = new java.util.ArrayList<>();
+    /** Em que parede a vaga encosta. A placa olha para o salao, nunca para o muro. */
+    static final int PAREDE_FUNDO = 0;
+    static final int PAREDE_ESQUERDA = 1;
+    static final int PAREDE_DIREITA = 2;
 
+    /**
+     * As posicoes do balcao: {u, v, altura do barril, parede}.
+     *
+     * Separada do Bukkit para o teste poder conferir a invariante que ja
+     * falhou uma vez em jogo: DUAS vagas na mesma posicao. Quando isso
+     * acontece, a segunda placa e escrita por cima da primeira, um item do
+     * catalogo some da loja e nao sai erro nenhum no console — a falha
+     * aparece semanas depois, quando alguem procura o item e nao acha.
+     *
+     * A prateleira de baixo inteira primeiro, a de cima depois: a ordem daqui
+     * e a ordem de preenchimento, entao o catalogo ocupa o andar na altura dos
+     * olhos e so transborda para cima. Intercalar deixaria buraco no meio.
+     */
+    static java.util.List<int[]> posicoesDoBalcao() {
+        java.util.List<int[]> posicoes = new java.util.ArrayList<>();
+
+        for (int altura : PRATELEIRAS) {
+            // Parede do fundo: placa olha para a entrada.
+            for (int u = -(WALL_HALF - 1); u <= WALL_HALF - 1; u++) {
+                posicoes.add(new int[]{u, BACK_V - 1, altura, PAREDE_FUNDO});
+            }
+
+            // Laterais: placa olha para o centro do salao.
+            //
+            // Para em BACK_V - 2, nao em BACK_V - 1: a fileira do fundo ja
+            // ocupa BACK_V - 1 de u=-(WALL_HALF-1) a u=WALL_HALF-1, que inclui
+            // as duas colunas laterais. Ir ate BACK_V - 1 aqui repetia essas
+            // duas posicoes, e a segunda placa era escrita EM CIMA da
+            // primeira — dois itens do catalogo sumiam sem erro no console.
+            for (int v = FRONT_V + 1; v <= BACK_V - 2; v++) {
+                posicoes.add(new int[]{-(WALL_HALF - 1), v, altura, PAREDE_ESQUERDA});
+                posicoes.add(new int[]{WALL_HALF - 1, v, altura, PAREDE_DIREITA});
+            }
+        }
+
+        return posicoes;
+    }
+
+    private java.util.List<ShopSlot> adminShopSlots(Layout layout) {
         BlockFace inward = layout.frontFace().getOppositeFace();
         BlockFace right = Layout.rightOf(inward);
 
-        // Parede do fundo: placa olha para a entrada.
-        for (int u = -(WALL_HALF - 1); u <= WALL_HALF - 1; u++) {
-            vagas.add(new ShopSlot(u, BACK_V - 1, layout.frontFace()));
+        java.util.List<ShopSlot> vagas = new java.util.ArrayList<>();
+        for (int[] posicao : posicoesDoBalcao()) {
+            BlockFace olhando = switch (posicao[3]) {
+                case PAREDE_ESQUERDA -> right;
+                case PAREDE_DIREITA -> right.getOppositeFace();
+                default -> layout.frontFace();
+            };
+            vagas.add(new ShopSlot(posicao[0], posicao[1], posicao[2], olhando));
         }
-
-        // Laterais: placa olha para o centro do salão.
-        // Para em BACK_V - 2, nao em BACK_V - 1: a fileira do fundo ja ocupa
-        // BACK_V - 1 de u=-(WALL_HALF-1) a u=WALL_HALF-1, que inclui as duas
-        // colunas laterais. Ir ate BACK_V - 1 aqui repetia essas duas posicoes,
-        // e a segunda placa era escrita EM CIMA da primeira — dois itens do
-        // catalogo somiam sem erro nenhum no console.
-        for (int v = FRONT_V + 1; v <= BACK_V - 2; v++) {
-            vagas.add(new ShopSlot(-(WALL_HALF - 1), v, right));
-            vagas.add(new ShopSlot(WALL_HALF - 1, v, right.getOppositeFace()));
-        }
-
         return vagas;
     }
 
-    private record ShopSlot(int u, int v, BlockFace facing) {
+    /**
+     * A que altura do piso fica o BARRIL de cada prateleira. A placa vai um
+     * bloco acima, que e como o ChestShop casa placa e container.
+     *
+     * Duas prateleiras, nao tres: cada uma come dois blocos de parede (barril
+     * + placa) e a parede tem seis. A terceira ficaria em 5-6, encostando no
+     * beiral, e as placas sumiriam atras do telhado de quem olha de dentro.
+     *
+     * Mexer aqui muda {@link #adminShopSlotCount()} junto, de proposito: o
+     * numero de vagas e consequencia da geometria, nunca uma constante solta
+     * que alguem atualiza pela metade.
+     */
+    static final int[] PRATELEIRAS = {1, 3};
+
+    private record ShopSlot(int u, int v, int altura, BlockFace facing) {
     }
 
     /**
@@ -1007,9 +1345,7 @@ public final class SpawnShopBuilder {
      * que o economy.yml não pede mais itens do que cabe na parede.
      */
     static int adminShopSlotCount() {
-        int fundo = 2 * (WALL_HALF - 1) + 1;
-        int lateral = (BACK_V - 2) - (FRONT_V + 1) + 1;
-        return fundo + 2 * lateral;
+        return posicoesDoBalcao().size();
     }
 
     /**
@@ -1045,10 +1381,11 @@ public final class SpawnShopBuilder {
             ShopSlot vaga = vagas.get(i);
             EconomyCatalog.PriceEntry item = vitrine.get(i);
 
-            layout.block(world, vaga.u(), vaga.v(), floorY + 1)
+            int barrilY = floorY + vaga.altura();
+            layout.block(world, vaga.u(), vaga.v(), barrilY)
                     .setType(Material.BARREL, false);
-            placeShopSign(world, layout, vaga, floorY + 2, dono, item);
-            plugin.shopDisplays().spawn(world, layout, vaga.u(), vaga.v(), floorY, item);
+            placeShopSign(world, layout, vaga, barrilY + 1, dono, item);
+            plugin.shopDisplays().spawn(world, layout, vaga.u(), vaga.v(), barrilY + 1, item);
             montadas++;
         }
 
@@ -1344,6 +1681,26 @@ public final class SpawnShopBuilder {
             int x = frontCenterX + inward.getModX() * v + right.getModX() * u;
             int z = frontCenterZ + inward.getModZ() * v + right.getModZ() * u;
             return world.getBlockAt(x, y, z);
+        }
+
+        /** Para o fundo da loja (+v no mundo). */
+        BlockFace paraDentro() {
+            return frontFace.getOppositeFace();
+        }
+
+        /** Para a praca (-v). */
+        BlockFace paraFora() {
+            return frontFace;
+        }
+
+        /** +u. */
+        BlockFace paraDireita() {
+            return rightOf(frontFace.getOppositeFace());
+        }
+
+        /** -u. */
+        BlockFace paraEsquerda() {
+            return paraDireita().getOppositeFace();
         }
 
         static BlockFace rightOf(BlockFace inward) {

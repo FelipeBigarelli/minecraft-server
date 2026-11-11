@@ -74,8 +74,17 @@ preco-por-bloco: 3
 # O minimo existe para nao encher o mapa de regiao de 2x2 usada so para trancar
 # um bau. O maximo existe porque regiao grande nao se desfaz: quem compra
 # 200x200 cercou um bioma inteiro para sempre.
+#
+# Subiu de 64 para 100 em 11/11/2026, a pedido. O que isso muda de verdade:
+#
+# - preco: 100x100 sao 10.000 blocos de chao, B$ 30.000 no primeiro terreno —
+#   quase o triplo do terceiro lote do bairro. O tamanho se paga sozinho.
+# - distancia do spawn: a folga e medida da BORDA da caixa, entao um 100x100
+#   so passa na validacao a uns 74 blocos do spawn. E a mensagem "perto demais"
+#   vai aparecer bem mais para quem pedir o tamanho maximo.
+# - cerca: 400 postes em vez de 256, construidos a 48 por tique.
 tamanho-minimo: 8
-tamanho-maximo: 64
+tamanho-maximo: 100
 
 # Quantos terrenos cada pessoa pode ter POR MUNDO.
 limite-por-jogador: 3

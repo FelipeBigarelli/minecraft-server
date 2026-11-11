@@ -184,9 +184,77 @@ admin-shop:
     - saddle
     - rotten_flesh
     - spider_eye
+
+    # --- Raridades (ver seção RARIDADES no catálogo) ---
+    - villager_spawn_egg
+    - mooshroom_spawn_egg
+    - budding_amethyst
+    - bee_spawn_egg
+    - horse_spawn_egg
+    - wolf_spawn_egg
+    - bee_nest
+    - cow_spawn_egg
+    - sheep_spawn_egg
+    - chicken_spawn_egg
+    - pig_spawn_egg
+    - mycelium
+    - cherry_sapling
+    - mangrove_propagule
+    - podzol
+    - jungle_sapling
+    - acacia_sapling
+    - dark_oak_sapling
+    - birch_sapling
+    - moss_block
 # tier é uma classificação ECONÔMICA do BigaCore, não a rarity oficial.
 # Campos ausentes server-buy/server-sell significam P2P somente naquele lado.
 catalog:
+  # -----------------------------------------------------------------
+  #  RARIDADES — o que a ilha não dá
+  #
+  #  Mundo de ilhas flutuantes não tem aldeia, não tem vaca pastando e
+  #  não tem floresta de cada tipo. Estes itens existem para que isso
+  #  seja uma META, e não um beco sem saída.
+  #
+  #  Três regras valem para TODA entrada desta seção:
+  #
+  #  1. NENHUMA tem server-buy. O servidor vende e nunca recompra —
+  #     senão bastaria comprar e revender para imprimir dinheiro, e o
+  #     teto diário de recompra não cobre o que ele mesmo vendeu.
+  #
+  #  2. Nenhuma é item de progressão (elytra, netherite, totem...).
+  #     Progressão se conquista; raridade de bioma se compra.
+  #
+  #  3. O preço é de OUTRA liga. O resto da loja vai até 500 por lote;
+  #     o ovo de aldeão custa 15.000. Com o teto de 4.000/semana por
+  #     jogador, é cerca de um mês de meta — longe, alcançável, e o
+  #     único ralo grande que a economia tem hoje.
+  #
+  #  O ovo de aldeão é o item mais caro de propósito: aldeão é a única
+  #  coisa à venda que FABRICA outras coisas. Quem compra um não ganhou
+  #  um item, ganhou uma fábrica.
+  # -----------------------------------------------------------------
+  villager_spawn_egg: { tier: RELIQUIA, lot: 1, p2p: 9400, server-sell: 15000 }
+  mooshroom_spawn_egg: { tier: RELIQUIA, lot: 1, p2p: 3750, server-sell: 6000 }
+  budding_amethyst: { tier: RELIQUIA, lot: 1, p2p: 1560, server-sell: 2500 }
+  bee_spawn_egg: { tier: RELIQUIA, lot: 1, p2p: 1250, server-sell: 2000 }
+  horse_spawn_egg: { tier: RELIQUIA, lot: 1, p2p: 1120, server-sell: 1800 }
+  wolf_spawn_egg: { tier: RELIQUIA, lot: 1, p2p: 750, server-sell: 1200 }
+  bee_nest: { tier: RELIQUIA, lot: 1, p2p: 560, server-sell: 900 }
+  cow_spawn_egg: { tier: RELIQUIA, lot: 1, p2p: 500, server-sell: 800 }
+  sheep_spawn_egg: { tier: RELIQUIA, lot: 1, p2p: 440, server-sell: 700 }
+  chicken_spawn_egg: { tier: RELIQUIA, lot: 1, p2p: 375, server-sell: 600 }
+  pig_spawn_egg: { tier: RELIQUIA, lot: 1, p2p: 375, server-sell: 600 }
+  mycelium: { tier: RELIQUIA, lot: 8, p2p: 250, server-sell: 400 }
+  cherry_sapling: { tier: RELIQUIA, lot: 4, p2p: 220, server-sell: 350 }
+  mangrove_propagule: { tier: RELIQUIA, lot: 4, p2p: 220, server-sell: 350 }
+  podzol: { tier: RELIQUIA, lot: 8, p2p: 190, server-sell: 300 }
+  jungle_sapling: { tier: RELIQUIA, lot: 4, p2p: 190, server-sell: 300 }
+  acacia_sapling: { tier: RELIQUIA, lot: 4, p2p: 190, server-sell: 300 }
+  dark_oak_sapling: { tier: RELIQUIA, lot: 4, p2p: 190, server-sell: 300 }
+  birch_sapling: { tier: RELIQUIA, lot: 4, p2p: 155, server-sell: 250 }
+  moss_block: { tier: RELIQUIA, lot: 8, p2p: 150, server-sell: 240 }
+
   cobblestone: { tier: COMMON, lot: 64, p2p: 20, server-buy: 2, server-sell: 32 }
   stone: { tier: COMMON, lot: 64, p2p: 28, server-buy: 14, server-sell: 44 }
   dirt: { tier: COMMON, lot: 64, p2p: 16, server-buy: 9, server-sell: 28 }
@@ -289,6 +357,29 @@ catalog:
 # Nome em português mostrado na placa e no item flutuante.
 # Precisa caber em uma linha de placa (~15 caracteres).
 nomes:
+  # Raridades. Sem acento e com no máximo 15 caracteres: é o que cabe
+  # na linha 4 da placa do ChestShop, e o que o itemAliases.yml casa de
+  # volta para o Material. Nome maior quebra a placa em silêncio.
+  villager_spawn_egg: "Ovo de Aldeao"
+  mooshroom_spawn_egg: "Vaca-Cogumelo"
+  budding_amethyst: "Ametista Viva"
+  bee_spawn_egg: "Ovo de Abelha"
+  horse_spawn_egg: "Ovo de Cavalo"
+  wolf_spawn_egg: "Ovo de Lobo"
+  bee_nest: "Casa de Abelha"
+  cow_spawn_egg: "Ovo de Vaca"
+  sheep_spawn_egg: "Ovo de Ovelha"
+  chicken_spawn_egg: "Ovo de Galinha"
+  pig_spawn_egg: "Ovo de Porco"
+  mycelium: "Micelio"
+  cherry_sapling: "Muda Cerejeira"
+  mangrove_propagule: "Muda de Mangue"
+  podzol: "Podzol"
+  jungle_sapling: "Muda de Selva"
+  acacia_sapling: "Muda de Acacia"
+  dark_oak_sapling: "Muda Escura"
+  birch_sapling: "Muda de Betula"
+  moss_block: "Musgo"
   acacia_log: "Tronco Acacia"
   amethyst_shard: "Ametista"
   ancient_debris: "Destrocos Ant"

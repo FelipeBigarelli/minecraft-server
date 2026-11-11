@@ -113,30 +113,37 @@ class EconomyCatalogTest {
         assertTrue(problemas.isEmpty(), "parede do Admin Shop inconsistente: " + problemas);
     }
 
+    /**
+     * A loja de referência trocou de lado em 11/11/2026.
+     *
+     * Antes o limite do catálogo era a Biga Market colada com WorldEdit
+     * ({@code ShopSignWriter.VAGAS_BIGA_MARKET}, 62 bancas), e o teste de
+     * capacidade olhava para ela. A loja que o plugin GERA ganhou a segunda
+     * prateleira (118 vagas), a seção de raridades entrou no catálogo e o
+     * economy.yml passou a pedir 82 itens — mais do que a colada comporta.
+     *
+     * A construção colada continua existindo e continua menor. O que protege
+     * ELA é outra coisa: o {@code simular()} do ShopSignWriter devolve quantas
+     * bancas achou e quantos itens o catálogo pede, e o comando mostra os dois
+     * números antes de escrever qualquer placa. Lá a sobra aparece; aqui o que
+     * se cobra é que na loja gerada não haja sobra nenhuma.
+     */
     @Test
-    void paredeCabeNaLojaEmUso() {
-        // A loja em uso é a Biga Market colada com WorldEdit, não a que o
-        // SpawnShopBuilder gera: aquela é menor (ver adminShopSlotCount) e
-        // ficou para trás quando a construção passou a vir de schematic.
-        int vagas = ShopSignWriter.VAGAS_BIGA_MARKET;
-        int pedidos = economia.getStringList("admin-shop.wall").size();
-
-        assertTrue(pedidos <= vagas,
-                "a Biga Market tem " + vagas + " bancas e o economy.yml pede " + pedidos);
-    }
-
-    @Test
-    void lojaGeradaAvisaQuandoNaoCabeTudo() {
-        // Invariante que sobrou do balcão gerado: ele é menor que a parede, e
-        // o importante é que isso APAREÇA. O adminShopWall corta no limite e
-        // escreve no console; o que não pode é sumir item em silêncio.
+    void lojaGeradaCabeAParedeInteira() {
+        // Este teste trocou de lado em 11/11/2026.
+        //
+        // Antes o balcão gerado era MENOR que a parede pedida (59 vagas para
+        // 62 itens) e o teste só cobrava que a sobra aparecesse no console. O
+        // balcão ganhou a segunda prateleira e passou a caber tudo, então
+        // agora a cobrança é direta: nenhum item do economy.yml pode ficar
+        // de fora da loja que o plugin levanta.
         int geradas = SpawnShopBuilder.adminShopSlotCount();
         int pedidos = economia.getStringList("admin-shop.wall").size();
 
-        assertTrue(geradas < pedidos,
-                "o balcão gerado passou a caber a parede inteira (" + geradas
-                        + " vagas para " + pedidos + " itens): este teste virou"
-                        + " mentira, troque-o por uma comparação direta");
+        assertTrue(pedidos <= geradas,
+                "o economy.yml pede " + pedidos + " itens e o balcão gerado tem "
+                        + geradas + " vagas: " + (pedidos - geradas)
+                        + " item(ns) sumiriam da parede sem erro nenhum");
     }
 
     @Test

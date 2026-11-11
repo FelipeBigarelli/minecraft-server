@@ -716,7 +716,7 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
     private List<String> tamanhosSugeridos() {
         TerrenoCatalog cfg = plugin.terrenoCatalog();
         List<String> saida = new ArrayList<>();
-        for (int tamanho : new int[] {8, 12, 16, 24, 32, 48, 64}) {
+        for (int tamanho : new int[] {8, 12, 16, 24, 32, 48, 64, 80, 100}) {
             if (tamanho >= cfg.tamanhoMinimo() && tamanho <= cfg.tamanhoMaximo()) {
                 saida.add(String.valueOf(tamanho));
             }
