@@ -39,7 +39,7 @@ commands:
 
   terreno:
     description: Compra e administra terreno protegido no survival
-    usage: "/terreno <preco|comprar|expandir|vender|info|listar|ver|cerca|convidar|remover>"
+    usage: "/terreno <preco|comprar|teleportar|expandir|vender|info|listar|ver|cerca|convidar|remover>"
     aliases: [lote, tr]
     permission: bigacore.terreno
 

@@ -36,8 +36,8 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
     static final String PERM_USO = "bigacore.terreno";
 
     private static final List<String> SUBCOMANDOS = List.of(
-            "preco", "comprar", "expandir", "vender", "info", "listar",
-            "ver", "cerca", "convidar", "remover");
+            "preco", "comprar", "teleportar", "expandir", "vender", "info",
+            "listar", "ver", "cerca", "convidar", "remover");
 
     //
     // Paleta. O cinza-escuro saiu do corpo das mensagens: #555555 em cima de
@@ -85,6 +85,7 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
             case "comprar" -> comprar(jogador, label, args);
             case "expandir" -> expandir(jogador, label, args);
             case "vender" -> vender(jogador, label, args);
+            case "teleportar", "ir", "casa", "voltar" -> teleportar(jogador, label, args);
             case "info" -> info(jogador);
             case "listar" -> listar(jogador);
             case "ver" -> ver(jogador);
@@ -112,6 +113,7 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
 
         linhaAjuda(jogador, "/" + label + " preco", "<tamanho>", "quanto custa");
         linhaAjuda(jogador, "/" + label + " comprar", "<tamanho>", "compra o quadrado");
+        linhaAjuda(jogador, "/" + label + " teleportar", "<numero>", "volta para o seu");
         linhaAjuda(jogador, "/" + label + " ver", null, "acende as bordas");
         linhaAjuda(jogador, "/" + label + " cerca", null, "refaz a cerca de madeira");
         linhaAjuda(jogador, "/" + label + " info", null, "de quem e este chao");
@@ -303,6 +305,96 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
     // ------------------------------------------------------------------
     // Consultas
     // ------------------------------------------------------------------
+
+    // ------------------------------------------------------------------
+    // Volta para o terreno
+    // ------------------------------------------------------------------
+
+    /**
+     * /terreno teleportar [numero]
+     *
+     * Com um terreno so, o numero e dispensavel: digitar /terreno teleportar e
+     * ja chegar e o caminho de quem esta com medo de perder o que carrega.
+     *
+     * Com mais de um e sem numero, LISTA em vez de escolher. Mandar para o
+     * primeiro da lista seria adivinhar, e o jogador so descobriria o erro
+     * depois de ja ter sido levado para longe.
+     */
+    private void teleportar(Player jogador, String label, String[] args) {
+        List<TerrenoTeleporte.Destino> meus = TerrenoTeleporte.meusTerrenos(plugin, jogador);
+
+        if (meus.isEmpty()) {
+            jogador.sendMessage(Component.text(
+                    "Voce ainda nao tem terreno para voltar.", TEXTO));
+            jogador.sendMessage(Component.text("Compre um com /" + label
+                    + " preco 16 e depois /" + label + " comprar 16 CONFIRMAR.", TEXTO));
+            return;
+        }
+
+        TerrenoTeleporte.Destino alvo;
+        if (args.length < 2) {
+            if (meus.size() > 1) {
+                jogador.sendMessage(Component.text("Voce tem " + meus.size()
+                        + " terrenos. Diga para qual:", TEXTO));
+                mostrarDestinos(jogador, label, meus);
+                return;
+            }
+            alvo = meus.get(0);
+        } else {
+            List<String> ids = new ArrayList<>();
+            for (TerrenoTeleporte.Destino destino : meus) {
+                ids.add(destino.terreno().id());
+            }
+            Optional<String> escolhido = TerrenoTeleporte.idEscolhido(ids, args[1]);
+            if (escolhido.isEmpty()) {
+                jogador.sendMessage(Component.text("Nao achei terreno seu chamado "
+                        + args[1] + ".", ALERTA));
+                mostrarDestinos(jogador, label, meus);
+                return;
+            }
+            alvo = null;
+            for (TerrenoTeleporte.Destino destino : meus) {
+                if (destino.terreno().id().equals(escolhido.get())) {
+                    alvo = destino;
+                    break;
+                }
+            }
+            if (alvo == null) {
+                return;
+            }
+        }
+
+        Caixa caixa = alvo.terreno().caixa();
+        Optional<Location> pouso = TerrenoTeleporte.pouso(
+                alvo.mundo(), caixa, jogador.getLocation());
+
+        if (pouso.isEmpty()) {
+            jogador.sendMessage(Component.text("Nao achei onde te por de pe dentro do "
+                    + alvo.terreno().id() + " sem te enterrar.", ALERTA));
+            jogador.sendMessage(Component.text("Abra um vao de dois blocos de altura "
+                    + "em algum ponto do terreno e tente de novo. Ele fica em "
+                    + caixa.centroX() + ", " + caixa.centroZ()
+                    + " no mundo " + alvo.mundo().getName() + ".", TEXTO));
+            return;
+        }
+
+        jogador.teleport(pouso.get());
+        jogador.sendMessage(Component.text("Voce esta no seu terreno "
+                + alvo.terreno().id() + ".", FEITO));
+    }
+
+    /** As opcoes do teleporte, com o numero que o jogador tem de digitar. */
+    private void mostrarDestinos(Player jogador, String label,
+                                 List<TerrenoTeleporte.Destino> meus) {
+        for (TerrenoTeleporte.Destino destino : meus) {
+            Caixa caixa = destino.terreno().caixa();
+            int numero = TerrenoVenda.slotDoId(destino.terreno().id());
+            jogador.sendMessage(Component.text("  /" + label + " teleportar " + numero, COMANDO)
+                    .append(Component.text("  " + caixa.larguraX() + "x" + caixa.larguraZ()
+                            + " em " + caixa.centroX() + ", " + caixa.centroZ()
+                            + " (" + destino.mundo().getName() + ")", TEXTO)));
+        }
+    }
 
     private void info(Player jogador) {
         Optional<Terreno> talvez = plugin.terrenoVenda().onde(jogador);
@@ -558,6 +650,16 @@ public final class TerrenoCommand implements CommandExecutor, TabCompleter {
                     }
                 }
                 return filtrar(nomes, args[1]);
+            }
+            if (sub.equals("teleportar") || sub.equals("ir")
+                    || sub.equals("casa") || sub.equals("voltar")) {
+                List<String> numeros = new ArrayList<>();
+                for (TerrenoTeleporte.Destino destino
+                        : TerrenoTeleporte.meusTerrenos(plugin, jogador)) {
+                    numeros.add(String.valueOf(
+                            TerrenoVenda.slotDoId(destino.terreno().id())));
+                }
+                return filtrar(numeros, args[1]);
             }
             if (sub.equals("vender")) {
                 return filtrar(List.of("CONFIRMAR"), args[1]);
