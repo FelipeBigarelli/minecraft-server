@@ -430,7 +430,8 @@ public final class PainelAjuda {
                 .replace("<recompra-dia>", String.valueOf(eco.adminBuybackDailyCap()))
                 .replace("<recompra-semana>", String.valueOf(eco.adminBuybackWeeklyCap()))
                 .replace("<tag-preco>", String.valueOf(plugin.tagCatalog().preco()))
-                .replace("<tag-troca>", String.valueOf(plugin.tagCatalog().precoDaTroca()));
+                .replace("<tag-troca>", String.valueOf(plugin.tagCatalog().precoDaTroca()))
+                .replace("<tag-cor>", String.valueOf(plugin.tagCatalog().precoDaCor()));
 
         List<Integer> precos = eco.plotPrices();
         for (int i = 0; i < 3; i++) {
