@@ -683,6 +683,34 @@ lia como preço unitário.
 
 ---
 
+## 9. Correção de 11/11/2026 — o saldo podia ficar negativo
+
+**Sintoma.** `Saldo: -B$ 537` na tela, depois de usar `/back` algumas vezes.
+
+**Causa.** O EssentialsX vem de fábrica com `min-money: -10000`. Com
+`command-costs` ligado, o comando não é recusado por falta de saldo: ele roda e
+empurra o jogador para a dívida. O `/back` custa 100, então seis usos sem
+dinheiro deixam alguém em -600 sem ter comprado nada.
+
+**Por que isso é pior do que parece.** Um jogador endividado não consegue
+vender no baú-loja nem pagar a taxa de encomenda, e não existe no servidor
+nenhuma forma de quitar dívida que não seja minerar por horas. Na prática é uma
+punição permanente por ter clicado num comando. E do lado da economia, o
+crédito vira uma torneira que nenhum teto diário de recompra segura.
+
+**Correção.** `min-money: 0` em `plugins/Essentials/config.yml`. Sem saldo, o
+comando é recusado ANTES de executar, que é a mensagem que o jogador entende.
+
+**Guarda.** O `server/scripts/doctor.sh` passou a reprovar `min-money` negativo.
+O arquivo do Essentials não é versionado neste repositório — ele é gerado pelo
+plugin no primeiro boot —, então a checagem no doctor é o único lugar onde essa
+regra sobrevive a uma reinstalação.
+
+**Em aberto.** Os custos de comando continuam calibrados contra a âncora errada
+da seção 8: `/back` a 100 B$ é mais de meia hora de mineração. A recomendação
+segue sendo dividir por 3 (`/home` 10, `/tpa` 15, `/back` 35, `/sethome` 60).
+
+
 ## Fontes
 
 Princípios gerais de faucet/sink e de escala de SMP vieram de:

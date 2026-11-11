@@ -193,6 +193,25 @@ else
     err "Nenhum provedor de economia encontrado (nem EssentialsX nem EternalEconomy)."
 fi
 
+# O EssentialsX vem de fábrica com min-money: -10000, ou seja, o saldo pode
+# ficar NEGATIVO. Com command-costs ligado (nosso /back custa 100), quem gasta
+# sem ter entra em dívida: o comando executa, o saldo vira -537, e o jogador
+# não entende por que a loja recusa a venda dele depois.
+#
+# Dinheiro negativo também fura o balanceamento: a torneira passa a ser o
+# crédito, não a venda ao servidor, e nenhum teto diário segura isso.
+#
+# O piso certo é 0 — sem saldo, o comando é recusado antes de rodar.
+if [ -f "$ESSENTIALS_CONFIG" ]; then
+    MIN_MONEY=$(grep -E '^[[:space:]]*min-money:' "$ESSENTIALS_CONFIG" | head -1 \
+                | sed -E "s/^[[:space:]]*min-money:[[:space:]]*['\"]?([-0-9.]+)['\"]?.*/\1/")
+    case "$MIN_MONEY" in
+        "")  warn "Essentials/config.yml sem min-money. O padrão do plugin é -10000, que deixa o saldo ficar negativo. Escreva min-money: 0." ;;
+        -*)  err "Essentials: min-money está em $MIN_MONEY. Saldo pode ficar negativo e o /back cobra mesmo de quem não tem. Troque para min-money: 0 e rode /essentials reload." ;;
+        *)   ok "Essentials: piso de saldo em $MIN_MONEY (ninguém fica devendo)." ;;
+    esac
+fi
+
 if grep -q '^eula=true$' "$SERVER_DIR/eula.txt" 2>/dev/null; then
     ok "EULA marcada como aceita pelo setup."
 else
