@@ -1510,6 +1510,16 @@ public final class SpawnShopBuilder {
             int barrilY = floorY + vaga.altura();
             layout.block(world, vaga.u(), vaga.v(), barrilY)
                     .setType(Material.BARREL, false);
+
+            // Tampo de laje sobre o barril.
+            //
+            // Duas funcoes: o item deixa de flutuar meio enterrado na tampa do
+            // barril (ele agora POUSA em cima de algo) e a fileira ganha uma
+            // linha clara que separa uma prateleira da outra. Pedra lisa
+            // porque item escuro — carvao, obsidiana — some num tampo escuro,
+            // e a parede atras ja e tijolo de pedra.
+            layout.block(world, vaga.u(), vaga.v(), barrilY + 1)
+                    .setType(Material.SMOOTH_STONE_SLAB, false);
             placeShopSign(world, layout, vaga, barrilY, dono, item);
             plugin.shopDisplays().spawn(world, layout, vaga.u(), vaga.v(), barrilY,
                     vaga.desvioU(), vaga.desvioV(), item);
@@ -1870,6 +1880,26 @@ public final class SpawnShopBuilder {
         /** -u. */
         BlockFace paraEsquerda() {
             return paraDireita().getOppositeFace();
+        }
+
+        /**
+         * Converte um passo em coordenada LOCAL (u, v) para deslocamento no
+         * mundo (x, z).
+         *
+         * Existe porque somar o passo local direto no x/z e o erro classico
+         * desta classe — e ele passou para o jogo uma vez: o item flutuante
+         * recebia "+0.3 em u" como "+0.3 em x", entao nas paredes em que u nao
+         * e o eixo x os itens apareciam deslocados para o lado, fora do
+         * barril. Toda a geometria da loja passa pelo giro do layout; este
+         * meio passo tambem tem de passar.
+         */
+        double[] passoNoMundo(double du, double dv) {
+            BlockFace dentro = paraDentro();
+            BlockFace direita = paraDireita();
+            return new double[]{
+                    direita.getModX() * du + dentro.getModX() * dv,
+                    direita.getModZ() * du + dentro.getModZ() * dv
+            };
         }
 
         static BlockFace rightOf(BlockFace inward) {

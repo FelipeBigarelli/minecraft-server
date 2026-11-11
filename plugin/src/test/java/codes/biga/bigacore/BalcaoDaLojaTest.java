@@ -138,4 +138,43 @@ class BalcaoDaLojaTest {
                     "placa em v=" + v + " entra na parede da frente ou do fundo");
         }
     }
+
+    @Test
+    @DisplayName("meio passo local vira deslocamento no eixo certo do mundo")
+    void passoLocalRespeitaOGiroDaLoja() {
+        // O item flutuante e empurrado meio passo na direcao do corredor. Esse
+        // passo e local (u, v); somado direto no x/z do mundo ele so acerta
+        // nas fachadas em que u por acaso e o eixo x. Nas outras o item
+        // aparece deslocado para o lado, fora do barril — foi o que apareceu
+        // na foto da parede lateral.
+        for (org.bukkit.block.BlockFace fachada : List.of(
+                org.bukkit.block.BlockFace.NORTH, org.bukkit.block.BlockFace.SOUTH,
+                org.bukkit.block.BlockFace.EAST, org.bukkit.block.BlockFace.WEST)) {
+
+            SpawnShopBuilder.Layout layout = new SpawnShopBuilder.Layout(0, 0, fachada);
+            double[] emU = layout.passoNoMundo(1, 0);
+            double[] emV = layout.passoNoMundo(0, 1);
+
+            assertEquals(0.0, emU[0] * emV[0] + emU[1] * emV[1], 1.0e-9,
+                    "em " + fachada + " os eixos u e v deixaram de ser perpendiculares");
+
+            // +v e sempre para o fundo da loja, ou seja, o contrario da fachada.
+            assertEquals(fachada.getOppositeFace().getModX(), emV[0], 1.0e-9,
+                    "em " + fachada + " o passo em v foi para o eixo errado");
+            assertEquals(fachada.getOppositeFace().getModZ(), emV[1], 1.0e-9,
+                    "em " + fachada + " o passo em v foi para o eixo errado");
+
+            assertEquals(1.0, Math.abs(emU[0]) + Math.abs(emU[1]), 1.0e-9,
+                    "em " + fachada + " o passo em u perdeu tamanho");
+        }
+    }
+
+    @Test
+    @DisplayName("o letreiro olha para a praca, nao para o fundo da loja")
+    void letreiroOlhaParaFora() {
+        assertEquals(0f, SpawnShopBuilder.yawDe(org.bukkit.block.BlockFace.SOUTH));
+        assertEquals(90f, SpawnShopBuilder.yawDe(org.bukkit.block.BlockFace.WEST));
+        assertEquals(180f, SpawnShopBuilder.yawDe(org.bukkit.block.BlockFace.NORTH));
+        assertEquals(270f, SpawnShopBuilder.yawDe(org.bukkit.block.BlockFace.EAST));
+    }
 }

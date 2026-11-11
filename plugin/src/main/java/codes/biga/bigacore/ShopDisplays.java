@@ -194,18 +194,24 @@ public final class ShopDisplays {
             return;
         }
 
-        // Em cima do barril, e nao na frente da placa.
+        // Em cima da laje que fecha o barril, e nao na frente da placa.
         //
         // Antes o item nascia na altura da placa: com a placa na parede, atras
-        // do barril, o item ficava exatamente na frente do texto e escondia o
-        // preco. A placa desceu para a frente do barril e o item subiu para
-        // cima dele — cada um no seu bloco de ar.
+        // do barril, ele ficava exatamente na frente do texto e escondia o
+        // preco. A placa desceu para a frente do barril e o item subiu.
         //
-        // O meio passo na direcao do corredor tira o item de dentro da tampa
-        // do barril quando o jogador olha de lado.
+        // ALTURA: a laje ocupa de +1.0 a +1.5 acima do barril. Com o item em
+        // +1.1 e escala 0.45, a base dele ficava em +0.875 — por isso parecia
+        // afundado na tampa. Em +1.75 ele vai de +1.525 a +1.975: pousado na
+        // laje, sem encostar no bloco de cima.
+        //
+        // LADO: o meio passo e LOCAL e precisa do giro do layout. Somado
+        // direto no x/z, ele so acertava nas paredes em que u e o eixo x; nas
+        // outras o item aparecia deslocado para o lado, fora do barril.
+        double[] passo = layout.passoNoMundo(desvioU * 0.15, desvioV * 0.15);
         Location alvo = layout.block(world, u, v, yDoBarril)
                 .getLocation()
-                .add(0.5 + desvioU * 0.3, 1.1, 0.5 + desvioV * 0.3);
+                .add(0.5 + passo[0], 1.75, 0.5 + passo[1]);
 
         ItemDisplay display = world.spawn(alvo, ItemDisplay.class, novo -> {
             novo.setItemStack(new ItemStack(material));
