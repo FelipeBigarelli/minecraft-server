@@ -94,13 +94,18 @@ tag:
   #  LuckPerms (&#FF6A00[&#FFD700Dono&#FF6A00]). Mudou lá?
   #  Mude aqui, senão volta a destoar.
   # -----------------------------------------------------------
+  #  'texto' é opcional: quando existe, /tag definir pode ser
+  #  chamado sem escrever nada e a grafia sai sempre igual à do
+  #  chat. É o que impede [DONO] e [Dono] de conviverem.
   estilos:
     dono:
       cor: "#FFD700"
       moldura: "#FF6A00"
+      texto: "Dono"
     equipe:
       cor: "#8FD3FF"
       moldura: "#3A7CA5"
+      texto: "Equipe"
     vip:
       cor: "#FFD700"
       moldura: "#B8860B"

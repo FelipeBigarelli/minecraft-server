@@ -107,7 +107,12 @@ public final class TagCatalog {
      * colchete sempre de cinza. Com os dois num pacote só, /tag definir
      * continua tendo três argumentos.
      */
-    public record Estilo(String cor, String moldura) {
+    public record Estilo(String cor, String moldura, String texto) {
+
+        /** Estilo sem texto próprio: quem usa escreve o dele. */
+        public boolean temTexto() {
+            return texto != null && !texto.isBlank();
+        }
     }
 
     /** Os estilos do tags.yml, por nome. */
@@ -124,7 +129,8 @@ public final class TagCatalog {
             }
             saida.put(nome.toLowerCase(Locale.ROOT), new Estilo(
                     item.getString("cor", corPadrao()),
-                    item.getString("moldura", "")));
+                    item.getString("moldura", ""),
+                    item.getString("texto", "")));
         }
         return saida;
     }

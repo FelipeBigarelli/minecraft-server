@@ -350,8 +350,8 @@ public final class TagCommand implements CommandExecutor, TabCompleter {
             quem.sendMessage(Component.text("Só a administração.", ALERTA));
             return;
         }
-        if (args.length < 4) {
-            quem.sendMessage(Component.text("/tag definir <jogador> <estilo|cor> <texto>", COMANDO));
+        if (args.length < 3) {
+            quem.sendMessage(Component.text("/tag definir <jogador> <estilo|cor> [texto]", COMANDO));
             quem.sendMessage(Component.text("Estilos: "
                     + String.join(", ", plugin.tagCatalog().estilos().keySet()), TEXTO));
             quem.sendMessage(Component.text("Cores: " + String.join(", ", todasAsCores()), TEXTO));
@@ -386,10 +386,17 @@ public final class TagCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        String texto = String.join(" ", Arrays.copyOfRange(args, 3, args.length)).trim();
+        // Texto do estilo quando ninguém digitou um. É o que impede
+        // [DONO] e [Dono] de conviverem: o prefixo do chat tem uma grafia
+        // só, e digitar a mão de novo é uma chance de errar de novo.
+        String texto = args.length > 3
+                ? String.join(" ", Arrays.copyOfRange(args, 3, args.length)).trim()
+                : estilo != null && estilo.temTexto() ? estilo.texto() : "";
+
         if (texto.isEmpty() || texto.length() > MAXIMO_ADMIN) {
             quem.sendMessage(Component.text("O texto tem de ter de 1 a "
-                    + MAXIMO_ADMIN + " caracteres.", ALERTA));
+                    + MAXIMO_ADMIN + " caracteres. O estilo " + pedido
+                    + " não traz um pronto, então escreva o seu.", ALERTA));
             return;
         }
 
