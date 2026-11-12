@@ -1,0 +1,126 @@
+# -------------------------------------------------------------
+#  REI DA MONTANHA — segure o topo
+#
+#  Uma montanha em degraus sobre o vazio. Quem estiver SOZINHO no
+#  topo segura a coroa, e quem segurar um minuto inteiro ganha.
+#
+#  Três regras que vêm do gênero e que são o jogo inteiro:
+#
+#  - DISPUTA CONGELA. Dois no topo e o relógio para. Não zera:
+#    para. Zerar faria de cada encontro um reinício, e ninguém
+#    chegaria nunca a lugar nenhum.
+#  - EMPURRÃO NÃO É QUEDA. Quem sai do topo tem alguns tiques de
+#    tolerância para voltar antes de perder o que acumulou. Sem
+#    isso, um empurrão de sorte apaga cinquenta segundos.
+#  - SAIU DE VEZ, ZEROU. Passada a tolerância, o relógio volta a
+#    zero e a montanha fica livre. É o que faz derrubar o rei
+#    valer a pena.
+#
+#  Ninguém é eliminado e ninguém toma dano: o que existe é um
+#  bastão que EMPURRA. Quem cai da montanha volta ao pé dela e
+#  perde o tempo da subida, que é castigo que basta.
+# -------------------------------------------------------------
+
+mundo: rei
+
+arena:
+  # A fiada do chão em volta da montanha.
+  y: 100
+
+  # O disco de chão. Fora dele é o vazio.
+  raio: 24
+  beira-aneis: 1
+
+  # A montanha: onde começa o pé, de quantos em quantos blocos de
+  # raio ela sobe uma fiada, e quantas fiadas ela tem.
+  pe-raio: 18
+  passo: 2
+  altura: 8
+
+  # O raio do topo — a zona que conta como "estar no topo".
+  topo-raio: 3
+
+  # As pedras de cobertura na encosta.
+  pedras: 8
+  pedra-raio: 12
+  pedra-altura: 2
+
+  saguao-altura: 20
+  saguao-raio: 9
+  saguao-parapeito: 4
+  marco-recuo: 8
+  marco-altura: 22
+
+paleta:
+  placa: ACACIA_WALL_SIGN
+
+  chao: SMOOTH_STONE
+  beira: POLISHED_ANDESITE
+  encosta: STONE_BRICKS
+  degrau: CHISELED_STONE_BRICKS
+  topo: GOLD_BLOCK
+  topo-beira: POLISHED_BLACKSTONE_BRICKS
+  pedra: ANDESITE
+  pedra-topo: MOSSY_STONE_BRICKS
+
+  estrutura: POLISHED_BLACKSTONE_BRICKS
+  escuro: POLISHED_DEEPSLATE
+  borda: DEEPSLATE_TILES
+  metal: IRON_BLOCK
+  vidro: YELLOW_STAINED_GLASS
+  luz: SHROOMLIGHT
+  luz-fria: END_ROD
+  nucleo: GOLD_BLOCK
+
+regras:
+  minimo: 2
+  maximo: 16
+  contagem-segundos: 15
+  fim-segundos: 8
+  treino-sozinho: true
+
+  # Quantos segundos SEGUIDOS no topo ganham a partida.
+  segundos-para-ganhar: 60
+
+  # Quantos tiques de tolerância quem sai do topo tem para voltar
+  # antes de o relógio dele zerar.
+  tolerancia-tiques: 40
+
+  # A força do bastão e quanto ele levanta.
+  empurrao: 1.05
+  empurrao-altura: 0.42
+
+  # Quantos tiques entre dois empurrões do mesmo jogador.
+  empurrao-carencia: 12
+
+  # Quantas fiadas abaixo do chão já conta como ter caído para
+  # fora do disco. Quem cair volta ao pé da montanha.
+  queda-abaixo: 6
+
+  # Quantos segundos quem caiu fica sem poder segurar o topo.
+  castigo-segundos: 3
+
+  # O teto da partida. Se ninguém fechar o minuto, ganha quem
+  # tiver segurado o topo por mais tempo de uma vez só.
+  tempo-limite: 420
+
+textos:
+  titulo: "REI DA MONTANHA"
+  cor: "#FFD700"
+  subtitulo: "segure o topo"
+  regras:
+    - "clique em [ENTRAR] para entrar na fila"
+    - "o bastão empurra, mas não machuca"
+    - "só conta quem está SOZINHO no topo"
+    - "dois no topo e o relógio congela"
+    - "um minuto inteiro e a coroa é sua"
+  escala-titulo: 2.6
+  escala-placa: 1.6
+  fundo-alpha: 0
+
+  placa-entrar: "[ENTRAR]"
+  placa-sair: "[SAIR]"
+  placa-fila: "na fila"
+  placa-esperando: "esperando"
+  placa-jogando: "DISPUTANDO"
+  placa-refazendo: "refazendo"

@@ -69,6 +69,9 @@ public final class BigaCore extends JavaPlugin {
     private PegaPegaCatalog pegaCatalog;
     private PegaPegaBuilder pegaBuilder;
     private PegaPega pegaPega;
+    private ReiCatalog reiCatalog;
+    private ReiBuilder reiBuilder;
+    private ReiDaMontanha reiDaMontanha;
 
     /**
      * Os minigames registrados, por etiqueta.
@@ -185,6 +188,11 @@ public final class BigaCore extends JavaPlugin {
             saveResource("pega-pega.yml", false);
         }
 
+        File reiFile = new File(getDataFolder(), "rei.yml");
+        if (!reiFile.exists()) {
+            saveResource("rei.yml", false);
+        }
+
         this.economyCatalog = new EconomyCatalog(this);
         this.economyBridge = new VaultEconomyBridge();
         this.spawnShopBuilder = new SpawnShopBuilder(this);
@@ -267,6 +275,11 @@ public final class BigaCore extends JavaPlugin {
         this.pegaBuilder = new PegaPegaBuilder(this);
         this.pegaPega = new PegaPega(this);
         registrarJogo(pegaCatalog, pegaBuilder, pegaPega);
+
+        this.reiCatalog = new ReiCatalog(this);
+        this.reiBuilder = new ReiBuilder(this);
+        this.reiDaMontanha = new ReiDaMontanha(this);
+        registrarJogo(reiCatalog, reiBuilder, reiDaMontanha);
 
         // As regras valem para o hub E para o lobby, então entram depois dos
         // dois: elas leem a configuração dos dois mundos para saber onde agir.
@@ -709,6 +722,18 @@ public final class BigaCore extends JavaPlugin {
 
     public PegaPega pegaPega() {
         return pegaPega;
+    }
+
+    public ReiCatalog reiCatalog() {
+        return reiCatalog;
+    }
+
+    public ReiBuilder reiBuilder() {
+        return reiBuilder;
+    }
+
+    public ReiDaMontanha reiDaMontanha() {
+        return reiDaMontanha;
     }
 
     /** Os minigames registrados, por etiqueta, na ordem em que entraram. */

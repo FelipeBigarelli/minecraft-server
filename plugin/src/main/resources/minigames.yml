@@ -317,7 +317,7 @@ portais:
     titulo: "REI DA MONTANHA"
     descricao: "segure o topo"
     detalhe: "um minuto inteiro"
-    mundo: ""
+    mundo: "rei"
     cor: "#FFD700"
     moldura: YELLOW_TERRACOTTA
     destaque: GOLD_BLOCK

@@ -168,6 +168,18 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
         return "JÁ!";
     }
 
+    /**
+     * O quanto a barra enche durante a rodada.
+     *
+     * Por padrão, a fração de quem ainda está de pé — que é a medida certa
+     * nos jogos de eliminação. Num jogo em que ninguém é eliminado, essa
+     * fração fica em um para sempre e a barra não diz nada; é para esses que
+     * este gancho existe.
+     */
+    protected float progressoDaBarra() {
+        return vivos.size() / (float) Math.max(1, comecouCom);
+    }
+
     /** O que a barra mostra durante a partida. */
     protected String textoDaBarra() {
         return "<white>" + vivos.size() + "</white> de pé <gray>· "
@@ -1018,8 +1030,7 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
             case JOGANDO -> {
                 barra.name(plugin.mini().deserialize("<color:" + cor + ">"
                         + textoDaBarra() + "</color>"));
-                barra.progress(ArenaComum.limite(
-                        vivos.size() / (float) Math.max(1, comecouCom)));
+                barra.progress(ArenaComum.limite(progressoDaBarra()));
                 barra.color(BossBar.Color.RED);
             }
             case FIM -> {
