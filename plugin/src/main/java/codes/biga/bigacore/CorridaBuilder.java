@@ -545,7 +545,7 @@ public final class CorridaBuilder implements ConstrutorDeArena {
 
     /** O yaw de quem olha para a direção (dx, dz). */
     public static float yawDaDirecao(double dx, double dz) {
-        return (float) Math.toDegrees(Math.atan2(-dx, dz));
+        return ArenaComum.yawDaDirecao(dx, dz);
     }
 
     /**

@@ -109,7 +109,7 @@ public final class Parkour extends JogoDeArena {
     }
 
     static long chave(int x, int y, int z) {
-        return ((long) (x & 0xFFFFF) << 40) | ((long) (y & 0xFFFFF) << 20) | (z & 0xFFFFF);
+        return ArenaComum.chave(x, y, z);
     }
 
     @Override

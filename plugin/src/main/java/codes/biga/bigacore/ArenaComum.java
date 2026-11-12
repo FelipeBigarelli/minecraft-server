@@ -111,6 +111,29 @@ public final class ArenaComum {
      * largaria todo mundo de costas para a arena: a primeira reação de meia
      * arena seria correr para fora dela.
      */
+    /**
+     * Três inteiros numa chave só, para mapa de posição.
+     *
+     * Um mapa de três inteiros por jogador por tique é alocação à toa trinta
+     * vezes por segundo. Vinte bits por eixo dão de sobra para qualquer arena
+     * — e uma arena que precise de mais que um milhão de blocos num eixo tem
+     * problema maior do que a chave.
+     */
+    public static long chave(int x, int y, int z) {
+        return ((long) (x & 0xFFFFF) << 40) | ((long) (y & 0xFFFFF) << 20) | (z & 0xFFFFF);
+    }
+
+    /**
+     * O yaw de quem olha para a direção (dx, dz).
+     *
+     * Yaw zero é o sul (z crescente) e cresce para o oeste, que é o contrário
+     * da intuição de quem já fez isto em qualquer outro lugar. Daí a conta
+     * ter um sinal invertido que parece erro e não é.
+     */
+    public static float yawDaDirecao(double dx, double dz) {
+        return (float) Math.toDegrees(Math.atan2(-dx, dz));
+    }
+
     public static float yawParaOCentro(int x, int z) {
         return (float) Math.toDegrees(Math.atan2(x, -z));
     }

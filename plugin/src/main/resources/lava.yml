@@ -1,0 +1,120 @@
+# -------------------------------------------------------------
+#  FUGA DA LAVA — suba antes que ela chegue
+#
+#  Um poço vulcânico com uma rampa em hélice subindo pela parede.
+#  A lava nasce no fundo e sobe sozinha, cada vez mais rápido.
+#  Quem fica abaixo dela, derrete. O primeiro a chegar na saída
+#  do topo ganha; se ninguém chegar, ganha o último de pé.
+#
+#  A rampa não é lisa: tem VÃOS para saltar e PEDRA RACHADA que
+#  cede um segundo e meio depois de pisada. É daí que vem "quem
+#  parar, derrete" — parar em cima da rachada é cair, e cair é
+#  descer para onde a lava já passou.
+#
+#  A rampa é GERADA: a planta diz o raio, a altura e de quantos
+#  em quantos blocos de caminhada ela sobe uma fiada. O teste
+#  confere que dá para subir inteira: anda célula por célula e
+#  mede cada vão.
+# -------------------------------------------------------------
+
+mundo: lava
+
+arena:
+  # A fiada do fundo do poço, onde a lava nasce.
+  y: 60
+
+  # Quantas fiadas a rampa sobe. O topo fica em y mais isto.
+  altura: 60
+
+  # O raio da hélice e a largura da rampa.
+  raio: 14
+  largura: 3
+
+  # Quantos blocos de caminhada a rampa anda para subir uma fiada.
+  # Menor: mais íngreme e mais curta. Maior: corrida mais longa.
+  passo-da-subida: 4
+
+  # O pilar do meio e o muro do poço.
+  pilar-raio: 3
+  muro-recuo: 3
+
+  # De quantos em quantos blocos de rampa vem um vão para saltar,
+  # e quantos blocos ele mede.
+  vao-a-cada: 20
+  vao-tamanho: 3
+
+  # De quantos em quantos blocos vem um trecho de pedra rachada.
+  rachada-a-cada: 13
+  rachada-tamanho: 2
+
+  saguao-folga: 10
+  saguao-raio: 9
+  saguao-parapeito: 4
+
+paleta:
+  placa: CRIMSON_WALL_SIGN
+
+  rampa: POLISHED_BLACKSTONE
+  rampa-borda: BLACKSTONE
+  rachada: CRACKED_POLISHED_BLACKSTONE_BRICKS
+  saida: GOLD_BLOCK
+  largada: POLISHED_BASALT
+
+  pilar: BASALT
+  pilar-veio: MAGMA_BLOCK
+  muro: DEEPSLATE_BRICKS
+  muro-veio: ORANGE_STAINED_GLASS
+
+  estrutura: POLISHED_BLACKSTONE_BRICKS
+  escuro: POLISHED_DEEPSLATE
+  borda: DEEPSLATE_TILES
+  metal: NETHERITE_BLOCK
+  vidro: ORANGE_STAINED_GLASS
+  luz: SHROOMLIGHT
+  luz-fria: END_ROD
+  nucleo: MAGMA_BLOCK
+
+regras:
+  # Dois: sozinho dá para treinar a subida, mas a corrida é a graça.
+  minimo: 2
+  maximo: 16
+  contagem-segundos: 15
+  fim-segundos: 8
+  treino-sozinho: true
+
+  # Quantos segundos de folga antes de a lava começar a subir. É o
+  # tempo de sair do fundo e pegar a rampa — sem isto, quem larga
+  # no último lugar derrete antes de dar o primeiro passo.
+  carencia-segundos: 10
+
+  # Quantos segundos a lava leva para subir uma fiada no começo.
+  segundos-por-fiada: 3
+
+  # De quantas em quantas fiadas ela fica um segundo mais rápida.
+  acelera-a-cada: 12
+
+  # Quanto tempo a pedra rachada aguenta depois de pisada, em tiques.
+  rachada-tiques: 30
+
+  # O teto da partida. Se ninguém escapar, ganha quem estiver mais alto.
+  tempo-limite: 240
+
+textos:
+  titulo: "FUGA DA LAVA"
+  cor: "#FF7A3D"
+  subtitulo: "suba antes que ela chegue"
+  regras:
+    - "clique em [ENTRAR] para entrar na fila"
+    - "a lava sobe sozinha, e acelera"
+    - "a pedra rachada cede quando pisada"
+    - "o primeiro no topo escapa e ganha"
+  escala-titulo: 2.6
+  escala-placa: 1.6
+  fundo-alpha: 0
+
+  placa-entrar: "[ENTRAR]"
+  placa-sair: "[SAIR]"
+  placa-fila: "na fila"
+  placa-esperando: "esperando"
+  placa-jogando: "SUBINDO"
+  placa-refazendo: "refazendo"

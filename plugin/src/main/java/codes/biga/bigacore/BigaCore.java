@@ -59,6 +59,9 @@ public final class BigaCore extends JavaPlugin {
     private CorridaCatalog corridaCatalog;
     private CorridaBuilder corridaBuilder;
     private Corrida corrida;
+    private LavaCatalog lavaCatalog;
+    private LavaBuilder lavaBuilder;
+    private FugaDaLava fugaDaLava;
 
     /**
      * Os minigames registrados, por etiqueta.
@@ -160,6 +163,11 @@ public final class BigaCore extends JavaPlugin {
             saveResource("corrida.yml", false);
         }
 
+        File lavaFile = new File(getDataFolder(), "lava.yml");
+        if (!lavaFile.exists()) {
+            saveResource("lava.yml", false);
+        }
+
         this.economyCatalog = new EconomyCatalog(this);
         this.economyBridge = new VaultEconomyBridge();
         this.spawnShopBuilder = new SpawnShopBuilder(this);
@@ -224,6 +232,11 @@ public final class BigaCore extends JavaPlugin {
         this.corridaBuilder = new CorridaBuilder(this);
         this.corrida = new Corrida(this);
         registrarJogo(corridaCatalog, corridaBuilder, corrida);
+
+        this.lavaCatalog = new LavaCatalog(this);
+        this.lavaBuilder = new LavaBuilder(this);
+        this.fugaDaLava = new FugaDaLava(this);
+        registrarJogo(lavaCatalog, lavaBuilder, fugaDaLava);
 
         // As regras valem para o hub E para o lobby, então entram depois dos
         // dois: elas leem a configuração dos dois mundos para saber onde agir.
@@ -609,6 +622,18 @@ public final class BigaCore extends JavaPlugin {
 
     public Corrida corrida() {
         return corrida;
+    }
+
+    public LavaCatalog lavaCatalog() {
+        return lavaCatalog;
+    }
+
+    public LavaBuilder lavaBuilder() {
+        return lavaBuilder;
+    }
+
+    public FugaDaLava fugaDaLava() {
+        return fugaDaLava;
     }
 
     /** Os minigames registrados, por etiqueta, na ordem em que entraram. */

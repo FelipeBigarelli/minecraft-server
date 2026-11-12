@@ -341,7 +341,7 @@ portais:
     titulo: "FUGA DA LAVA"
     descricao: "suba antes que ela chegue"
     detalhe: "quem parar, derrete"
-    mundo: ""
+    mundo: "lava"
     cor: "#FF7A3D"
     moldura: NETHER_BRICKS
     destaque: ORANGE_TERRACOTTA
