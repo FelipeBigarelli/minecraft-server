@@ -173,7 +173,7 @@ portais:
     titulo: "PARKOUR"
     descricao: "salte sem cair"
     detalhe: "contra o relógio"
-    mundo: ""
+    mundo: "parkour"
     cor: "#9BE85B"
     moldura: LIME_TERRACOTTA
     destaque: LIME_CONCRETE

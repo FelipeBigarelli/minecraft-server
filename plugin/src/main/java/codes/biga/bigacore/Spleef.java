@@ -74,7 +74,7 @@ import java.util.function.Supplier;
  * tem de ser a do disco. Sem a segunda, um bloco de neve que alguém deixasse
  * em qualquer lugar do mundo viraria buraco de Spleef.
  */
-public final class Spleef implements Listener {
+public final class Spleef implements Listener, JogoDeMinigame {
 
     private static final int INTERVALO_TICKS = 1;
     private static final int ALCANCE_DA_CORTINA = 32;
@@ -166,6 +166,11 @@ public final class Spleef implements Listener {
 
     public Estado estado() {
         return estado;
+    }
+
+    @Override
+    public String estadoEscrito() {
+        return estado.name();
     }
 
     public int quantosNaArena() {

@@ -1,9 +1,7 @@
 package codes.biga.bigacore;
 
 import org.bukkit.Material;
-import org.bukkit.configuration.file.YamlConfiguration;
 
-import java.io.File;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
@@ -34,34 +32,17 @@ import java.util.Set;
  * Run o chão as elimina sozinho, aqui não há nada que as obrigue a se
  * encontrar.
  */
-public final class SpleefCatalog {
-
-    private final BigaCore plugin;
-    private YamlConfiguration config;
+public final class SpleefCatalog extends CatalogoDeArena {
 
     public SpleefCatalog(BigaCore plugin) {
-        this.plugin = plugin;
-        reload();
-    }
-
-    public void reload() {
-        this.config = YamlConfiguration.loadConfiguration(
-                new File(plugin.getDataFolder(), "spleef.yml"));
-    }
-
-    // ------------------------------------------------------------------
-    //  Mundo
-    // ------------------------------------------------------------------
-
-    public String mundo() {
-        String nome = config.getString("mundo", "spleef");
-        return nome == null || nome.isBlank() ? "spleef" : nome;
+        super(plugin, "spleef.yml", "spleef", "spleef");
     }
 
     // ------------------------------------------------------------------
     //  Geometria
     // ------------------------------------------------------------------
 
+    @Override
     public int topoY() {
         return config.getInt("arena.y", 100);
     }
@@ -90,6 +71,7 @@ public final class SpleefCatalog {
      * limite colado no piso eliminaria antes de o jogador ter visto o buraco
      * em que caiu.
      */
+    @Override
     public int quedaY() {
         return topoY() - poco();
     }
@@ -99,20 +81,9 @@ public final class SpleefCatalog {
         return quedaY() - Math.max(2, config.getInt("arena.lago-fundo", 6));
     }
 
-    public int saguaoAltura() {
-        return Math.max(8, config.getInt("arena.saguao-altura", 16));
-    }
-
+    @Override
     public int saguaoY() {
         return topoY() + saguaoAltura();
-    }
-
-    public int saguaoRaio() {
-        return Math.max(4, config.getInt("arena.saguao-raio", 9));
-    }
-
-    public int saguaoParapeito() {
-        return Math.max(3, config.getInt("arena.saguao-parapeito", 4));
     }
 
     public int marcoRecuo() {
@@ -128,14 +99,17 @@ public final class SpleefCatalog {
     }
 
     /** O raio da área que a obra ocupa — é o que o desfazer apaga. */
+    @Override
     public int alcanceDaObra() {
         return marcoDistancia() + 6;
     }
 
+    @Override
     public int fundoDaObra() {
         return lagoY() - 3;
     }
 
+    @Override
     public int tetoDaObra() {
         return Math.max(saguaoY() + saguaoParapeito() + 4, topoY() + marcoAltura() + 6);
     }
@@ -143,31 +117,6 @@ public final class SpleefCatalog {
     // ------------------------------------------------------------------
     //  Paleta
     // ------------------------------------------------------------------
-
-    public Material cor(String chave, Material padrao) {
-        String nome = config.getString("paleta." + chave);
-        if (nome == null) {
-            return padrao;
-        }
-        Material material = Material.matchMaterial(nome.toUpperCase(Locale.ROOT));
-        if (material == null) {
-            plugin.getLogger().warning("[spleef] Material desconhecido em paleta." + chave
-                    + ": " + nome + " — usando " + padrao + ".");
-            return padrao;
-        }
-        return material;
-    }
-
-    /** O material das placas. Tem de ser placa DE PAREDE para encostar no muro. */
-    public Material materialDaPlaca() {
-        Material achado = cor("placa", Material.BIRCH_WALL_SIGN);
-        if (!org.bukkit.Tag.WALL_SIGNS.isTagged(achado)) {
-            plugin.getLogger().warning("[spleef] paleta.placa (" + achado
-                    + ") não é uma placa de parede — usando OAK_WALL_SIGN.");
-            return Material.OAK_WALL_SIGN;
-        }
-        return achado;
-    }
 
     /**
      * Os dois materiais que podem ser cavados, e SÓ eles.
@@ -189,26 +138,6 @@ public final class SpleefCatalog {
     //  Regras
     // ------------------------------------------------------------------
 
-    public int minimo() {
-        return Math.max(1, config.getInt("regras.minimo", 2));
-    }
-
-    public int maximo() {
-        return Math.max(minimo(), config.getInt("regras.maximo", 16));
-    }
-
-    public int contagemSegundos() {
-        return Math.max(3, config.getInt("regras.contagem-segundos", 20));
-    }
-
-    public int fimSegundos() {
-        return Math.max(1, config.getInt("regras.fim-segundos", 6));
-    }
-
-    public boolean treinoSozinho() {
-        return config.getBoolean("regras.treino-sozinho", true);
-    }
-
     public int paradoAviso() {
         return Math.max(2, config.getInt("regras.parado-aviso", 5));
     }
@@ -226,46 +155,9 @@ public final class SpleefCatalog {
         return Math.max(2, config.getInt("regras.aperto-intervalo", 10));
     }
 
-    public int tempoLimite() {
-        return Math.max(apertoSegundos() + 30, config.getInt("regras.tempo-limite", 420));
-    }
-
     // ------------------------------------------------------------------
     //  Textos
     // ------------------------------------------------------------------
-
-    public String titulo() {
-        return config.getString("textos.titulo", "SPLEEF");
-    }
-
-    public String corDoTexto() {
-        return config.getString("textos.cor", "#7FD8FF");
-    }
-
-    public String subtitulo() {
-        return config.getString("textos.subtitulo", "");
-    }
-
-    public List<String> regrasEscritas() {
-        return config.getStringList("textos.regras");
-    }
-
-    public double escalaTitulo() {
-        return config.getDouble("textos.escala-titulo", 2.6);
-    }
-
-    public double escalaPlaca() {
-        return config.getDouble("textos.escala-placa", 1.6);
-    }
-
-    public int fundoDoTexto() {
-        return Math.max(0, Math.min(255, config.getInt("textos.fundo-alpha", 0)));
-    }
-
-    public String placa(String chave, String padrao) {
-        String valor = config.getString("textos.placa-" + chave);
-        return valor == null || valor.isBlank() ? padrao : valor;
-    }
 
     // ------------------------------------------------------------------
     //  Conferências — estáticas e puras, para o teste rodar sem servidor

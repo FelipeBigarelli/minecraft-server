@@ -1,0 +1,94 @@
+# -------------------------------------------------------------
+#  PARKOUR — salte sem cair
+#
+#  Uma árvore gigante com um caminho de blocos de musgo subindo
+#  em espiral em volta dela. Trinta e dois saltos, cinco
+#  checkpoints, e o relógio correndo.
+#
+#  Aqui ninguém é eliminado: cair custa TEMPO, não a partida.
+#  É o que separa o parkour dos outros jogos da lista — perder é
+#  chegar em segundo, e não ser tirado do jogo.
+#
+#  O percurso é GERADO por conta: a planta diz quantos saltos e a
+#  que distância do tronco, e o código calcula cada plataforma. Os
+#  limites de salto saem da tabela do plugin de parkour procedural
+#  de referência, e o teste confere salto por salto que nenhum
+#  passa do que um jogador alcança.
+# -------------------------------------------------------------
+
+mundo: parkour
+
+arena:
+  # A fiada da plataforma de largada, no pé da árvore.
+  y: 100
+
+  # Quantos saltos tem o percurso.
+  saltos: 32
+
+  # A que distância do tronco o caminho corre. Mexer nisto muda
+  # quantas voltas a espiral dá: quanto menor o raio, mais fechada.
+  raio: 11
+
+  # De quantos em quantos saltos vem um checkpoint.
+  checkpoint-a-cada: 6
+
+  # Abaixo de y menos isto, o jogador volta ao último checkpoint.
+  queda-abaixo: 8
+
+  # Quanto acima do cume fica o saguão.
+  saguao-folga: 12
+  saguao-raio: 9
+  saguao-parapeito: 4
+
+paleta:
+  placa: WARPED_WALL_SIGN
+
+  salto: MOSS_BLOCK
+  salto-duro: LIME_TERRACOTTA
+  checkpoint: LIME_CONCRETE
+  largada: POLISHED_ANDESITE
+  chegada: GOLD_BLOCK
+
+  tronco: OAK_LOG
+  casca: STRIPPED_OAK_LOG
+  folha: FLOWERING_AZALEA_LEAVES
+
+  estrutura: QUARTZ_BLOCK
+  escuro: POLISHED_DEEPSLATE
+  borda: DEEPSLATE_TILES
+  metal: IRON_BLOCK
+  vidro: LIME_STAINED_GLASS
+  luz: SEA_LANTERN
+  luz-fria: END_ROD
+  nucleo: EMERALD_BLOCK
+
+regras:
+  # Dois: sozinho ainda dá para treinar, mas a graça é a corrida.
+  minimo: 2
+  maximo: 16
+  contagem-segundos: 15
+  fim-segundos: 8
+  treino-sozinho: true
+
+  # O teto da partida. Quem estiver mais adiante ganha se estourar.
+  tempo-limite: 300
+
+textos:
+  titulo: "PARKOUR"
+  cor: "#9BE85B"
+  subtitulo: "salte sem cair"
+  regras:
+    - "clique em [ENTRAR] para entrar na fila"
+    - "suba a árvore saltando"
+    - "cair volta ao checkpoint, não elimina"
+    - "o primeiro no topo ganha"
+  escala-titulo: 2.6
+  escala-placa: 1.6
+  fundo-alpha: 0
+
+  placa-entrar: "[ENTRAR]"
+  placa-sair: "[SAIR]"
+  placa-fila: "na fila"
+  placa-esperando: "esperando"
+  placa-jogando: "SUBINDO"
+  placa-refazendo: "refazendo"

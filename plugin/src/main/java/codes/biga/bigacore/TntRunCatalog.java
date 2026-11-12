@@ -1,9 +1,7 @@
 package codes.biga.bigacore;
 
 import org.bukkit.Material;
-import org.bukkit.configuration.file.YamlConfiguration;
 
-import java.io.File;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
@@ -27,37 +25,20 @@ import java.util.Set;
  * cair de piso deixa de custar e o jogo inteiro perde o sentido. Por isso o
  * vão é conferido no construtor e não só documentado.
  */
-public final class TntRunCatalog {
+public final class TntRunCatalog extends CatalogoDeArena {
 
     /** O vão mínimo que impede voltar ao piso de cima num pulo. */
     public static final int VAO_MINIMO = 3;
 
-    private final BigaCore plugin;
-    private YamlConfiguration config;
-
     public TntRunCatalog(BigaCore plugin) {
-        this.plugin = plugin;
-        reload();
-    }
-
-    public void reload() {
-        this.config = YamlConfiguration.loadConfiguration(
-                new File(plugin.getDataFolder(), "tnt-run.yml"));
-    }
-
-    // ------------------------------------------------------------------
-    //  Mundo
-    // ------------------------------------------------------------------
-
-    public String mundo() {
-        String nome = config.getString("mundo", "tnt_run");
-        return nome == null || nome.isBlank() ? "tnt_run" : nome;
+        super(plugin, "tnt-run.yml", "tnt_run", "tntrun");
     }
 
     // ------------------------------------------------------------------
     //  Geometria
     // ------------------------------------------------------------------
 
+    @Override
     public int topoY() {
         return config.getInt("arena.y", 100);
     }
@@ -108,25 +89,15 @@ public final class TntRunCatalog {
      * Precisa de folga sobre o fundo: quem está em pé no último piso tem o pé
      * na base dele, e um limite grudado no fundo eliminaria de pé.
      */
+    @Override
     public int quedaY() {
         return fundoDaArena() - Math.max(2, config.getInt("regras.queda-abaixo", 8));
     }
 
-    public int saguaoAltura() {
-        return Math.max(8, config.getInt("arena.saguao-altura", 18));
-    }
-
     /** A fiada do piso do saguão. */
+    @Override
     public int saguaoY() {
         return topoY() + saguaoAltura();
-    }
-
-    public int saguaoRaio() {
-        return Math.max(4, config.getInt("arena.saguao-raio", 9));
-    }
-
-    public int saguaoParapeito() {
-        return Math.max(3, config.getInt("arena.saguao-parapeito", 4));
     }
 
     public int marcoRecuo() {
@@ -149,15 +120,18 @@ public final class TntRunCatalog {
      * desfazer apaga. Generoso: o marco tem três de largura e o desfazer que
      * deixa pedaço para trás é pior do que o que apaga ar num mundo de ar.
      */
+    @Override
     public int alcanceDaObra() {
         return marcoDistancia() + 6;
     }
 
     /** Da fiada mais baixa que a obra toca até a mais alta. */
+    @Override
     public int fundoDaObra() {
         return fundoDaArena() - 10;
     }
 
+    @Override
     public int tetoDaObra() {
         return Math.max(saguaoY() + saguaoParapeito() + 4, topoY() + marcoAltura() + 6);
     }
@@ -165,20 +139,6 @@ public final class TntRunCatalog {
     // ------------------------------------------------------------------
     //  Paleta
     // ------------------------------------------------------------------
-
-    public Material cor(String chave, Material padrao) {
-        String nome = config.getString("paleta." + chave);
-        if (nome == null) {
-            return padrao;
-        }
-        Material material = Material.matchMaterial(nome.toUpperCase(Locale.ROOT));
-        if (material == null) {
-            plugin.getLogger().warning("[tntrun] Material desconhecido em paleta." + chave
-                    + ": " + nome + " — usando " + padrao + ".");
-            return padrao;
-        }
-        return material;
-    }
 
     /**
      * Os quatro materiais que o jogo pode apagar, e SÓ eles.
@@ -203,77 +163,13 @@ public final class TntRunCatalog {
     //  Regras
     // ------------------------------------------------------------------
 
-    public int minimo() {
-        return Math.max(1, config.getInt("regras.minimo", 2));
-    }
-
-    /** O material das placas. Tem de ser placa de PAREDE para encostar no muro. */
-    public Material materialDaPlaca() {
-        Material achado = cor("placa", Material.CRIMSON_WALL_SIGN);
-        if (!org.bukkit.Tag.WALL_SIGNS.isTagged(achado)) {
-            plugin.getLogger().warning("[tntrun] paleta.placa (" + achado
-                    + ") não é uma placa de parede — usando OAK_WALL_SIGN.");
-            return Material.OAK_WALL_SIGN;
-        }
-        return achado;
-    }
-
-    public int maximo() {
-        return Math.max(minimo(), config.getInt("regras.maximo", 16));
-    }
-
-    public int contagemSegundos() {
-        return Math.max(3, config.getInt("regras.contagem-segundos", 20));
-    }
-
     public int derreteTicks() {
         return Math.max(1, config.getInt("regras.derrete-ticks", 8));
-    }
-
-    public int fimSegundos() {
-        return Math.max(1, config.getInt("regras.fim-segundos", 6));
-    }
-
-    public boolean treinoSozinho() {
-        return config.getBoolean("regras.treino-sozinho", true);
     }
 
     // ------------------------------------------------------------------
     //  Textos
     // ------------------------------------------------------------------
-
-    public String titulo() {
-        return config.getString("textos.titulo", "TNT RUN");
-    }
-
-    public String corDoTexto() {
-        return config.getString("textos.cor", "#FF5555");
-    }
-
-    public String subtitulo() {
-        return config.getString("textos.subtitulo", "");
-    }
-
-    public List<String> regrasEscritas() {
-        return config.getStringList("textos.regras");
-    }
-
-    public double escalaTitulo() {
-        return config.getDouble("textos.escala-titulo", 2.6);
-    }
-
-    public double escalaPlaca() {
-        return config.getDouble("textos.escala-placa", 1.6);
-    }
-
-    public int fundoDoTexto() {
-        return Math.max(0, Math.min(255, config.getInt("textos.fundo-alpha", 0)));
-    }
-
-    public String placa(String chave, String padrao) {
-        String valor = config.getString("textos.placa-" + chave);
-        return valor == null || valor.isBlank() ? padrao : valor;
-    }
 
     // ------------------------------------------------------------------
     //  Conferências — estáticas e puras, para o teste rodar sem servidor

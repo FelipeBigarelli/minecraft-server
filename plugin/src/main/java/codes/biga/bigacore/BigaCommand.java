@@ -26,8 +26,8 @@ import java.util.OptionalDouble;
  */
 public final class BigaCommand implements CommandExecutor, TabCompleter {
 
-    private static final List<String> SUBCOMANDOS =
-            List.of("info", "eco", "loja", "hub", "lobby", "tntrun", "spleef",
+    private static final List<String> SUBCOMANDOS_FIXOS =
+            List.of("info", "eco", "loja", "hub", "lobby",
                     "painel", "reload", "voar");
     private static final List<String> PAINEL_SUBCOMANDOS = List.of("construir", "limpar");
     private static final List<String> ECO_SUBCOMANDOS =
@@ -36,9 +36,14 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             List.of("info", "construir", "desfazer", "textos", "ir");
     private static final List<String> LOBBY_SUBCOMANDOS =
             List.of("info", "construir", "desfazer", "textos", "ir");
-    private static final List<String> TNTRUN_SUBCOMANDOS =
+    /**
+     * Os sete subcomandos que todo minigame tem, e de propósito os mesmos.
+     *
+     * São vinte jogos. Quem decorou o caminho de um não pode ter de decorar o
+     * do seguinte: o que muda de jogo para jogo é a arena, não a manivela.
+     */
+    private static final List<String> JOGO_SUBCOMANDOS =
             List.of("info", "construir", "desfazer", "textos", "ir", "comecar", "parar");
-    private static final List<String> SPLEEF_SUBCOMANDOS = TNTRUN_SUBCOMANDOS;
     private static final List<String> LOJA_SUBCOMANDOS =
             List.of("local", "validar", "preview", "criar", "placas", "vitrine",
                     "proteger", "desproteger", "desfazer");
@@ -64,12 +69,10 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             case "loja" -> lojaSpawn(sender, label, args);
             case "hub" -> hub(sender, label, args);
             case "lobby" -> lobby(sender, label, args);
-            case "tntrun" -> tntRun(sender, label, args);
-            case "spleef" -> spleef(sender, label, args);
             case "painel" -> paredaoAjuda(sender, label, args);
             case "reload" -> recarregar(sender);
             case "voar" -> alternarVoo(sender);
-            default -> enviarAjuda(sender, label);
+            default -> jogoOuAjuda(sender, label, args);
         }
 
         return true;
@@ -641,224 +644,82 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
     }
 
     // ------------------------------------------------------------------
-    //  /biga tntrun
+    //  /biga <jogo>  —  serve a qualquer minigame registrado
     // ------------------------------------------------------------------
 
     /**
-     * A arena do TNT Run.
+     * Os sete comandos de arena, para o jogo que o primeiro argumento nomear.
      *
-     * Dois comandos existem só para quem administra e não para jogar:
+     * <h2>Por que é um só</h2>
+     *
+     * Este bloco já existiu duas vezes, uma por jogo, com cento e cinquenta
+     * linhas cada. Com vinte jogos seriam três mil linhas iguais a menos de
+     * um nome, e a décima cópia responderia diferente das outras nove num
+     * detalhe que ninguém lembra de conferir. Agora o jogo entra pelo
+     * registro — {@link BigaCore#jogos()} — e o comando não sabe de que jogo
+     * se trata: nasce funcionando para os que ainda não existem.
+     *
+     * <h2>Dois comandos são só de quem administra</h2>
+     *
      * {@code comecar} larga a rodada sem esperar o mínimo de gente — é o que
      * torna o jogo testável por uma pessoa só — e {@code parar} desfaz uma
      * rodada travada sem precisar derrubar o servidor.
      */
-    private void tntRun(CommandSender sender, String label, String[] args) {
+    private void jogoOuAjuda(CommandSender sender, String label, String[] args) {
+        JogoRegistrado registrado =
+                plugin.jogos().get(args[0].toLowerCase(Locale.ROOT));
+        if (registrado == null) {
+            enviarAjuda(sender, label);
+            return;
+        }
         if (!sender.hasPermission("bigacore.admin")) {
             semPermissao(sender);
             return;
         }
         if (args.length < 2) {
-            enviarAjudaTntRun(sender, label);
+            enviarAjudaDoJogo(sender, label, registrado);
             return;
         }
 
         switch (args[1].toLowerCase(Locale.ROOT)) {
-            case "info" -> tntRunInfo(sender);
-            case "construir" -> tntRunConstruir(sender, label, args);
-            case "desfazer" -> tntRunDesfazer(sender, label, args);
-            case "textos" -> tntRunTextos(sender);
-            case "ir" -> tntRunIr(sender);
+            case "info" -> jogoInfo(sender, registrado);
+            case "construir" -> jogoConstruir(sender, label, args, registrado);
+            case "desfazer" -> jogoDesfazer(sender, label, args, registrado);
+            case "textos" -> jogoTextos(sender, registrado);
+            case "ir" -> jogoIr(sender, registrado);
             case "comecar" -> sender.sendMessage(Component.text(
-                    plugin.tntRun().comecarAgora(), NamedTextColor.GRAY));
+                    registrado.jogo().comecarAgora(), NamedTextColor.GRAY));
             case "parar" -> sender.sendMessage(Component.text(
-                    plugin.tntRun().pararRodada(), NamedTextColor.GRAY));
-            default -> enviarAjudaTntRun(sender, label);
+                    registrado.jogo().pararRodada(), NamedTextColor.GRAY));
+            default -> enviarAjudaDoJogo(sender, label, registrado);
         }
     }
 
-    private void enviarAjudaTntRun(CommandSender sender, String label) {
-        sender.sendMessage(Component.text("A arena do TNT Run", NamedTextColor.GOLD));
-        sender.sendMessage(Component.text("O mundo é criado sozinho na subida. "
-                + "Falta só levantar a arena:", NamedTextColor.GRAY));
-        sender.sendMessage(Component.text("/" + label + " tntrun info",
-                NamedTextColor.YELLOW).append(Component.text(
-                        " — confere o terreno e mostra a geometria", NamedTextColor.GRAY)));
-        sender.sendMessage(Component.text("/" + label + " tntrun construir CONFIRMAR",
-                NamedTextColor.YELLOW));
-        sender.sendMessage(Component.text("/" + label + " tntrun desfazer CONFIRMAR",
-                NamedTextColor.YELLOW));
-        sender.sendMessage(Component.text("/" + label + " tntrun textos",
-                NamedTextColor.YELLOW).append(Component.text(
-                        " — refaz só os letreiros", NamedTextColor.GRAY)));
-        sender.sendMessage(Component.text("/" + label + " tntrun ir",
-                NamedTextColor.YELLOW).append(Component.text(
-                        " — leva você ao saguão", NamedTextColor.GRAY)));
-        sender.sendMessage(Component.text("/" + label + " tntrun comecar",
-                NamedTextColor.YELLOW).append(Component.text(
-                        " — larga a rodada agora, mesmo sozinho (treino)",
-                        NamedTextColor.GRAY)));
-        sender.sendMessage(Component.text("/" + label + " tntrun parar",
-                NamedTextColor.YELLOW).append(Component.text(
-                        " — cancela a rodada e devolve todos ao saguão",
-                        NamedTextColor.GRAY)));
-    }
-
-    /** O mundo da arena, criado na hora se ainda não existir. */
-    private org.bukkit.World mundoDaArena(CommandSender sender) {
-        String nome = plugin.tntRunCatalog().mundo();
-        org.bukkit.World mundo = MundoDeJogo.garantir(plugin, nome);
-        if (mundo == null) {
-            sender.sendMessage(Component.text("Não foi possível criar nem carregar o "
-                    + "mundo \"" + nome + "\". Veja o console.", NamedTextColor.RED));
-            sender.sendMessage(Component.text("Crie à mão: /mv create " + nome
-                    + " normal -g BigaCore", NamedTextColor.YELLOW));
-        }
-        return mundo;
-    }
-
-    private void tntRunInfo(CommandSender sender) {
-        org.bukkit.World mundo = mundoDaArena(sender);
-        if (mundo == null) {
-            return;
-        }
-        TntRunBuilder.Resultado conferido = plugin.tntRunBuilder().construir(mundo, false);
-        sender.sendMessage(Component.text(conferido.mensagem(),
-                conferido.ok() ? NamedTextColor.GRAY : NamedTextColor.RED));
-
-        TntRun jogo = plugin.tntRun();
-        sender.sendMessage(Component.text("  estado: ", NamedTextColor.DARK_GRAY)
-                .append(Component.text(jogo.estado().name(), NamedTextColor.AQUA))
-                .append(Component.text("  no saguão: ", NamedTextColor.DARK_GRAY))
-                .append(Component.text(jogo.quantosProntos() + "/"
-                        + jogo.quantosNaArena(), NamedTextColor.WHITE))
-                .append(Component.text("  de pé: ", NamedTextColor.DARK_GRAY))
-                .append(Component.text(String.valueOf(jogo.quantosVivos()),
-                        NamedTextColor.WHITE)));
-    }
-
-    private void tntRunConstruir(CommandSender sender, String label, String[] args) {
-        org.bukkit.World mundo = mundoDaArena(sender);
-        if (mundo == null) {
-            return;
-        }
-        if (args.length < 3 || !args[2].equals("CONFIRMAR")) {
-            sender.sendMessage(Component.text("Isto levanta a arena inteira no mundo "
-                    + mundo.getName() + ". O servidor trava por um instante.",
-                    NamedTextColor.GRAY));
-            sender.sendMessage(Component.text("/" + label + " tntrun construir CONFIRMAR",
-                    NamedTextColor.YELLOW));
-            return;
-        }
-
-        TntRunBuilder.Resultado feito = plugin.tntRunBuilder().construir(mundo, true);
-        sender.sendMessage(Component.text(feito.mensagem(),
-                feito.ok() ? NamedTextColor.GREEN : NamedTextColor.RED));
-        if (feito.ok()) {
-            sender.sendMessage(Component.text("O portal vermelho do lobby já aponta "
-                    + "para cá. Entre por ele, ou use /" + label + " tntrun ir.",
-                    NamedTextColor.GRAY));
-        }
-    }
-
-    private void tntRunDesfazer(CommandSender sender, String label, String[] args) {
-        org.bukkit.World mundo = mundoDaArena(sender);
-        if (mundo == null) {
-            return;
-        }
-        if (args.length < 3 || !args[2].equals("CONFIRMAR")) {
-            sender.sendMessage(Component.text("Isto APAGA tudo na área da arena em "
-                    + mundo.getName() + ". Não há cópia para restaurar.",
-                    NamedTextColor.RED));
-            sender.sendMessage(Component.text("/" + label + " tntrun desfazer CONFIRMAR",
-                    NamedTextColor.YELLOW));
-            return;
-        }
-        TntRunBuilder.Resultado feito = plugin.tntRunBuilder().desfazer(mundo);
-        sender.sendMessage(Component.text(feito.mensagem(), NamedTextColor.GREEN));
-    }
-
-    private void tntRunTextos(CommandSender sender) {
-        org.bukkit.World mundo = mundoDaArena(sender);
-        if (mundo == null) {
-            return;
-        }
-        TntRunBuilder.Resultado feito = plugin.tntRunBuilder().textos(mundo);
-        sender.sendMessage(Component.text(feito.mensagem(), NamedTextColor.GREEN));
-    }
-
-    private void tntRunIr(CommandSender sender) {
-        if (!(sender instanceof Player jogador)) {
-            sender.sendMessage(Component.text("Só dentro do jogo.", NamedTextColor.RED));
-            return;
-        }
-        org.bukkit.World mundo = mundoDaArena(sender);
-        if (mundo == null) {
-            return;
-        }
-        jogador.teleportAsync(
-                TntRunBuilder.pontoDoSaguao(mundo, plugin.tntRunCatalog()));
-    }
-
-    // ------------------------------------------------------------------
-    //  /biga spleef
-    // ------------------------------------------------------------------
-
-    /**
-     * A arena do Spleef.
-     *
-     * Mesmos sete subcomandos do TNT Run, de propósito: são vinte jogos, e um
-     * administrador que decorou o caminho de um não pode ter de decorar o do
-     * seguinte. O que muda de jogo para jogo é a arena, não a manivela.
-     */
-    private void spleef(CommandSender sender, String label, String[] args) {
-        if (!sender.hasPermission("bigacore.admin")) {
-            semPermissao(sender);
-            return;
-        }
-        if (args.length < 2) {
-            enviarAjudaSpleef(sender, label);
-            return;
-        }
-
-        switch (args[1].toLowerCase(Locale.ROOT)) {
-            case "info" -> spleefInfo(sender);
-            case "construir" -> spleefConstruir(sender, label, args);
-            case "desfazer" -> spleefDesfazer(sender, label, args);
-            case "textos" -> spleefTextos(sender);
-            case "ir" -> spleefIr(sender);
-            case "comecar" -> sender.sendMessage(Component.text(
-                    plugin.spleef().comecarAgora(), NamedTextColor.GRAY));
-            case "parar" -> sender.sendMessage(Component.text(
-                    plugin.spleef().pararRodada(), NamedTextColor.GRAY));
-            default -> enviarAjudaSpleef(sender, label);
-        }
-    }
-
-    private void enviarAjudaSpleef(CommandSender sender, String label) {
-        sender.sendMessage(Component.text("A arena do Spleef", NamedTextColor.GOLD));
-        sender.sendMessage(Component.text("O mundo é criado sozinho na subida. "
-                + "Falta só levantar a arena:", NamedTextColor.GRAY));
+    private void enviarAjudaDoJogo(CommandSender sender, String label,
+                                   JogoRegistrado registrado) {
+        sender.sendMessage(Component.text("A arena do " + registrado.titulo(),
+                NamedTextColor.GOLD));
+        sender.sendMessage(Component.text("O mundo (" + registrado.mundo() + ") é criado "
+                + "sozinho na subida. Falta só levantar a arena:", NamedTextColor.GRAY));
         for (String[] linha : new String[][]{
                 {"info", "confere o terreno e mostra a geometria"},
-                {"construir CONFIRMAR", ""},
-                {"desfazer CONFIRMAR", ""},
+                {"construir CONFIRMAR", "levanta a arena inteira"},
+                {"desfazer CONFIRMAR", "apaga tudo na área da arena"},
                 {"textos", "refaz só os letreiros"},
                 {"ir", "leva você ao saguão"},
                 {"comecar", "larga a rodada agora, mesmo sozinho (treino)"},
                 {"parar", "cancela a rodada e devolve todos ao saguão"}}) {
-            Component texto = Component.text("/" + label + " spleef " + linha[0],
-                    NamedTextColor.YELLOW);
-            if (!linha[1].isEmpty()) {
-                texto = texto.append(Component.text(" — " + linha[1],
-                        NamedTextColor.GRAY));
-            }
-            sender.sendMessage(texto);
+            sender.sendMessage(Component.text(
+                    "/" + label + " " + registrado.etiqueta() + " " + linha[0],
+                    NamedTextColor.YELLOW)
+                    .append(Component.text(" — " + linha[1], NamedTextColor.GRAY)));
         }
     }
 
-    /** O mundo da arena do Spleef, criado na hora se ainda não existir. */
-    private org.bukkit.World mundoDoSpleef(CommandSender sender) {
-        String nome = plugin.spleefCatalog().mundo();
+    /** O mundo do jogo, criado na hora se ainda não existir. */
+    private org.bukkit.World mundoDoJogo(CommandSender sender,
+                                         JogoRegistrado registrado) {
+        String nome = registrado.mundo();
         org.bukkit.World mundo = MundoDeJogo.garantir(plugin, nome);
         if (mundo == null) {
             sender.sendMessage(Component.text("Não foi possível criar nem carregar o "
@@ -869,18 +730,19 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
         return mundo;
     }
 
-    private void spleefInfo(CommandSender sender) {
-        org.bukkit.World mundo = mundoDoSpleef(sender);
+    private void jogoInfo(CommandSender sender, JogoRegistrado registrado) {
+        org.bukkit.World mundo = mundoDoJogo(sender, registrado);
         if (mundo == null) {
             return;
         }
-        SpleefBuilder.Resultado conferido = plugin.spleefBuilder().construir(mundo, false);
+        ConstrutorDeArena.Resultado conferido =
+                registrado.construtor().construir(mundo, false);
         sender.sendMessage(Component.text(conferido.mensagem(),
                 conferido.ok() ? NamedTextColor.GRAY : NamedTextColor.RED));
 
-        Spleef jogo = plugin.spleef();
+        JogoDeMinigame jogo = registrado.jogo();
         sender.sendMessage(Component.text("  estado: ", NamedTextColor.DARK_GRAY)
-                .append(Component.text(jogo.estado().name(), NamedTextColor.AQUA))
+                .append(Component.text(jogo.estadoEscrito(), NamedTextColor.AQUA))
                 .append(Component.text("  no saguão: ", NamedTextColor.DARK_GRAY))
                 .append(Component.text(jogo.quantosProntos() + "/"
                         + jogo.quantosNaArena(), NamedTextColor.WHITE))
@@ -889,8 +751,9 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
                         NamedTextColor.WHITE)));
     }
 
-    private void spleefConstruir(CommandSender sender, String label, String[] args) {
-        org.bukkit.World mundo = mundoDoSpleef(sender);
+    private void jogoConstruir(CommandSender sender, String label, String[] args,
+                               JogoRegistrado registrado) {
+        org.bukkit.World mundo = mundoDoJogo(sender, registrado);
         if (mundo == null) {
             return;
         }
@@ -898,23 +761,24 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(Component.text("Isto levanta a arena inteira no mundo "
                     + mundo.getName() + ". O servidor trava por um instante.",
                     NamedTextColor.GRAY));
-            sender.sendMessage(Component.text("/" + label + " spleef construir CONFIRMAR",
-                    NamedTextColor.YELLOW));
+            sender.sendMessage(Component.text("/" + label + " " + registrado.etiqueta()
+                    + " construir CONFIRMAR", NamedTextColor.YELLOW));
             return;
         }
 
-        SpleefBuilder.Resultado feito = plugin.spleefBuilder().construir(mundo, true);
+        ConstrutorDeArena.Resultado feito = registrado.construtor().construir(mundo, true);
         sender.sendMessage(Component.text(feito.mensagem(),
                 feito.ok() ? NamedTextColor.GREEN : NamedTextColor.RED));
         if (feito.ok()) {
-            sender.sendMessage(Component.text("O portal azul do lobby já aponta "
-                    + "para cá. Entre por ele, ou use /" + label + " spleef ir.",
-                    NamedTextColor.GRAY));
+            sender.sendMessage(Component.text("O portal do lobby já aponta para cá. "
+                    + "Entre por ele, ou use /" + label + " " + registrado.etiqueta()
+                    + " ir.", NamedTextColor.GRAY));
         }
     }
 
-    private void spleefDesfazer(CommandSender sender, String label, String[] args) {
-        org.bukkit.World mundo = mundoDoSpleef(sender);
+    private void jogoDesfazer(CommandSender sender, String label, String[] args,
+                              JogoRegistrado registrado) {
+        org.bukkit.World mundo = mundoDoJogo(sender, registrado);
         if (mundo == null) {
             return;
         }
@@ -922,34 +786,33 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(Component.text("Isto APAGA tudo na área da arena em "
                     + mundo.getName() + ". Não há cópia para restaurar.",
                     NamedTextColor.RED));
-            sender.sendMessage(Component.text("/" + label + " spleef desfazer CONFIRMAR",
-                    NamedTextColor.YELLOW));
+            sender.sendMessage(Component.text("/" + label + " " + registrado.etiqueta()
+                    + " desfazer CONFIRMAR", NamedTextColor.YELLOW));
             return;
         }
-        SpleefBuilder.Resultado feito = plugin.spleefBuilder().desfazer(mundo);
+        ConstrutorDeArena.Resultado feito = registrado.construtor().desfazer(mundo);
         sender.sendMessage(Component.text(feito.mensagem(), NamedTextColor.GREEN));
     }
 
-    private void spleefTextos(CommandSender sender) {
-        org.bukkit.World mundo = mundoDoSpleef(sender);
+    private void jogoTextos(CommandSender sender, JogoRegistrado registrado) {
+        org.bukkit.World mundo = mundoDoJogo(sender, registrado);
         if (mundo == null) {
             return;
         }
-        SpleefBuilder.Resultado feito = plugin.spleefBuilder().textos(mundo);
+        ConstrutorDeArena.Resultado feito = registrado.construtor().textos(mundo);
         sender.sendMessage(Component.text(feito.mensagem(), NamedTextColor.GREEN));
     }
 
-    private void spleefIr(CommandSender sender) {
+    private void jogoIr(CommandSender sender, JogoRegistrado registrado) {
         if (!(sender instanceof Player jogador)) {
             sender.sendMessage(Component.text("Só dentro do jogo.", NamedTextColor.RED));
             return;
         }
-        org.bukkit.World mundo = mundoDoSpleef(sender);
+        org.bukkit.World mundo = mundoDoJogo(sender, registrado);
         if (mundo == null) {
             return;
         }
-        jogador.teleportAsync(
-                SpleefBuilder.pontoDoSaguao(mundo, plugin.spleefCatalog()));
+        jogador.teleportAsync(registrado.construtor().pontoDeEntrada(mundo));
     }
 
     private void mostrarLocalLoja(Player jogador) {
@@ -1483,12 +1346,25 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
                 NamedTextColor.DARK_GRAY));
     }
 
+    /**
+     * Os subcomandos fixos mais uma etiqueta por jogo registrado.
+     *
+     * Sai do registro e não de uma lista escrita à mão porque a lista escrita
+     * à mão é a que esquece o jogo vinte.
+     */
+    private List<String> subcomandos() {
+        List<String> todos = new ArrayList<>(SUBCOMANDOS_FIXOS);
+        todos.addAll(plugin.jogos().keySet());
+        return todos;
+    }
+
     private void enviarAjuda(CommandSender sender, String label) {
         Component ajuda = Component.text("Uso: ", NamedTextColor.YELLOW)
                 .append(Component.text("/" + label + " ", NamedTextColor.WHITE));
 
-        for (int i = 0; i < SUBCOMANDOS.size(); i++) {
-            String sub = SUBCOMANDOS.get(i);
+        List<String> subcomandos = subcomandos();
+        for (int i = 0; i < subcomandos.size(); i++) {
+            String sub = subcomandos.get(i);
             if (i > 0) {
                 ajuda = ajuda.append(Component.text(" | ", NamedTextColor.DARK_GRAY));
             }
@@ -1533,7 +1409,7 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command,
                                       String alias, String[] args) {
         if (args.length == 1) {
-            return filtrar(SUBCOMANDOS, args[0]);
+            return filtrar(subcomandos(), args[0]);
         }
 
         if (args[0].equalsIgnoreCase("eco")) {
@@ -1580,21 +1456,9 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             return List.of();
         }
 
-        if (args[0].equalsIgnoreCase("spleef")) {
+        if (plugin.jogos().containsKey(args[0].toLowerCase(Locale.ROOT))) {
             if (args.length == 2) {
-                return filtrar(SPLEEF_SUBCOMANDOS, args[1]);
-            }
-            boolean pedeConfirmacao = args[1].equalsIgnoreCase("construir")
-                    || args[1].equalsIgnoreCase("desfazer");
-            if (args.length == 3 && pedeConfirmacao) {
-                return filtrar(List.of("CONFIRMAR"), args[2]);
-            }
-            return List.of();
-        }
-
-        if (args[0].equalsIgnoreCase("tntrun")) {
-            if (args.length == 2) {
-                return filtrar(TNTRUN_SUBCOMANDOS, args[1]);
+                return filtrar(JOGO_SUBCOMANDOS, args[1]);
             }
             boolean pedeConfirmacao = args[1].equalsIgnoreCase("construir")
                     || args[1].equalsIgnoreCase("desfazer");

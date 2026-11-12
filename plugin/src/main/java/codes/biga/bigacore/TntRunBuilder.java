@@ -40,12 +40,10 @@ import java.util.List;
  * recusa a levantar onde já exista bloco: sem essa trava, rodar o comando no
  * mundo errado apagaria construção de jogador sem copiar nada antes.
  */
-public final class TntRunBuilder {
+public final class TntRunBuilder implements ConstrutorDeArena {
 
     /** Marca das entidades de texto da arena, para o desfazer achá-las. */
     public static final String TAG_PAINEL = "bigacore_tntrun_painel";
-
-    public record Resultado(boolean ok, String mensagem, int blocos) {}
 
     private final BigaCore plugin;
     private int contador;
@@ -62,6 +60,7 @@ public final class TntRunBuilder {
      * @param aplicar false confere o terreno e devolve o tamanho da obra sem
      *                colocar um bloco. É o {@code /biga tntrun info}.
      */
+    @Override
     public Resultado construir(World mundo, boolean aplicar) {
         TntRunCatalog planta = plugin.tntRunCatalog();
 
@@ -110,6 +109,7 @@ public final class TntRunBuilder {
                 + "no saguão.", contador);
     }
 
+    @Override
     public Resultado desfazer(World mundo) {
         TntRunCatalog planta = plugin.tntRunCatalog();
         int alcance = planta.alcanceDaObra();
@@ -144,6 +144,7 @@ public final class TntRunBuilder {
     }
 
     /** Refaz só os letreiros, sem tocar em bloco. */
+    @Override
     public Resultado textos(World mundo) {
         TntRunCatalog planta = plugin.tntRunCatalog();
         limparPaineis(mundo);
@@ -475,6 +476,11 @@ public final class TntRunBuilder {
     // ------------------------------------------------------------------
     //  Pontos
     // ------------------------------------------------------------------
+
+    @Override
+    public Location pontoDeEntrada(World mundo) {
+        return pontoDoSaguao(mundo, plugin.tntRunCatalog());
+    }
 
     /**
      * O meio do saguão, olhando para o arco de volta e para o letreiro.

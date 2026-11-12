@@ -53,6 +53,19 @@ public final class BigaCore extends JavaPlugin {
     private SpleefCatalog spleefCatalog;
     private SpleefBuilder spleefBuilder;
     private Spleef spleef;
+    private ParkourCatalog parkourCatalog;
+    private ParkourBuilder parkourBuilder;
+    private Parkour parkour;
+
+    /**
+     * Os minigames registrados, por etiqueta.
+     *
+     * É daqui que o {@code /biga <jogo>} se serve: um comando só atende os
+     * vinte, e um jogo novo entra escrevendo uma linha de registro em vez de
+     * cento e cinquenta linhas de comando copiadas.
+     */
+    private final java.util.Map<String, JogoRegistrado> jogos =
+            new java.util.LinkedHashMap<>();
 
     @Override
     public void onEnable() {
@@ -134,6 +147,11 @@ public final class BigaCore extends JavaPlugin {
             saveResource("spleef.yml", false);
         }
 
+        File parkourFile = new File(getDataFolder(), "parkour.yml");
+        if (!parkourFile.exists()) {
+            saveResource("parkour.yml", false);
+        }
+
         this.economyCatalog = new EconomyCatalog(this);
         this.economyBridge = new VaultEconomyBridge();
         this.spawnShopBuilder = new SpawnShopBuilder(this);
@@ -182,20 +200,17 @@ public final class BigaCore extends JavaPlugin {
         this.tntRunCatalog = new TntRunCatalog(this);
         this.tntRunBuilder = new TntRunBuilder(this);
         this.tntRun = new TntRun(this);
-        getServer().getPluginManager().registerEvents(tntRun, this);
-        this.tntRun.start();
-
-        // O mundo da arena nasce aqui se nao existir. Depois do start() de
-        // proposito: se a criacao falhar, o jogo fica parado avisando no log
-        // em vez de o plugin inteiro nao subir.
-        MundoDeJogo.garantir(this, tntRunCatalog.mundo());
+        registrarJogo(tntRunCatalog, tntRunBuilder, tntRun);
 
         this.spleefCatalog = new SpleefCatalog(this);
         this.spleefBuilder = new SpleefBuilder(this);
         this.spleef = new Spleef(this);
-        getServer().getPluginManager().registerEvents(spleef, this);
-        this.spleef.start();
-        MundoDeJogo.garantir(this, spleefCatalog.mundo());
+        registrarJogo(spleefCatalog, spleefBuilder, spleef);
+
+        this.parkourCatalog = new ParkourCatalog(this);
+        this.parkourBuilder = new ParkourBuilder(this);
+        this.parkour = new Parkour(this);
+        registrarJogo(parkourCatalog, parkourBuilder, parkour);
 
         // As regras valem para o hub E para o lobby, então entram depois dos
         // dois: elas leem a configuração dos dois mundos para saber onde agir.
@@ -417,11 +432,8 @@ public final class BigaCore extends JavaPlugin {
         if (lobbyPortais != null) {
             lobbyPortais.parar();
         }
-        if (tntRun != null) {
-            tntRun.parar();
-        }
-        if (spleef != null) {
-            spleef.parar();
+        for (JogoRegistrado registrado : jogos.values()) {
+            registrado.jogo().parar();
         }
         if (regrasDoHub != null) {
             regrasDoHub.parar();
@@ -562,6 +574,39 @@ public final class BigaCore extends JavaPlugin {
         return spleef;
     }
 
+    public ParkourCatalog parkourCatalog() {
+        return parkourCatalog;
+    }
+
+    public ParkourBuilder parkourBuilder() {
+        return parkourBuilder;
+    }
+
+    public Parkour parkour() {
+        return parkour;
+    }
+
+    /** Os minigames registrados, por etiqueta, na ordem em que entraram. */
+    public java.util.Map<String, JogoRegistrado> jogos() {
+        return jogos;
+    }
+
+    /**
+     * Registra um minigame: ouvinte, laço, mundo e tabela.
+     *
+     * O mundo nasce DEPOIS do start() de propósito: se a criação falhar, o
+     * jogo fica parado avisando no log em vez de o plugin inteiro não subir.
+     */
+    private void registrarJogo(CatalogoDeArena catalogo, ConstrutorDeArena construtor,
+                               JogoDeMinigame jogo) {
+        if (jogo instanceof org.bukkit.event.Listener ouvinte) {
+            getServer().getPluginManager().registerEvents(ouvinte, this);
+        }
+        jogo.start();
+        MundoDeJogo.garantir(this, catalogo.mundo());
+        jogos.put(catalogo.etiqueta(), new JogoRegistrado(catalogo, construtor, jogo));
+    }
+
     public TagCatalog tagCatalog() {
         return tagCatalog;
     }
@@ -624,8 +669,9 @@ public final class BigaCore extends JavaPlugin {
         tagCatalog.reload();
         hubCatalog.reload();
         minigamesCatalog.reload();
-        tntRunCatalog.reload();
-        spleefCatalog.reload();
+        for (JogoRegistrado registrado : jogos.values()) {
+            registrado.catalogo().reload();
+        }
 
         // A lista do TAB reinicia junto: trocar o intervalo no tags.yml sem
         // recriar a tarefa deixaria o numero novo no arquivo e o antigo

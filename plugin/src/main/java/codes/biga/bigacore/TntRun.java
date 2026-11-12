@@ -83,7 +83,7 @@ import java.util.UUID;
  * em cima uma da outra, e o primeiro segundo da partida vira empurrão. No
  * anel de largada todos têm a mesma folga e a mesma distância da beira.
  */
-public final class TntRun implements Listener {
+public final class TntRun implements Listener, JogoDeMinigame {
 
     /** De quantos em quantos tiques o laço roda. Um: o derretimento é por tique. */
     private static final int INTERVALO_TICKS = 1;
@@ -169,6 +169,11 @@ public final class TntRun implements Listener {
 
     public Estado estado() {
         return estado;
+    }
+
+    @Override
+    public String estadoEscrito() {
+        return estado.name();
     }
 
     public int quantosNaArena() {

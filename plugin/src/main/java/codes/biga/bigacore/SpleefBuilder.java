@@ -35,7 +35,7 @@ import java.util.List;
  * de uma vez — e é por isso que o jogo só pode apagar os dois materiais do
  * piso, nunca o que estiver no caminho.
  */
-public final class SpleefBuilder {
+public final class SpleefBuilder implements ConstrutorDeArena {
 
     /** Marca das entidades de texto da arena, para o desfazer achá-las. */
     public static final String TAG_PAINEL = "bigacore_spleef_painel";
@@ -52,8 +52,6 @@ public final class SpleefBuilder {
     /** As placas ficam no muro ao norte e se leem de dentro do saguão. */
     static final BlockFace FRENTE_DA_PLACA = BlockFace.SOUTH;
 
-    public record Resultado(boolean ok, String mensagem, int blocos) {}
-
     private final BigaCore plugin;
     private int contador;
 
@@ -69,6 +67,7 @@ public final class SpleefBuilder {
      * @param aplicar false confere o terreno e devolve o tamanho da obra sem
      *                colocar um bloco. É o {@code /biga spleef info}.
      */
+    @Override
     public Resultado construir(World mundo, boolean aplicar) {
         SpleefCatalog planta = plugin.spleefCatalog();
 
@@ -118,6 +117,7 @@ public final class SpleefBuilder {
                 + " blocos. O spawn do mundo foi posto no saguão.", contador);
     }
 
+    @Override
     public Resultado desfazer(World mundo) {
         SpleefCatalog planta = plugin.spleefCatalog();
         int alcance = planta.alcanceDaObra();
@@ -152,6 +152,7 @@ public final class SpleefBuilder {
     }
 
     /** Refaz só os letreiros, sem tocar em bloco. */
+    @Override
     public Resultado textos(World mundo) {
         SpleefCatalog planta = plugin.spleefCatalog();
         ArenaComum.limparPaineis(mundo, TAG_PAINEL);
@@ -494,6 +495,11 @@ public final class SpleefBuilder {
         return Math.abs(x - 0.5) <= 2.0
                 && Math.abs(z - (zArco + 0.5)) <= 1.0
                 && y >= saguaoY + 0.5 && y <= saguaoY + alturaDoArcoDeVolta();
+    }
+
+    @Override
+    public Location pontoDeEntrada(World mundo) {
+        return pontoDoSaguao(mundo, plugin.spleefCatalog());
     }
 
     public static Location pontoDoSaguao(World mundo, SpleefCatalog planta) {
