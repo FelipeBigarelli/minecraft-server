@@ -20,21 +20,32 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 /**
- * As regras de quem está no hub: corre rápido, não passa fome, não apanha e
- * não encontra bicho.
+ * As regras de quem está numa praça — o hub ou o lobby dos minigames: corre
+ * rápido, não passa fome, não apanha e não encontra bicho.
  *
  * <h2>Por que isto é código e não flag de região</h2>
  *
  * PvP, dano e mob a WorldGuard faz. VELOCIDADE não: não existe flag de poção
  * no WorldGuard, e a solução de todo mundo é instalar mais um plugin só para
- * isso. Como o hub já é nosso, a regra mora junto com ele — e o hub.yml passa
- * a ser o único lugar onde se mexe nisso.
+ * isso. Como as praças já são nossas, a regra mora junto com elas — e o
+ * hub.yml passa a ser o único lugar onde se mexe nisso, para os dois mundos.
+ *
+ * <h2>Dois mundos, um bloco de regras</h2>
+ *
+ * O lobby lê as mesmas {@code regras} do hub.yml. Conforto diferente nos dois
+ * seria armadilha: o jogador aprende a andar rápido e sem fome no hub, passa
+ * pelo portal e descobriria no meio do pátio que ali não é assim.
  *
  * <h2>O cuidado que importa</h2>
  *
- * O efeito SAI quando o jogador deixa o hub. Velocidade III vazando para o
- * survival não é enfeite: é vantagem permanente em PvP e em fuga, dada por
+ * O efeito SAI quando o jogador deixa as duas praças — ir do hub para o
+ * lobby não tira nada. Velocidade III vazando para o survival não é enfeite: é vantagem permanente em PvP e em fuga, dada por
  * engano, e o tipo de coisa que ninguém reporta — só aproveita.
  *
  * Por isso também a poção é CURTA e renovada pela tarefa, em vez de infinita.
@@ -60,7 +71,7 @@ public final class RegrasDoHub implements Listener {
      * do BigaCore — então não dá para gravar isso no onEnable: o mundo ainda
      * não existe. A tarefa grava na primeira vez que o enxerga.
      */
-    private boolean mundoAjustado;
+    private final Set<String> mundosAjustados = new HashSet<>();
 
     public RegrasDoHub(BigaCore plugin) {
         this.plugin = plugin;
@@ -68,7 +79,7 @@ public final class RegrasDoHub implements Listener {
 
     public void start() {
         parar();
-        this.mundoAjustado = false;
+        this.mundosAjustados.clear();
         this.tarefa = Bukkit.getScheduler().runTaskTimer(
                 plugin, this::ciclo, 80L, INTERVALO_TICKS);
     }
@@ -79,23 +90,40 @@ public final class RegrasDoHub implements Listener {
             tarefa = null;
         }
         // Devolver o jogador ao normal ao desligar o plugin: senão um
-        // /reload deixa Speed III preso em quem estava no hub na hora.
-        World hub = mundoDoHub();
-        if (hub != null) {
-            for (Player jogador : hub.getPlayers()) {
+        // /reload deixa Speed III preso em quem estava na praça na hora.
+        for (World mundo : mundosDeConvivencia()) {
+            for (Player jogador : mundo.getPlayers()) {
                 jogador.removePotionEffect(PotionEffectType.SPEED);
             }
         }
     }
 
-    private World mundoDoHub() {
-        String nome = plugin.getConfig().getString("hub.mundo", "hub");
-        return Bukkit.getWorld(nome);
+    /**
+     * Os mundos de CONVIVÊNCIA: hub e lobby dos minigames.
+     *
+     * As duas praças têm as mesmas regras e leem o mesmo bloco {@code regras}
+     * do hub.yml. Não é preguiça: conforto diferente nas duas seria uma
+     * armadilha — o jogador aprende a andar rápido e sem fome no hub, passa
+     * pelo portal e descobre no meio do pátio que ali não é assim.
+     *
+     * Devolve lista e não um mundo porque o Multiverse pode carregar os dois
+     * depois do BigaCore, e em qualquer ordem.
+     */
+    private List<World> mundosDeConvivencia() {
+        List<World> mundos = new ArrayList<>();
+        for (String chave : new String[]{"hub.mundo", "minigames.mundo"}) {
+            String nome = plugin.getConfig().getString(chave,
+                    chave.startsWith("hub") ? "hub" : "minigames");
+            World mundo = Bukkit.getWorld(nome);
+            if (mundo != null && !mundos.contains(mundo)) {
+                mundos.add(mundo);
+            }
+        }
+        return mundos;
     }
 
-    private boolean noHub(Entity quem) {
-        World hub = mundoDoHub();
-        return hub != null && quem.getWorld().equals(hub);
+    private boolean naPraca(Entity quem) {
+        return mundosDeConvivencia().contains(quem.getWorld());
     }
 
     // ------------------------------------------------------------------
@@ -119,16 +147,13 @@ public final class RegrasDoHub implements Listener {
     }
 
     private void ciclo() {
-        World hub = mundoDoHub();
-        if (hub == null) {
-            return;
-        }
-        if (!mundoAjustado) {
-            ajustarMundo(hub, plugin.hubCatalog());
-            mundoAjustado = true;
-        }
-        for (Player jogador : hub.getPlayers()) {
-            aplicar(jogador);
+        for (World mundo : mundosDeConvivencia()) {
+            if (mundosAjustados.add(mundo.getName())) {
+                ajustarMundo(mundo, plugin.hubCatalog());
+            }
+            for (Player jogador : mundo.getPlayers()) {
+                aplicar(jogador);
+            }
         }
     }
 
@@ -172,13 +197,13 @@ public final class RegrasDoHub implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void aoEntrar(PlayerJoinEvent evento) {
-        if (noHub(evento.getPlayer())) {
+        if (naPraca(evento.getPlayer())) {
             aplicar(evento.getPlayer());
         }
     }
 
     /**
-     * Sair do hub devolve o jogador ao normal.
+     * Sair das praças devolve o jogador ao normal.
      *
      * Vale até para quem bebeu poção de verdade antes de entrar: perder uma
      * poção é chateação, Velocidade III de graça no survival é economia
@@ -186,7 +211,7 @@ public final class RegrasDoHub implements Listener {
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void aoTrocarDeMundo(PlayerChangedWorldEvent evento) {
-        if (noHub(evento.getPlayer())) {
+        if (naPraca(evento.getPlayer())) {
             aplicar(evento.getPlayer());
         } else {
             evento.getPlayer().removePotionEffect(PotionEffectType.SPEED);
@@ -195,7 +220,7 @@ public final class RegrasDoHub implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void aoPerderFome(FoodLevelChangeEvent evento) {
-        if (!plugin.hubCatalog().semFome() || !noHub(evento.getEntity())) {
+        if (!plugin.hubCatalog().semFome() || !naPraca(evento.getEntity())) {
             return;
         }
         evento.setFoodLevel(20);
@@ -208,7 +233,7 @@ public final class RegrasDoHub implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void aoTomarDano(EntityDamageEvent evento) {
-        if (!(evento.getEntity() instanceof Player) || !noHub(evento.getEntity())) {
+        if (!(evento.getEntity() instanceof Player) || !naPraca(evento.getEntity())) {
             return;
         }
         if (plugin.hubCatalog().semDano()) {
@@ -228,7 +253,7 @@ public final class RegrasDoHub implements Listener {
         if (!plugin.hubCatalog().semPvp()) {
             return;
         }
-        if (!(evento.getEntity() instanceof Player) || !noHub(evento.getEntity())) {
+        if (!(evento.getEntity() instanceof Player) || !naPraca(evento.getEntity())) {
             return;
         }
         if (agressorEhJogador(evento.getDamager())) {
@@ -257,7 +282,7 @@ public final class RegrasDoHub implements Listener {
      */
     @EventHandler(ignoreCancelled = true)
     public void aoNascerBicho(CreatureSpawnEvent evento) {
-        if (!plugin.hubCatalog().semMobs() || !noHub(evento.getEntity())) {
+        if (!plugin.hubCatalog().semMobs() || !naPraca(evento.getEntity())) {
             return;
         }
         if (nascimentoEhDeAdmin(evento.getSpawnReason())) {

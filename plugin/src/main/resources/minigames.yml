@@ -1,0 +1,627 @@
+# =============================================================
+#  minigames.yml — o lobby dos jogos do The Bigas
+#
+#  Construído com /biga lobby construir CONFIRMAR, desfeito com
+#  /biga lobby desfazer CONFIRMAR. Só funciona num mundo VAZIO:
+#
+#      /mv create minigames normal -g BigaCore
+#      /mv tp minigames
+#      /biga lobby construir CONFIRMAR
+#
+#  A planta é um CLAUSTRO: pátio quadrado no meio, quatro
+#  galerias em volta, cinco portais em cada uma. Quadrado e não
+#  redondo de propósito — vinte nichos num círculo sairiam todos
+#  na diagonal, e parede diagonal no Minecraft vira escada. Aqui
+#  cada galeria é uma parede reta de verdade.
+# =============================================================
+version: 1
+
+praca:
+  # Altura do piso. A mesma do hub, para os dois mundos terem o mesmo
+  # horizonte quando se olha de um portal para o outro.
+  y: 100
+
+  # Meia largura do patio quadrado do meio: 87 por 87 de chao livre.
+  patio: 43
+
+  # A galeria que cerca o patio: dez de profundidade, vinte de altura.
+  # Vinte de parede em volta de oitenta e sete de praca da a proporcao de
+  # praca italiana — alto o bastante para imponer, baixo o bastante para
+  # nao virar poco.
+  galeria-profundidade: 10
+  galeria-altura: 20
+
+  # A passarela em cima da galeria, de onde se ve o patio inteiro.
+  # Sobe pelas quatro torres e entra por quatro pontes.
+  galeria-superior: 21
+
+  # Os cinco nichos de cada galeria ficam nestes deslocamentos ao longo
+  # dela. Catorze de distancia da treze de nicho e um de respiro — e o
+  # que faz a arcada ter ritmo em vez de virar fileira de buracos.
+  vaos: [-28, -14, 0, 14, 28]
+
+  # Meia largura do arco por onde se passa: 3 da sete de vao.
+  vao-largura: 3
+  vao-altura: 11
+
+  # Espessura de cada montante ao lado do arco. Vao 3 + pilar 3 da meia
+  # largura 6, ou seja nicho de treze.
+  nicho-pilar: 3
+
+  # Torres soltas nos quatro cantos do patio, com a escada para a
+  # passarela de cima.
+  torre-centro: 36
+  torre-lado: 13
+  torre-altura: 30
+
+  # O monumento do meio: o podio, o pavilhao e o portal de volta para o
+  # hub. Fica tres degraus acima do patio para ninguem atravessar de
+  # volta sem querer ao cruzar a praca.
+  monumento-raio: 11
+  monumento-altura: 22
+
+  # O quadro suspenso sobre o patio.
+  anel-altura: 34
+  anel-raio: 24
+
+  # Quanto o estrado passa da galeria, como terraco externo.
+  borda-externa: 6
+
+paleta:
+  piso: SMOOTH_QUARTZ
+  piso-linha: LIGHT_BLUE_CONCRETE
+  piso-escuro: POLISHED_DEEPSLATE
+  borda: DEEPSLATE_TILES
+  parapeito: QUARTZ_SLAB
+  vidro: LIGHT_BLUE_STAINED_GLASS
+  vidro-escuro: TINTED_GLASS
+  estrutura: QUARTZ_BLOCK
+  estrutura-escura: BLACK_CONCRETE
+  metal: IRON_BLOCK
+  luz: SEA_LANTERN
+  luz-fria: END_ROD
+  nucleo: AMETHYST_BLOCK
+
+# -------------------------------------------------------------
+#  A volta para o hub
+# -------------------------------------------------------------
+volta:
+  titulo: "VOLTAR AO HUB"
+  descricao: "a praça dos mundos"
+  cor: "#8FD3FF"
+  moldura: QUARTZ_BLOCK
+  destaque: LIGHT_BLUE_CONCRETE
+
+# -------------------------------------------------------------
+#  Os vinte jogos
+#
+#  mundo vazio = portal em obra: ele existe, brilha, avisa e não
+#  leva ninguém a lugar nenhum. É assim que todos nascem — os
+#  jogos entram um a um, e o lobby não precisa de obra nova.
+#
+#  lado: de que galeria ele faz parte.
+#  vao:  qual dos cinco nichos daquela galeria, de -2 a +2.
+# -------------------------------------------------------------
+portais:
+  - id: tnt_run
+    lado: NORTE
+    vao: -2
+    titulo: "TNT RUN"
+    descricao: "o chão some atrás de você"
+    detalhe: "último de pé ganha"
+    mundo: ""
+    cor: "#FF5555"
+    moldura: RED_TERRACOTTA
+    destaque: RED_CONCRETE
+    escultura: tnt
+
+  - id: spleef
+    lado: NORTE
+    vao: -1
+    titulo: "SPLEEF"
+    descricao: "cave o chão de quem corre"
+    detalhe: "quem cair, caiu"
+    mundo: ""
+    cor: "#7FD8FF"
+    moldura: LIGHT_BLUE_TERRACOTTA
+    destaque: LIGHT_BLUE_CONCRETE
+    escultura: pa
+
+  - id: bed_wars
+    lado: NORTE
+    vao: 0
+    titulo: "BED WARS"
+    descricao: "proteja a sua cama"
+    detalhe: "sem cama, sem volta"
+    mundo: ""
+    cor: "#FF8FC4"
+    moldura: PINK_TERRACOTTA
+    destaque: PINK_CONCRETE
+    escultura: cama
+
+  - id: sky_wars
+    lado: NORTE
+    vao: 1
+    titulo: "SKY WARS"
+    descricao: "uma ilha, uma chance"
+    detalhe: "o void não perdoa"
+    mundo: ""
+    cor: "#EAF4FF"
+    moldura: WHITE_TERRACOTTA
+    destaque: WHITE_CONCRETE
+    escultura: ilha
+
+  - id: build_battle
+    lado: NORTE
+    vao: 2
+    titulo: "BUILD BATTLE"
+    descricao: "construa melhor que todos"
+    detalhe: "o tema sai na hora"
+    mundo: ""
+    cor: "#FFA64D"
+    moldura: ORANGE_TERRACOTTA
+    destaque: ORANGE_CONCRETE
+    escultura: pincel
+
+  - id: parkour
+    lado: LESTE
+    vao: -2
+    titulo: "PARKOUR"
+    descricao: "salte sem cair"
+    detalhe: "contra o relógio"
+    mundo: ""
+    cor: "#9BE85B"
+    moldura: LIME_TERRACOTTA
+    destaque: LIME_CONCRETE
+    escultura: bota
+
+  - id: corrida
+    lado: LESTE
+    vao: -1
+    titulo: "CORRIDA"
+    descricao: "primeiro a cruzar leva"
+    detalhe: "atalho é por sua conta"
+    mundo: ""
+    cor: "#D0D0D0"
+    moldura: WHITE_TERRACOTTA
+    destaque: BLACK_CONCRETE
+    escultura: bandeira
+
+  - id: esconde
+    lado: LESTE
+    vao: 0
+    titulo: "ESCONDE-ESCONDE"
+    descricao: "vire bloco e não respire"
+    detalhe: "um procura, o resto some"
+    mundo: ""
+    cor: "#B07CFF"
+    moldura: PURPLE_TERRACOTTA
+    destaque: PURPLE_CONCRETE
+    escultura: olho
+
+  - id: arena_pvp
+    lado: LESTE
+    vao: 1
+    titulo: "ARENA PVP"
+    descricao: "só você e a espada"
+    detalhe: "sem kit, sem desculpa"
+    mundo: ""
+    cor: "#C9CCD1"
+    moldura: IRON_BLOCK
+    destaque: GRAY_CONCRETE
+    escultura: espadas
+
+  - id: arco
+    lado: LESTE
+    vao: 2
+    titulo: "ARCO E FLECHA"
+    descricao: "mire antes de ser mirado"
+    detalhe: "flecha infinita"
+    mundo: ""
+    cor: "#66BB5A"
+    moldura: GREEN_TERRACOTTA
+    destaque: GREEN_CONCRETE
+    escultura: arco
+
+  - id: labirinto
+    lado: SUL
+    vao: -2
+    titulo: "LABIRINTO"
+    descricao: "ache a saída antes deles"
+    detalhe: "o mapa muda todo dia"
+    mundo: ""
+    cor: "#4FD1C5"
+    moldura: CYAN_TERRACOTTA
+    destaque: CYAN_CONCRETE
+    escultura: labirinto
+
+  - id: pega_pega
+    lado: SUL
+    vao: -1
+    titulo: "PEGA-PEGA"
+    descricao: "quem encosta, passa a vez"
+    detalhe: "o último limpo vence"
+    mundo: ""
+    cor: "#FFE066"
+    moldura: YELLOW_TERRACOTTA
+    destaque: YELLOW_CONCRETE
+    escultura: mao
+
+  - id: mineracao
+    lado: SUL
+    vao: 0
+    titulo: "MINERAÇÃO"
+    descricao: "cave mais que o vizinho"
+    detalhe: "minério vale ponto"
+    mundo: ""
+    cor: "#B5835A"
+    moldura: BROWN_TERRACOTTA
+    destaque: BROWN_CONCRETE
+    escultura: minerio
+
+  - id: pescaria
+    lado: SUL
+    vao: 1
+    titulo: "PESCARIA"
+    descricao: "paciência vira prêmio"
+    detalhe: "o grande sempre vem"
+    mundo: ""
+    cor: "#5B8DEF"
+    moldura: BLUE_TERRACOTTA
+    destaque: BLUE_CONCRETE
+    escultura: peixe
+
+  - id: quiz
+    lado: SUL
+    vao: 2
+    titulo: "QUIZ"
+    descricao: "quem sabe, responde"
+    detalhe: "erro elimina"
+    mundo: ""
+    cor: "#E57FE5"
+    moldura: MAGENTA_TERRACOTTA
+    destaque: MAGENTA_CONCRETE
+    escultura: interrogacao
+
+  - id: musica
+    lado: OESTE
+    vao: -2
+    titulo: "RITMO"
+    descricao: "acerte a batida"
+    detalhe: "errou, caiu"
+    mundo: ""
+    cor: "#D89BFF"
+    moldura: PURPUR_PILLAR
+    destaque: PURPUR_BLOCK
+    escultura: nota
+
+  - id: sorte
+    lado: OESTE
+    vao: -1
+    titulo: "SORTE"
+    descricao: "o dado escolhe por você"
+    detalhe: "nem sempre a favor"
+    mundo: ""
+    cor: "#E8A87C"
+    moldura: WAXED_EXPOSED_CUT_COPPER
+    destaque: WAXED_CUT_COPPER
+    escultura: dado
+
+  - id: rei
+    lado: OESTE
+    vao: 0
+    titulo: "REI DA MONTANHA"
+    descricao: "segure o topo"
+    detalhe: "um minuto inteiro"
+    mundo: ""
+    cor: "#FFD700"
+    moldura: YELLOW_TERRACOTTA
+    destaque: GOLD_BLOCK
+    escultura: coroa
+
+  - id: neve
+    lado: OESTE
+    vao: 1
+    titulo: "GUERRA DE NEVE"
+    descricao: "acertou, derrubou"
+    detalhe: "bola infinita"
+    mundo: ""
+    cor: "#E8F4FF"
+    moldura: LIGHT_GRAY_TERRACOTTA
+    destaque: SNOW_BLOCK
+    escultura: neve
+
+  - id: fuga_da_lava
+    lado: OESTE
+    vao: 2
+    titulo: "FUGA DA LAVA"
+    descricao: "suba antes que ela chegue"
+    detalhe: "quem parar, derrete"
+    mundo: ""
+    cor: "#FF7A3D"
+    moldura: NETHER_BRICKS
+    destaque: ORANGE_TERRACOTTA
+    escultura: chama
+
+# -------------------------------------------------------------
+#  Esculturas — um desenho por jogo, 11 por 11
+#
+#    '#'  bloco da moldura        'o'  bloco de destaque
+#    '*'  luz                     'x'  bloco escuro
+#    ' '  ar
+#
+#  Todas as linhas de um desenho têm o MESMO tamanho. O teste
+#  confere: linha curta não dá erro em jogo, ela só entorta a
+#  peça de um jeito que ninguém entende.
+# -------------------------------------------------------------
+esculturas:
+  arco:
+    - "    ###    "
+    - "   #   #   "
+    - "  #     #  "
+    - "  #     o  "
+    - " #      o  "
+    - " #  oooooo "
+    - " #      o  "
+    - "  #     o  "
+    - "  #     #  "
+    - "   #   #   "
+    - "    ###    "
+
+  bandeira:
+    - " ######### "
+    - " #oxoxoxo# "
+    - " #xoxoxox# "
+    - " #oxoxoxo# "
+    - " #xoxoxox# "
+    - " ######### "
+    - " #         "
+    - " #         "
+    - " #         "
+    - " #         "
+    - "###        "
+
+  bota:
+    - "           "
+    - "  ####     "
+    - "  #oo#     "
+    - "  #oo#     "
+    - "  #oo#     "
+    - "  #oo#     "
+    - "  #oo####  "
+    - "  #oooooo# "
+    - "  #oooooo# "
+    - "  ######## "
+    - "           "
+
+  cama:
+    - "           "
+    - "  #######  "
+    - " #ooooooo# "
+    - " #ooooooo# "
+    - " ######### "
+    - " #xxxxxxx# "
+    - " #xxxxxxx# "
+    - " ######### "
+    - " #       # "
+    - " #       # "
+    - "           "
+
+  chama:
+    - "     #     "
+    - "    ##     "
+    - "   #o#     "
+    - "  #oo##    "
+    - " #ooo*o#   "
+    - " #oo***o#  "
+    - " #o*****#  "
+    - " #o*****#  "
+    - "  #*****#  "
+    - "  ##***##  "
+    - "   #####   "
+
+  coroa:
+    - "           "
+    - " #       # "
+    - " #   #   # "
+    - " ## ### ## "
+    - " #o#ooo#o# "
+    - " #ooooooo# "
+    - " #o*ooo*o# "
+    - " #ooooooo# "
+    - " ######### "
+    - "           "
+    - "           "
+
+  dado:
+    - "           "
+    - " ######### "
+    - " #ooooooo# "
+    - " #o*ooo*o# "
+    - " #ooooooo# "
+    - " #ooo*ooo# "
+    - " #ooooooo# "
+    - " #o*ooo*o# "
+    - " #ooooooo# "
+    - " ######### "
+    - "           "
+
+  espadas:
+    - " o       o "
+    - "  #     #  "
+    - "   #   #   "
+    - "    # #    "
+    - "     #     "
+    - "    # #    "
+    - "   #   #   "
+    - "  #     #  "
+    - " ##     ## "
+    - " o#     #o "
+    - " ooo   ooo "
+
+  ilha:
+    - "           "
+    - "    ***    "
+    - "   *****   "
+    - "  ooooooo  "
+    - " ooooooooo "
+    - " ######### "
+    - "  #######  "
+    - "   #####   "
+    - "    ###    "
+    - "     #     "
+    - "           "
+
+  interrogacao:
+    - "   #####   "
+    - "  #ooooo#  "
+    - " #oo###oo# "
+    - " #o#   #o# "
+    - "  #    #o# "
+    - "      #oo# "
+    - "     #oo#  "
+    - "     #oo#  "
+    - "           "
+    - "     ###   "
+    - "     ###   "
+
+  labirinto:
+    - " ######### "
+    - " #o#ooooo# "
+    - " #o#o###o# "
+    - " #o#o#o#o# "
+    - " #ooo#o#o# "
+    - " #####o#o# "
+    - " #ooooo#o# "
+    - " #o#####o# "
+    - " #ooooooo# "
+    - " ######### "
+    - "           "
+
+  mao:
+    - " # # # #   "
+    - " #o#o#o#   "
+    - " #o#o#o##  "
+    - " #ooooooo# "
+    - " #ooooooo# "
+    - "##ooooooo# "
+    - "#oooooooo# "
+    - "#oooooooo# "
+    - " #ooooooo# "
+    - "  #######  "
+    - "           "
+
+  minerio:
+    - "           "
+    - " ######### "
+    - " #o**ooo*# "
+    - " #**o***o# "
+    - " #o*ooo**# "
+    - " #oo**ooo# "
+    - " #o***oo*# "
+    - " #oo*oo**# "
+    - " ######### "
+    - "           "
+    - "           "
+
+  neve:
+    - "           "
+    - "   #####   "
+    - "  #*****#  "
+    - " #**ooo**# "
+    - " #*ooooo*# "
+    - " #*ooooo*# "
+    - " #*ooooo*# "
+    - " #**ooo**# "
+    - "  #*****#  "
+    - "   #####   "
+    - "           "
+
+  nota:
+    - "      ###  "
+    - "      #o#  "
+    - "      #o#  "
+    - "      #o#  "
+    - "      #o#  "
+    - "      #o#  "
+    - "      #o#  "
+    - "  #####o#  "
+    - " #ooooo#   "
+    - " #ooooo#   "
+    - "  #####    "
+
+  olho:
+    - "           "
+    - "   #####   "
+    - "  #ooooo#  "
+    - " #oo###oo# "
+    - " #o#***#o# "
+    - " #o#*x*#o# "
+    - " #o#***#o# "
+    - " #oo###oo# "
+    - "  #ooooo#  "
+    - "   #####   "
+    - "           "
+
+  pa:
+    - "    ###    "
+    - "   #ooo#   "
+    - "   #ooo#   "
+    - "   #ooo#   "
+    - "    ###    "
+    - "     #     "
+    - "     #     "
+    - "     #     "
+    - "     #     "
+    - "    ###    "
+    - "    ###    "
+
+  peixe:
+    - "           "
+    - "        ## "
+    - "  ######o# "
+    - " #*oooooo# "
+    - "#oooooooo##"
+    - "#ooooooooo#"
+    - "#oooooooo##"
+    - " #oooooo## "
+    - "  ######o# "
+    - "        ## "
+    - "           "
+
+  pincel:
+    - "    ###    "
+    - "    #o#    "
+    - "    #o#    "
+    - "    #o#    "
+    - "    #o#    "
+    - "   #####   "
+    - "   #ooo#   "
+    - "  #######  "
+    - "  ooooooo  "
+    - "  ooooooo  "
+    - "  ooooooo  "
+
+  tnt:
+    - "     *     "
+    - "    * *    "
+    - "     *     "
+    - " ######### "
+    - " #ooooooo# "
+    - " #ooooooo# "
+    - " #xxxxxxx# "
+    - " #ooooooo# "
+    - " #ooooooo# "
+    - " ######### "
+    - "           "
+
+# -------------------------------------------------------------
+#  Comportamento
+# -------------------------------------------------------------
+regras:
+  # Abaixo desta altura o jogador volta para o pódio em vez de
+  # morrer no void.
+  resgate-y: 60
+
+  # Segundos entre um teleporte e o seguinte, por jogador.
+  espera-segundos: 3

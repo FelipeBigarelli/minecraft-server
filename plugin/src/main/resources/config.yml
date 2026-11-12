@@ -143,3 +143,20 @@ loja-spawn:
 # -----------------------------------------------------------
 hub:
   mundo: hub
+
+# -----------------------------------------------------------
+#  Lobby dos minigames
+#
+#  O mundo do claustro de vinte portais, com a planta no
+#  minigames.yml. Crie o mundo uma vez com:
+#
+#      /mv create minigames normal -g BigaCore
+#
+#  e levante o lobby com /biga lobby construir CONFIRMAR.
+#
+#  As regras de conforto (velocidade, fome, dano, bicho) são
+#  as mesmas do hub e saem do bloco 'regras' do hub.yml: duas
+#  praças com conforto diferente seria armadilha.
+# -----------------------------------------------------------
+minigames:
+  mundo: minigames

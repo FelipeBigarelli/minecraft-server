@@ -27,11 +27,13 @@ import java.util.OptionalDouble;
 public final class BigaCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBCOMANDOS =
-            List.of("info", "eco", "loja", "hub", "painel", "reload", "voar");
+            List.of("info", "eco", "loja", "hub", "lobby", "painel", "reload", "voar");
     private static final List<String> PAINEL_SUBCOMANDOS = List.of("construir", "limpar");
     private static final List<String> ECO_SUBCOMANDOS =
             List.of("status", "saldo", "preco", "vender", "regras");
     private static final List<String> HUB_SUBCOMANDOS =
+            List.of("info", "construir", "desfazer", "textos", "ir");
+    private static final List<String> LOBBY_SUBCOMANDOS =
             List.of("info", "construir", "desfazer", "textos", "ir");
     private static final List<String> LOJA_SUBCOMANDOS =
             List.of("local", "validar", "preview", "criar", "placas", "vitrine",
@@ -57,6 +59,7 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             case "eco" -> economia(sender, label, args);
             case "loja" -> lojaSpawn(sender, label, args);
             case "hub" -> hub(sender, label, args);
+            case "lobby" -> lobby(sender, label, args);
             case "painel" -> paredaoAjuda(sender, label, args);
             case "reload" -> recarregar(sender);
             case "voar" -> alternarVoo(sender);
@@ -446,6 +449,189 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             return;
         }
         jogador.teleportAsync(HubBuilder.pontoDeSpawn(mundo, plugin.hubCatalog()));
+    }
+
+    // ------------------------------------------------------------------
+    //  /biga lobby
+    // ------------------------------------------------------------------
+
+    /**
+     * O claustro de vinte portais dos minigames.
+     *
+     * Mesma forma do /biga hub, de propósito: quem aprendeu um sabe o outro.
+     * Construir e desfazer pedem CONFIRMAR porque são comandos de uma palavra
+     * que mexem em duzentos mil blocos.
+     */
+    private void lobby(CommandSender sender, String label, String[] args) {
+        if (!sender.hasPermission("bigacore.admin")) {
+            semPermissao(sender);
+            return;
+        }
+        if (args.length < 2) {
+            enviarAjudaLobby(sender, label);
+            return;
+        }
+
+        switch (args[1].toLowerCase(Locale.ROOT)) {
+            case "info" -> lobbyInfo(sender);
+            case "construir" -> lobbyConstruir(sender, label, args);
+            case "desfazer" -> lobbyDesfazer(sender, label, args);
+            case "ir" -> lobbyIr(sender);
+            case "textos" -> lobbyTextos(sender);
+            default -> enviarAjudaLobby(sender, label);
+        }
+    }
+
+    private void enviarAjudaLobby(CommandSender sender, String label) {
+        sender.sendMessage(Component.text("O lobby dos minigames", NamedTextColor.GOLD));
+        sender.sendMessage(Component.text("Primeiro crie o mundo vazio, uma vez só:",
+                NamedTextColor.GRAY));
+        sender.sendMessage(Component.text("  /mv create minigames normal -g BigaCore",
+                NamedTextColor.YELLOW));
+        sender.sendMessage(Component.text("/" + label + " lobby info", NamedTextColor.YELLOW)
+                .append(Component.text(" — confere o terreno e lista os vinte portais",
+                        NamedTextColor.GRAY)));
+        sender.sendMessage(Component.text("/" + label + " lobby construir CONFIRMAR",
+                NamedTextColor.YELLOW));
+        sender.sendMessage(Component.text("/" + label + " lobby desfazer CONFIRMAR",
+                NamedTextColor.YELLOW));
+        sender.sendMessage(Component.text("/" + label + " lobby textos", NamedTextColor.YELLOW)
+                .append(Component.text(" — refaz só os letreiros, sem tocar em bloco",
+                        NamedTextColor.GRAY)));
+        sender.sendMessage(Component.text("/" + label + " lobby ir", NamedTextColor.YELLOW)
+                .append(Component.text(" — leva você ao pódio do monumento",
+                        NamedTextColor.GRAY)));
+    }
+
+    /** O mundo em que o lobby mora, pelo config.yml. */
+    private org.bukkit.World mundoDoLobby(CommandSender sender) {
+        org.bukkit.World mundo = plugin.lobbyPortais().mundoDoLobby();
+        if (mundo == null) {
+            String nome = plugin.getConfig().getString("minigames.mundo", "minigames");
+            sender.sendMessage(Component.text("O mundo \"" + nome
+                    + "\" não existe ou não está carregado.", NamedTextColor.RED));
+            sender.sendMessage(Component.text("Crie com: /mv create " + nome
+                    + " normal -g BigaCore", NamedTextColor.YELLOW));
+        }
+        return mundo;
+    }
+
+    /**
+     * O estado da obra e dos vinte jogos, uma linha por galeria.
+     *
+     * Vinte linhas de portal encheriam o chat e ninguém leria a última.
+     * Agrupado por galeria dá quatro linhas na ordem em que se anda, e a cor
+     * de cada nome diz o estado: cinza escuro é obra, verde é aberto,
+     * VERMELHO é o caso que interessa — tem mundo escrito no arquivo e o
+     * mundo não está carregado.
+     */
+    private void lobbyInfo(CommandSender sender) {
+        org.bukkit.World mundo = mundoDoLobby(sender);
+        if (mundo == null) {
+            return;
+        }
+        LobbyBuilder.Resultado conferido = plugin.lobbyBuilder().construir(mundo, false);
+        sender.sendMessage(Component.text(conferido.mensagem(),
+                conferido.ok() ? NamedTextColor.GRAY : NamedTextColor.RED));
+
+        MinigamesCatalog planta = plugin.minigamesCatalog();
+        List<MinigamesCatalog.Portal> portais = planta.portais();
+
+        for (MinigamesCatalog.Lado lado : MinigamesCatalog.Lado.values()) {
+            Component linha = Component.text("  " + lado + "  ", NamedTextColor.DARK_GRAY);
+            boolean primeiro = true;
+            for (int vao = -2; vao <= 2; vao++) {
+                MinigamesCatalog.Portal achado = null;
+                for (MinigamesCatalog.Portal portal : portais) {
+                    if (portal.lado() == lado && portal.vao() == vao) {
+                        achado = portal;
+                        break;
+                    }
+                }
+                if (achado == null) {
+                    continue;
+                }
+                if (!primeiro) {
+                    linha = linha.append(Component.text(" · ", NamedTextColor.DARK_GRAY));
+                }
+                primeiro = false;
+
+                NamedTextColor cor;
+                if (!achado.aberto()) {
+                    cor = NamedTextColor.DARK_GRAY;
+                } else if (org.bukkit.Bukkit.getWorld(achado.mundo()) == null) {
+                    cor = NamedTextColor.RED;
+                } else {
+                    cor = NamedTextColor.GREEN;
+                }
+                linha = linha.append(Component.text(achado.titulo(), cor));
+            }
+            sender.sendMessage(linha);
+        }
+    }
+
+    private void lobbyConstruir(CommandSender sender, String label, String[] args) {
+        org.bukkit.World mundo = mundoDoLobby(sender);
+        if (mundo == null) {
+            return;
+        }
+        if (args.length < 3 || !args[2].equals("CONFIRMAR")) {
+            sender.sendMessage(Component.text("Isto levanta o lobby inteiro no mundo "
+                    + mundo.getName() + " — cerca de duzentos mil blocos. O servidor "
+                    + "trava por alguns segundos.", NamedTextColor.GRAY));
+            sender.sendMessage(Component.text("/" + label + " lobby construir CONFIRMAR",
+                    NamedTextColor.YELLOW));
+            return;
+        }
+
+        LobbyBuilder.Resultado feito = plugin.lobbyBuilder().construir(mundo, true);
+        sender.sendMessage(Component.text(feito.mensagem(),
+                feito.ok() ? NamedTextColor.GREEN : NamedTextColor.RED));
+        if (feito.ok()) {
+            sender.sendMessage(Component.text("O spawn do mundo foi posto no pódio. "
+                    + "Falta abrir o portal do hub: ponha minigames em 'mundo:' no "
+                    + "portal roxo do hub.yml e rode /biga reload.", NamedTextColor.GRAY));
+        }
+    }
+
+    private void lobbyDesfazer(CommandSender sender, String label, String[] args) {
+        org.bukkit.World mundo = mundoDoLobby(sender);
+        if (mundo == null) {
+            return;
+        }
+        if (args.length < 3 || !args[2].equals("CONFIRMAR")) {
+            sender.sendMessage(Component.text("Isto APAGA tudo na área do lobby em "
+                    + mundo.getName() + ". Não há cópia para restaurar.", NamedTextColor.RED));
+            sender.sendMessage(Component.text("/" + label + " lobby desfazer CONFIRMAR",
+                    NamedTextColor.YELLOW));
+            return;
+        }
+
+        LobbyBuilder.Resultado feito = plugin.lobbyBuilder().desfazer(mundo);
+        sender.sendMessage(Component.text(feito.mensagem(), NamedTextColor.GREEN));
+    }
+
+    /** Refaz os letreiros sem obra. Sem CONFIRMAR: não apaga bloco nenhum. */
+    private void lobbyTextos(CommandSender sender) {
+        org.bukkit.World mundo = mundoDoLobby(sender);
+        if (mundo == null) {
+            return;
+        }
+        LobbyBuilder.Resultado feito = plugin.lobbyBuilder().textos(mundo);
+        sender.sendMessage(Component.text(feito.mensagem(),
+                feito.ok() ? NamedTextColor.GREEN : NamedTextColor.RED));
+    }
+
+    private void lobbyIr(CommandSender sender) {
+        if (!(sender instanceof Player jogador)) {
+            sender.sendMessage(Component.text("Só dentro do jogo.", NamedTextColor.RED));
+            return;
+        }
+        org.bukkit.World mundo = mundoDoLobby(sender);
+        if (mundo == null) {
+            return;
+        }
+        jogador.teleportAsync(LobbyBuilder.pontoDeSpawn(mundo, plugin.minigamesCatalog()));
     }
 
     private void mostrarLocalLoja(Player jogador) {
@@ -1055,6 +1241,18 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
         if (args[0].equalsIgnoreCase("hub")) {
             if (args.length == 2) {
                 return filtrar(HUB_SUBCOMANDOS, args[1]);
+            }
+            boolean pedeConfirmacao = args[1].equalsIgnoreCase("construir")
+                    || args[1].equalsIgnoreCase("desfazer");
+            if (args.length == 3 && pedeConfirmacao) {
+                return filtrar(List.of("CONFIRMAR"), args[2]);
+            }
+            return List.of();
+        }
+
+        if (args[0].equalsIgnoreCase("lobby")) {
+            if (args.length == 2) {
+                return filtrar(LOBBY_SUBCOMANDOS, args[1]);
             }
             boolean pedeConfirmacao = args[1].equalsIgnoreCase("construir")
                     || args[1].equalsIgnoreCase("desfazer");

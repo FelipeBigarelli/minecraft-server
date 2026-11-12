@@ -44,6 +44,9 @@ public final class BigaCore extends JavaPlugin {
     private HubBuilder hubBuilder;
     private HubPortais hubPortais;
     private RegrasDoHub regrasDoHub;
+    private MinigamesCatalog minigamesCatalog;
+    private LobbyBuilder lobbyBuilder;
+    private LobbyPortais lobbyPortais;
 
     @Override
     public void onEnable() {
@@ -102,6 +105,15 @@ public final class BigaCore extends JavaPlugin {
             saveResource("hub.yml", false);
         }
 
+        // minigames.yml: a planta do lobby e a lista dos vinte jogos. Vai ser
+        // o arquivo mais mexido do servidor nos próximos meses — cada jogo que
+        // abre é um 'mundo:' preenchido aqui e nada mais —, então ele nasce do
+        // jar uma vez e depois é do dono.
+        File lobbyFile = new File(getDataFolder(), "minigames.yml");
+        if (!lobbyFile.exists()) {
+            saveResource("minigames.yml", false);
+        }
+
         this.economyCatalog = new EconomyCatalog(this);
         this.economyBridge = new VaultEconomyBridge();
         this.spawnShopBuilder = new SpawnShopBuilder(this);
@@ -141,6 +153,14 @@ public final class BigaCore extends JavaPlugin {
         this.hubPortais = new HubPortais(this);
         getServer().getPluginManager().registerEvents(hubPortais, this);
         this.hubPortais.start();
+        this.minigamesCatalog = new MinigamesCatalog(this);
+        this.lobbyBuilder = new LobbyBuilder(this);
+        this.lobbyPortais = new LobbyPortais(this);
+        getServer().getPluginManager().registerEvents(lobbyPortais, this);
+        this.lobbyPortais.start();
+
+        // As regras valem para o hub E para o lobby, então entram depois dos
+        // dois: elas leem a configuração dos dois mundos para saber onde agir.
         this.regrasDoHub = new RegrasDoHub(this);
         getServer().getPluginManager().registerEvents(regrasDoHub, this);
         this.regrasDoHub.start();
@@ -356,6 +376,9 @@ public final class BigaCore extends JavaPlugin {
         if (hubPortais != null) {
             hubPortais.parar();
         }
+        if (lobbyPortais != null) {
+            lobbyPortais.parar();
+        }
         if (regrasDoHub != null) {
             regrasDoHub.parar();
         }
@@ -459,6 +482,18 @@ public final class BigaCore extends JavaPlugin {
         return regrasDoHub;
     }
 
+    public MinigamesCatalog minigamesCatalog() {
+        return minigamesCatalog;
+    }
+
+    public LobbyBuilder lobbyBuilder() {
+        return lobbyBuilder;
+    }
+
+    public LobbyPortais lobbyPortais() {
+        return lobbyPortais;
+    }
+
     public TagCatalog tagCatalog() {
         return tagCatalog;
     }
@@ -520,6 +555,7 @@ public final class BigaCore extends JavaPlugin {
         encomendaLivro.reload();
         tagCatalog.reload();
         hubCatalog.reload();
+        minigamesCatalog.reload();
 
         // A lista do TAB reinicia junto: trocar o intervalo no tags.yml sem
         // recriar a tarefa deixaria o numero novo no arquivo e o antigo
