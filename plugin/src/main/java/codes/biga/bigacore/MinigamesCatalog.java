@@ -222,17 +222,38 @@ public final class MinigamesCatalog {
         return nichoMeiaLargura() - 1;
     }
 
-    public int torreCentro() {
-        return config.getInt("praca.torre-centro", 36);
+    /**
+     * Profundidade do poço da escada, dentro do maciço da galeria.
+     *
+     * Duas a menos que a galeria: sobra uma fiada de pedra de cada lado, para
+     * o poço não encostar nem na fachada nem na costa.
+     */
+    public int escadaProfundidade() {
+        return galeriaProfundidade() - 2;
     }
 
-    /** Meia largura da torre. O lado é sempre ímpar, para ela ter um meio. */
-    public int torreMeia() {
-        return Math.max(3, config.getInt("praca.torre-lado", 13) / 2);
+    /**
+     * Comprimento do poço, ao longo da galeria.
+     *
+     * Não é escolhido: é o que faz a conta fechar. O anel sobe meio bloco por
+     * célula, então ele precisa de 2 × altura células; o perímetro de um anel
+     * de W por H é 2(W+H)-4. Com a profundidade presa à galeria, o
+     * comprimento é o único valor que ainda pode variar — e mexer na altura
+     * da galeria reajusta o poço sozinho, em vez de deixar uma escada que
+     * não chega mais em cima.
+     */
+    public int escadaComprimento() {
+        return galeriaAltura() + 2 - escadaProfundidade();
     }
 
-    public int torreAltura() {
-        return config.getInt("praca.torre-altura", 30);
+    /** Onde o poço começa, ao longo da galeria, contado do centro. */
+    public int escadaInicio() {
+        return galeriaFim() - 3 - (escadaComprimento() - 1);
+    }
+
+    /** Quanto a torreta do canto sobe acima da passarela. */
+    public int torretaAltura() {
+        return config.getInt("praca.torreta-altura", 10);
     }
 
     public int monumentoRaio() {
@@ -253,7 +274,7 @@ public final class MinigamesCatalog {
 
     /** Quanto a obra sobe acima do piso. Manda no desfazer e na conferência. */
     public int alturaDaObra() {
-        return Math.max(anelAltura(), torreAltura()) + 8;
+        return Math.max(anelAltura(), galeriaSuperior() + torretaAltura() + 6) + 8;
     }
 
     /**
@@ -458,6 +479,33 @@ public final class MinigamesCatalog {
      * é por isso que ela é pública e estática: o construtor usa para carimbar
      * e o {@code LobbyPortais} usa para saber em que portal o jogador está.
      */
+    /**
+     * O perímetro de um anel retangular, em células.
+     *
+     * A escada só funciona se ele for exatamente duas vezes a altura da
+     * galeria: cada célula sobe meio bloco. Um a mais e a rampa passa do
+     * teto; um a menos e ela para meio bloco abaixo da passarela, que é
+     * onde ninguém vê que falta.
+     */
+    public static int perimetroDoAnel(int comprimento, int profundidade) {
+        return 2 * (comprimento + profundidade) - 4;
+    }
+
+    /**
+     * Se o poço cabe no maciço da galeria depois do último nicho.
+     *
+     * É a conferência que o canto do claustro não tem como fazer sozinho: o
+     * poço fica escondido dentro da pedra, e um que invada o último nicho
+     * abre um buraco na câmara de um jogo — do outro lado da parede, onde
+     * ninguém procura.
+     */
+    public static boolean escadaCabeNaGaleria(int inicio, int comprimento,
+                                              int ultimoVao, int nichoMeia,
+                                              int galeriaFim) {
+        return inicio > ultimoVao + nichoMeia
+                && inicio + comprimento - 1 <= galeriaFim - 2;
+    }
+
     public static int vaoEm(int aoLongo, List<Integer> vaos, int meiaLargura) {
         int meio = vaos.size() / 2;
         for (int i = 0; i < vaos.size(); i++) {

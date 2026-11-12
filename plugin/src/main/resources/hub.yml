@@ -134,9 +134,9 @@ portais:
   - id: minigames
     face: NORTE
     titulo: "MINIGAMES"
-    descricao: "em breve"
-    detalhe: "ainda em obra"
-    mundo: ""
+    descricao: "20 jogos"
+    detalhe: "o claustro dos minigames"
+    mundo: "minigames"
     cor: "#C77DFF"
     particula: "#C77DFF"
     moldura: PURPUR_BLOCK
@@ -237,11 +237,17 @@ textos:
 #  Comportamento
 # -------------------------------------------------------------
 regras:
-  # Velocidade de quem está no hub, escrita como no jogo:
-  # 3 = Speed III. Zero desliga. O efeito SAI quando o jogador
-  # troca de mundo — Speed III vazando para o survival seria
-  # vantagem permanente de graça, e ninguém reclamaria disso.
-  velocidade: 3
+  # Velocidade de quem está numa praça — hub E lobby dos
+  # minigames —, escrita como no jogo: 5 = Speed V. Zero
+  # desliga. O efeito SAI quando o jogador troca de mundo:
+  # Speed V vazando para o survival seria vantagem permanente
+  # de graça, e ninguém reclamaria disso.
+  #
+  # Este bloco vale para os dois mundos de propósito. Conforto
+  # diferente neles seria armadilha: o jogador aprende a andar
+  # rápido no hub e descobriria no meio do pátio do lobby que
+  # ali não é assim.
+  velocidade: 5
 
   # O hub é área de passagem, não de sobrevivência.
   sem-fome: true

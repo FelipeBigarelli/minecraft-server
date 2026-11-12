@@ -45,8 +45,8 @@ class LobbyTest {
     private static final int VAO = 3;
     private static final int ALTURA_ARCO = 11;
     private static final int PILAR = 3;
-    private static final int TORRE_CENTRO = 36;
-    private static final int TORRE_MEIA = 6;
+    private static final int GAL_SUP = 21;
+    private static final int TORRETA = 10;
     private static final int MONUMENTO = 11;
     private static final List<Integer> VAOS = List.of(-28, -14, 0, 14, 28);
 
@@ -86,8 +86,10 @@ class LobbyTest {
         assertEquals(VAO, lobby.getInt("praca.vao-largura"));
         assertEquals(ALTURA_ARCO, lobby.getInt("praca.vao-altura"));
         assertEquals(PILAR, lobby.getInt("praca.nicho-pilar"));
-        assertEquals(TORRE_CENTRO, lobby.getInt("praca.torre-centro"));
-        assertEquals(TORRE_MEIA * 2 + 1, lobby.getInt("praca.torre-lado"));
+        assertEquals(GAL_SUP, lobby.getInt("praca.galeria-superior"));
+        assertEquals(TORRETA, lobby.getInt("praca.torreta-altura"));
+        assertFalse(lobby.contains("praca.torre-centro"),
+                "sobrou torre no arquivo: elas saíram do pátio");
         assertEquals(MONUMENTO, lobby.getInt("praca.monumento-raio"));
         assertEquals(VAOS, lobby.getIntegerList("praca.vaos"));
     }
@@ -335,31 +337,82 @@ class LobbyTest {
     }
 
     // ------------------------------------------------------------------
-    //  A escada das torres
+    //  A escada, dentro da galeria
     // ------------------------------------------------------------------
 
+    private static int escadaProfundidade() {
+        return PROFUNDIDADE - 2;
+    }
+
+    private static int escadaComprimento() {
+        return ALTURA_GALERIA + 2 - escadaProfundidade();
+    }
+
+    private static int escadaInicio() {
+        return galeriaFim() - 3 - (escadaComprimento() - 1);
+    }
+
+    /**
+     * A conta que manda em tudo: cada célula do anel sobe meio bloco, logo o
+     * perímetro tem de ser exatamente duas vezes a altura da galeria. Uma
+     * célula a mais e a rampa fura o teto; uma a menos e ela para meio bloco
+     * abaixo da passarela — e meio bloco abaixo não se vê de cima.
+     */
     @Test
-    @DisplayName("a volta da torre é uma volta fechada de quarenta células")
-    void voltaDaTorreEhFechada() {
-        List<int[]> volta = LobbyBuilder.voltaDaTorre(TORRE_MEIA - 1);
-        assertEquals(40, volta.size(),
-                "quarenta células é o que sobe vinte a meio bloco por vez");
+    @DisplayName("o anel do poço tem duas células para cada fiada a subir")
+    void perimetroDaEscadaFechaComAAltura() {
+        assertEquals(2 * ALTURA_GALERIA,
+                MinigamesCatalog.perimetroDoAnel(escadaComprimento(), escadaProfundidade()),
+                "o poço não sobe a galeria inteira");
+    }
+
+    /**
+     * O poço fica escondido dentro da pedra. Um que invada o último nicho
+     * abre um buraco na câmara de um jogo, do outro lado da parede, onde
+     * ninguém vai procurar.
+     */
+    @Test
+    @DisplayName("o poço cabe no maciço depois do último nicho")
+    void escadaCabeNaGaleria() {
+        int ultimo = VAOS.get(VAOS.size() - 1);
+        assertTrue(MinigamesCatalog.escadaCabeNaGaleria(escadaInicio(), escadaComprimento(),
+                        ultimo, VAO + PILAR, galeriaFim()),
+                "o poço vai de " + escadaInicio() + " a "
+                        + (escadaInicio() + escadaComprimento() - 1)
+                        + ", e o último nicho acaba em " + (ultimo + VAO + PILAR));
+
+        assertFalse(MinigamesCatalog.escadaCabeNaGaleria(ultimo + VAO + PILAR,
+                        escadaComprimento(), ultimo, VAO + PILAR, galeriaFim()),
+                "encostar no nicho tem de ser recusado");
+        assertFalse(MinigamesCatalog.escadaCabeNaGaleria(escadaInicio(),
+                        escadaComprimento() + 3, ultimo, VAO + PILAR, galeriaFim()),
+                "passar da costa da galeria tem de ser recusado");
+    }
+
+    @Test
+    @DisplayName("o anel do poço é uma volta fechada, sem repetir célula")
+    void anelDaEscadaEhFechado() {
+        int ao0 = escadaInicio();
+        int ao1 = ao0 + escadaComprimento() - 1;
+        int f0 = PATIO + 2;
+        int f1 = f0 + escadaProfundidade() - 1;
+
+        List<int[]> anel = LobbyBuilder.anelDaEscada(ao0, ao1, f0, f1);
+        assertEquals(2 * ALTURA_GALERIA, anel.size(), "o anel não tem o tamanho da conta");
 
         Set<String> vistas = new HashSet<>();
-        for (int[] celula : volta) {
-            assertEquals(TORRE_MEIA - 1,
-                    Math.max(Math.abs(celula[0]), Math.abs(celula[1])),
-                    "célula fora do anel: " + celula[0] + "," + celula[1]);
+        for (int[] celula : anel) {
+            assertTrue(LobbyBuilder.naBorda(celula, ao0, ao1, f0, f1),
+                    "célula fora da borda: " + celula[0] + "," + celula[1]);
             assertTrue(vistas.add(celula[0] + "," + celula[1]),
                     "célula repetida: " + celula[0] + "," + celula[1]);
         }
-
-        for (int i = 1; i < volta.size(); i++) {
-            assertEquals(1, distancia(volta.get(i - 1), volta.get(i)),
-                    "salto na volta entre as células " + (i - 1) + " e " + i);
+        for (int i = 1; i < anel.size(); i++) {
+            assertEquals(1, distancia(anel.get(i - 1), anel.get(i)),
+                    "salto no anel entre as células " + (i - 1) + " e " + i);
         }
-        assertEquals(1, distancia(volta.get(volta.size() - 1), volta.get(0)),
-                "a volta não fecha");
+        assertEquals(1, distancia(anel.get(anel.size() - 1), anel.get(0)),
+                "o anel não fecha");
     }
 
     private static int distancia(int[] a, int[] b) {
@@ -367,7 +420,7 @@ class LobbyTest {
     }
 
     /**
-     * Meio bloco por célula é o ponto inteiro da escada não usar bloco de
+     * Meio bloco por célula é o ponto inteiro de a escada não usar bloco de
      * escada: anda-se sem pular. Um degrau de um bloco inteiro em qualquer
      * lugar da volta já quebra isso.
      */
@@ -377,192 +430,244 @@ class LobbyTest {
         double anterior = LobbyBuilder.degrau(0).superficie();
         assertEquals(1.0, anterior, 1e-9, "a primeira célula é o próprio piso");
 
-        for (int i = 1; i < 40; i++) {
+        for (int i = 1; i < 2 * ALTURA_GALERIA; i++) {
             double agora = LobbyBuilder.degrau(i).superficie();
             assertEquals(0.5, agora - anterior, 1e-9, "degrau errado na célula " + i);
             anterior = agora;
         }
-        assertEquals(20.5, anterior, 1e-9,
-                "a rampa tem de chegar meio bloco abaixo do patamar");
+        assertEquals(ALTURA_GALERIA + 0.5, anterior, 1e-9,
+                "a rampa tem de chegar meio bloco abaixo da passarela");
     }
 
     @Test
-    @DisplayName("a rampa chega no patamar da passarela em meio degrau")
-    void rampaAlcancaOPatamar() {
-        double topo = LobbyBuilder.degrau(39).superficie();
-        double patamar = ALTURA_GALERIA + 1.0;
-        assertEquals(0.5, patamar - topo, 1e-9,
-                "entre o fim da rampa e o patamar tem de sobrar meio bloco");
+    @DisplayName("a rampa chega na passarela em meio degrau")
+    void rampaAlcancaAPassarela() {
+        double topo = LobbyBuilder.degrau(2 * ALTURA_GALERIA - 1).superficie();
+        assertEquals(0.5, (ALTURA_GALERIA + 1.0) - topo, 1e-9,
+                "entre o fim da rampa e a passarela tem de sobrar meio bloco");
     }
 
     /**
-     * Nas quinas o vizinho de dentro ainda é célula de rampa. O corrimão ali
-     * é vidro no meio do caminho, uma fiada acima do degrau seguinte — a
-     * escada emparedava na curva.
+     * A rampa tem duas células de largura. Nas QUINAS o passo para dentro
+     * cai noutra célula do anel — e carimbar a segunda largura ali é pôr
+     * bloco no meio do caminho, uma fiada acima do degrau seguinte, o que
+     * emparedava a curva.
      */
     @Test
-    @DisplayName("nas quinas o vizinho de dentro ainda é rampa")
-    void quinaNaoLevaCorrimao() {
-        int raio = TORRE_MEIA - 1;
-        int[] quina = LobbyBuilder.paraDentro(new int[]{-raio, -raio}, raio);
-        assertEquals(raio, Math.max(Math.abs(quina[0]), Math.abs(quina[1])),
-                "o vizinho da quina continua no anel da rampa");
+    @DisplayName("nas quinas não há segunda largura")
+    void quinaNaoTemSegundaLargura() {
+        int ao0 = escadaInicio();
+        int ao1 = ao0 + escadaComprimento() - 1;
+        int f0 = PATIO + 2;
+        int f1 = f0 + escadaProfundidade() - 1;
 
-        int[] meio = LobbyBuilder.paraDentro(new int[]{0, -raio}, raio);
-        assertEquals(raio - 1, Math.max(Math.abs(meio[0]), Math.abs(meio[1])),
-                "fora da quina o vizinho sai do anel");
+        int[] quina = LobbyBuilder.paraDentroDoAnel(new int[]{ao0, f0}, ao0, ao1, f0, f1);
+        assertTrue(LobbyBuilder.naBorda(quina, ao0, ao1, f0, f1),
+                "o vizinho da quina continua na borda");
+
+        int[] meio = LobbyBuilder.paraDentroDoAnel(
+                new int[]{(ao0 + ao1) / 2, f0}, ao0, ao1, f0, f1);
+        assertFalse(LobbyBuilder.naBorda(meio, ao0, ao1, f0, f1),
+                "fora da quina o vizinho sai da borda");
     }
 
     @Test
-    @DisplayName("a porta de baixo da torre cai na primeira célula da rampa")
-    void portaDeBaixoEncostaNaRampa() {
-        int raio = TORRE_MEIA - 1;
-        List<int[]> volta = LobbyBuilder.voltaDaTorre(raio);
-        int entrada = LobbyBuilder.entradaDaTorre(TORRE_MEIA);
+    @DisplayName("a porta de baixo abre em cima das primeiras células da rampa")
+    void portaDeBaixoEncostaNaPrimeiraCelula() {
+        int ao0 = escadaInicio();
+        int ao1 = ao0 + escadaComprimento() - 1;
+        int f0 = PATIO + 2;
+        int f1 = f0 + escadaProfundidade() - 1;
+        List<int[]> anel = LobbyBuilder.anelDaEscada(ao0, ao1, f0, f1);
 
-        // A porta abre em entrada-1 .. entrada+1 na parede de dentro. A célula
-        // mais baixa da rampa tem de estar nessa faixa, senão quem entra
-        // encontra a rampa na altura do peito.
-        int[] primeira = volta.get(0);
-        assertTrue(primeira[0] >= entrada - 1 && primeira[0] <= entrada + 1,
-                "a célula 0 está em " + primeira[0] + ", fora da porta em " + entrada);
-        assertEquals(-raio, primeira[1], "a célula 0 tem de estar na parede da porta");
-    }
-
-    @Test
-    @DisplayName("a ponte de cima passa muito acima da rampa que ela cruza")
-    void ponteTemAlturaSobreARampa() {
-        int raio = TORRE_MEIA - 1;
-        List<int[]> volta = LobbyBuilder.voltaDaTorre(raio);
-        int saida = LobbyBuilder.saidaDaTorre(TORRE_MEIA);
-
-        for (int ox = saida; ox <= saida + 2; ox++) {
-            int indice = -1;
-            for (int i = 0; i < volta.size(); i++) {
-                if (volta.get(i)[0] == ox && volta.get(i)[1] == raio) {
-                    indice = i;
-                    break;
-                }
-            }
-            assertTrue(indice >= 0, "a ponte não cruza o anel em " + ox);
-            double embaixo = LobbyBuilder.degrau(indice).superficie();
-            assertTrue(ALTURA_GALERIA - embaixo >= 4,
-                    "a ponte passa a " + (ALTURA_GALERIA - embaixo)
-                            + " da rampa em " + ox + " — baixo demais para passar por baixo");
+        // A porta abre em ao0..ao0+2 na parede do pátio. As três células
+        // atrás dela têm de ser as três primeiras da subida — senão quem
+        // entra encontra a rampa na altura do peito.
+        for (int i = 0; i <= 2; i++) {
+            assertEquals(ao0 + i, anel.get(i)[0], "a célula " + i + " saiu do lugar");
+            assertEquals(f0, anel.get(i)[1], "a célula " + i + " saiu da parede da porta");
+            assertTrue(LobbyBuilder.degrau(i).superficie() <= 2.0,
+                    "a célula " + i + " já está alta demais para a porta");
         }
     }
 
+    /**
+     * O vazio da rampa sobe TRÊS fiadas acima do pé dela. Onde essas três
+     * passam do teto da galeria, o poço abre sozinho na passarela — é assim
+     * que a boca da escada nasce. Se o vazio fosse de duas, a boca não
+     * abriria e a escada acabaria num teto de pedra.
+     */
+    @Test
+    @DisplayName("o poço abre na passarela perto do topo, e só perto do topo")
+    void bocaDaEscadaAbreSozinha() {
+        int celulas = 2 * ALTURA_GALERIA;
+        int primeiraAberta = -1;
+        for (int i = 0; i < celulas; i++) {
+            boolean abre = LobbyBuilder.degrau(i).fiada() + 3 >= ALTURA_GALERIA;
+            if (abre && primeiraAberta < 0) {
+                primeiraAberta = i;
+            }
+            assertFalse(!abre && primeiraAberta >= 0 && i > primeiraAberta,
+                    "a boca fecha de novo na célula " + i);
+        }
+        assertTrue(primeiraAberta > 0, "o poço nunca abre: a escada acaba em pedra");
+        assertTrue(celulas - primeiraAberta >= 4,
+                "a boca tem só " + (celulas - primeiraAberta)
+                        + " células — estreita demais para sair");
+        assertTrue(celulas - primeiraAberta <= 10,
+                "a boca tem " + (celulas - primeiraAberta)
+                        + " células — isso é rasgo na passarela, não boca de escada");
+    }
+
+    @Test
+    @DisplayName("a última célula da rampa tem um vizinho de piso para pisar")
+    void topoDaRampaTemOndePisar() {
+        int ao0 = escadaInicio();
+        int ao1 = ao0 + escadaComprimento() - 1;
+        int f0 = PATIO + 2;
+        int f1 = f0 + escadaProfundidade() - 1;
+        List<int[]> anel = LobbyBuilder.anelDaEscada(ao0, ao1, f0, f1);
+
+        int[] topo = anel.get(anel.size() - 1);
+        int[] dentro = LobbyBuilder.paraDentroDoAnel(topo, ao0, ao1, f0, f1);
+        assertFalse(LobbyBuilder.naBorda(dentro, ao0, ao1, f0, f1),
+                "o topo da rampa dá numa quina: não há de onde sair para a passarela");
+    }
+
     // ------------------------------------------------------------------
-    //  As faixas e as torres no pátio
+    //  O pátio fica vazio
     // ------------------------------------------------------------------
 
     /**
-     * As quatro torres ficam soltas nos cantos do pátio e as faixas de cor
-     * atravessam o pátio inteiro. Com o nicho mais de fora em 28 e a torre
-     * começando em 30, a folga é de UM bloco: qualquer mexida em
-     * praca.vaos ou em praca.torre-centro passa a torre por cima de uma
-     * faixa, e a faixa não leva mais a nenhum portal.
+     * A queixa que derrubou as quatro torres: elas tapavam o último nicho de
+     * cada galeria. Não era descuido de número — o nicho de fora vai até 34
+     * do centro e o pátio acaba em 43, então qualquer torre larga o bastante
+     * para ter escada dentro cai em cima dele.
+     *
+     * <p>Este teste é a regra que ficou no lugar delas: no pátio não há NADA
+     * além do monumento e das faixas. Tudo que é estrutura mora de 44 para
+     * fora.
      */
     @Test
-    @DisplayName("nenhuma faixa de cor entra numa torre")
-    void faixasNaoEntramNasTorres() {
+    @DisplayName("nenhuma célula do poço da escada entra no pátio")
+    void pocoFicaDentroDaGaleria() {
+        int ao0 = escadaInicio();
+        int ao1 = ao0 + escadaComprimento() - 1;
+        int f0 = PATIO + 2;
+        int f1 = f0 + escadaProfundidade() - 1;
+
+        for (int[] celula : LobbyBuilder.anelDaEscada(ao0, ao1, f0, f1)) {
+            assertTrue(celula[1] > PATIO, "célula do poço no pátio, a "
+                    + celula[1] + " do centro");
+            assertTrue(celula[1] < galeriaFim(), "célula do poço fora da galeria, a "
+                    + celula[1] + " do centro");
+        }
+
+        // A porta é o único ponto que toca a parede do pátio — e ela é um
+        // furo NA parede, não um volume na frente dela. E abre depois do
+        // último nicho.
+        int ultimo = VAOS.get(VAOS.size() - 1) + VAO + PILAR;
+        assertTrue(ao0 > ultimo, "a porta da escada abre em cima do último nicho");
+    }
+
+    /**
+     * O que restou das torres é uma torreta aberta por cima da passarela.
+     * Se um pilar dela descesse ao pátio, a queixa voltaria inteira: volume
+     * no canto, na frente do último nicho.
+     */
+    @Test
+    @DisplayName("a torreta fica toda acima da passarela e dentro do anel")
+    void torretaNaoTocaOPatio() {
+        int pilarDentro = PATIO + 2;
+        int pilarFora = galeriaFim() - 2;
+
+        assertTrue(pilarDentro > PATIO, "pilar da torreta dentro do pátio");
+        assertTrue(pilarFora < galeriaFim(), "pilar da torreta fora da galeria");
+        assertEquals(ALTURA_GALERIA + 1, GAL_SUP,
+                "a passarela é a fiada logo acima do teto da galeria");
+        assertTrue(TORRETA >= 6, "torreta baixa demais para fazer silhueta");
+    }
+
+    // ------------------------------------------------------------------
+    //  Entrou por um portal, volta por ele
+    // ------------------------------------------------------------------
+
+    /**
+     * O pior defeito possível num portal de ida e volta: chegar EM CIMA da
+     * própria caixa. O jogador voltaria do jogo, seria mandado de volta ao
+     * jogo no mesmo tique, voltaria de novo — um laço fechado entre dois
+     * mundos, sem nenhuma mensagem de erro em lugar nenhum.
+     */
+    @Test
+    @DisplayName("a chegada de um portal do lobby fica fora da caixa dele")
+    void chegadaDoLobbyForaDaCaixa() {
+        int piso = 100;
+        int fundo = galeriaFim();
+        int chegada = fundo - 4;
+
         for (MinigamesCatalog.Lado lado : MinigamesCatalog.Lado.values()) {
             for (int centro : VAOS) {
-                for (int faixa = -1; faixa <= 1; faixa++) {
-                    for (int fora = MONUMENTO + 4; fora <= PATIO; fora++) {
-                        int x = lado.x(centro + faixa, fora);
-                        int z = lado.z(centro + faixa, fora);
-                        assertFalse(naTorre(x, z), "a faixa de " + lado + "/" + centro
-                                + " entra numa torre em " + x + "," + z);
-                    }
-                }
+                double x = lado.x(centro, chegada) + 0.5;
+                double z = lado.z(centro, chegada) + 0.5;
+                assertFalse(LobbyPortais.dentroDaCaixa(x, piso + 1, z, lado, centro,
+                                fundo, piso),
+                        "a chegada de " + lado + "/" + centro + " cai dentro da caixa");
+                assertFalse(LobbyPortais.dentroDaVolta(x, piso + 1, z, piso),
+                        "a chegada de " + lado + "/" + centro
+                                + " cai dentro do portal de volta ao hub");
             }
         }
     }
 
-    private static boolean naTorre(int x, int z) {
-        return Math.abs(Math.abs(x) - TORRE_CENTRO) <= TORRE_MEIA
-                && Math.abs(Math.abs(z) - TORRE_CENTRO) <= TORRE_MEIA;
-    }
-
     @Test
-    @DisplayName("as torres ficam inteiras dentro do pátio, longe do monumento")
-    void torresCabemNoPatio() {
-        assertTrue(TORRE_CENTRO + TORRE_MEIA <= PATIO,
-                "a torre passa da parede da galeria");
-        assertTrue(TORRE_CENTRO - TORRE_MEIA > MONUMENTO + 3,
-                "a torre encosta na calçada do monumento");
-        assertEquals(1, PATIO - (TORRE_CENTRO + TORRE_MEIA),
-                "a fenda entre a torre e a galeria tem de ser de um bloco, "
-                        + "que é o que o contraforte fecha");
-    }
-
-    @Test
-    @DisplayName("o contraforte cobre a saída de cima da torre")
-    void contraforteCobreASaida() {
-        int saida = LobbyBuilder.saidaDaTorre(TORRE_MEIA);
-        int dentro = TORRE_CENTRO - TORRE_MEIA;
-        for (int ox = saida; ox <= saida + 2; ox++) {
-            int aoLongo = TORRE_CENTRO + ox;
-            assertTrue(aoLongo >= dentro && aoLongo <= PATIO,
-                    "a saída em " + aoLongo + " cai fora do contraforte, "
-                            + "que vai de " + dentro + " a " + PATIO);
-        }
+    @DisplayName("a chegada fica dentro da câmara, não no meio do pátio")
+    void chegadaDoLobbyFicaNaCamara() {
+        int chegada = galeriaFim() - 4;
+        assertTrue(chegada > PATIO + 3,
+                "a chegada caiu antes do arco: o jogador sai no pátio, não no nicho");
+        assertTrue(chegada < galeriaFim(),
+                "a chegada caiu na parede do fundo");
     }
 
     /**
-     * O defeito que uma busca em largura pela planta pegou antes de a obra
-     * existir: o parapeito de dentro corre o anel inteiro, e a ponte da torre
-     * chega na galeria exatamente em cima dele. Com dois blocos de vidro na
-     * frente da porta de cima, as quatro torres eram escada para nada —
-     * subia-se vinte blocos para bater numa grade.
+     * O mesmo no hub: quem volta do lobby sai pelo portão do lobby. Se o
+     * terraço ficasse dentro da caixa do portão, ele voltaria para o lobby
+     * no mesmo instante.
      */
     @Test
-    @DisplayName("o parapeito de dentro abre exatamente na boca das quatro pontes")
-    void bocaDaPonteCoincideComAPortaDeCima() {
-        int anel = PATIO + 1;
-        int aoLongo = TORRE_CENTRO + LobbyBuilder.saidaDaTorre(TORRE_MEIA);
-
-        for (int i = 0; i <= 2; i++) {
-            for (int sx = -1; sx <= 1; sx += 2) {
-                for (int sz = -1; sz <= 1; sz += 2) {
-                    assertTrue(LobbyBuilder.bocaDaPonte(PATIO, TORRE_CENTRO, TORRE_MEIA,
-                                    sx * (aoLongo + i), sz * anel),
-                            "o parapeito fecha a ponte em " + (aoLongo + i));
-                }
-            }
+    @DisplayName("o terraço de um portal do hub fica fora da caixa dele")
+    void chegadaDoHubForaDaCaixa() throws Exception {
+        YamlConfiguration hub;
+        try (InputStream in = LobbyTest.class.getResourceAsStream("/hub.yml")) {
+            hub = YamlConfiguration.loadConfiguration(
+                    new InputStreamReader(in, StandardCharsets.UTF_8));
         }
-        assertFalse(LobbyBuilder.bocaDaPonte(PATIO, TORRE_CENTRO, TORRE_MEIA,
-                        aoLongo - 1, anel),
-                "a abertura passou um bloco antes da porta");
-        assertFalse(LobbyBuilder.bocaDaPonte(PATIO, TORRE_CENTRO, TORRE_MEIA,
-                        aoLongo + 3, anel),
-                "a abertura passou um bloco depois da porta");
-        assertFalse(LobbyBuilder.bocaDaPonte(PATIO, TORRE_CENTRO, TORRE_MEIA,
-                        anel, aoLongo),
-                "a porta de cima sai só no eixo z — o outro eixo fica fechado");
-        assertFalse(LobbyBuilder.bocaDaPonte(PATIO, TORRE_CENTRO, TORRE_MEIA, 0, anel),
-                "no meio da galeria o parapeito não pode abrir");
+        int piso = hub.getInt("praca.y");
+        int terraco = hub.getInt("praca.raio") + hub.getInt("praca.passarela-comprimento");
+        int portal = terraco + hub.getInt("praca.portal-avanco");
+
+        for (HubCatalog.Face face : HubCatalog.Face.values()) {
+            double x = face.du() * terraco + 0.5;
+            double z = face.dv() * terraco + 0.5;
+            assertFalse(HubPortais.dentroDaCaixa(x, piso + 2, z, face, portal, piso),
+                    "o terraço do " + face + " cai dentro da caixa do portão");
+        }
     }
 
-    /**
-     * A porta de cima da torre fica na face de FORA, e o patamar que leva até
-     * ela cruza o poço da rampa por uma ponte. Se a porta mudasse de face, a
-     * abertura do parapeito ficaria num lado e a porta no outro — e nada
-     * reclamaria.
-     */
     @Test
-    @DisplayName("a porta de cima, a ponte e a abertura do parapeito falam do mesmo lugar")
-    void saidaDaTorreEhUmaSo() {
-        int saida = LobbyBuilder.saidaDaTorre(TORRE_MEIA);
-        assertTrue(saida >= -(TORRE_MEIA - 1) && saida + 2 <= TORRE_MEIA - 1,
-                "a ponte tem de caber dentro da torre");
-
-        int aoLongo = TORRE_CENTRO + saida;
-        assertTrue(aoLongo + 2 <= PATIO,
-                "a boca da ponte passa da parede da galeria");
-        assertTrue(aoLongo - 1 > TORRE_CENTRO - TORRE_MEIA,
-                "a boca da ponte cai fora do contraforte");
+    @DisplayName("a velocidade das praças é a mesma para os dois mundos")
+    void velocidadeEhUmaSo() throws Exception {
+        YamlConfiguration hub;
+        try (InputStream in = LobbyTest.class.getResourceAsStream("/hub.yml")) {
+            hub = YamlConfiguration.loadConfiguration(
+                    new InputStreamReader(in, StandardCharsets.UTF_8));
+        }
+        int nivel = hub.getInt("regras.velocidade");
+        assertTrue(nivel >= 1 && nivel <= 10,
+                "nível de velocidade fora do que uma poção aceita: " + nivel);
+        assertEquals(nivel - 1, RegrasDoHub.amplificador(nivel),
+                "o nível escrito como no jogo tem de virar amplificador menos um");
+        assertTrue(RegrasDoHub.velocidadeLigada(nivel));
     }
 
     // ------------------------------------------------------------------

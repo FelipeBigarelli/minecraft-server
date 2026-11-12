@@ -48,14 +48,27 @@ import java.util.List;
  * três vezes — na faixa do chão, no painel sobre o arco e na moldura do
  * portal — então a pessoa associa antes de chegar perto o bastante para ler.
  *
- * <h2>A escada das torres não usa bloco de escada</h2>
+ * <h2>A escada mora dentro da galeria, e o pátio fica vazio</h2>
+ *
+ * A primeira versão punha quatro torres soltas nos cantos do pátio. Elas
+ * tapavam o último nicho de cada galeria, e não por descuido: o nicho de fora
+ * vai até 34 do centro e o pátio acaba em 43, então qualquer torre larga o
+ * bastante para ter escada dentro cai em cima dele. Não cabem as duas coisas.
+ *
+ * Agora a escada sobe DENTRO do maciço da galeria, nos dezenove por dez que
+ * sobram depois do último nicho — pedra que já estava lá e que ninguém via.
+ * Do pátio só se vê uma porta na parede. O que restou nos cantos é uma
+ * torreta aberta, quatro pilares e um telhado, que começa vinte acima do
+ * chão e não ocupa um bloco de praça.
+ *
+ * <h2>A escada não usa bloco de escada</h2>
  *
  * Ela sobe meio bloco por célula, alternando bloco inteiro e laje. Dá
- * quarenta células para subir vinte — uma volta exata na parede de dentro da
- * torre — e se anda sem pular. Bloco de escada subiria em vinte células, mas
- * a orientação de {@code Stairs} depende de uma convenção que só se confere
- * em jogo, e uma escada virada ao contrário é uma parede de vinte blocos.
- * Meio degrau não tem para que lado virar.
+ * quarenta células para subir vinte — uma volta exata no poço — e se anda sem
+ * pular. Bloco de escada subiria em vinte células, mas a orientação de
+ * {@code Stairs} depende de uma convenção que só se confere em jogo, e uma
+ * escada virada ao contrário é uma parede de vinte blocos. Meio degrau não
+ * tem para que lado virar.
  *
  * <h2>A obra NÃO tem desfazer de verdade</h2>
  *
@@ -135,7 +148,8 @@ public final class LobbyBuilder {
         }
         pisoDoPatio(mundo, planta, portais, piso);
         passarelaSuperior(mundo, planta, portais, piso);
-        torres(mundo, planta, piso);
+        escadas(mundo, planta, piso);
+        torretas(mundo, planta, piso);
         monumento(mundo, planta, piso);
         anelSuspenso(mundo, planta, piso);
 
@@ -641,25 +655,6 @@ public final class LobbyBuilder {
     // ------------------------------------------------------------------
 
     /**
-     * Onde o parapeito de dentro tem de ABRIR: a boca das quatro pontes.
-     *
-     * Este é o defeito que a busca em largura pegou antes de a obra existir.
-     * O parapeito de dentro corre a volta inteira do anel, e a ponte da torre
-     * chega na galeria exatamente em cima dele — dois blocos de guarda-corpo
-     * na frente da porta de cima, e as quatro torres viravam escada para
-     * nada. Subia-se vinte blocos para bater numa grade de vidro.
-     *
-     * A ponte sai da face de fora da torre no eixo z, três blocos de largura,
-     * então a abertura é no lado |z| do anel, na faixa de x da porta.
-     */
-    static boolean bocaDaPonte(int patio, int torreCentro, int torreMeia, int x, int z) {
-        int dentro = patio + 1;
-        int aoLongo = torreCentro + saidaDaTorre(torreMeia);
-        return Math.abs(z) == dentro
-                && Math.abs(x) >= aoLongo && Math.abs(x) <= aoLongo + 2;
-    }
-
-    /**
      * A volta por cima da galeria, de onde se vê o pátio inteiro.
      *
      * O chão dela é o topo do maciço da galeria, que já está lá. O que falta
@@ -688,10 +683,6 @@ public final class LobbyBuilder {
                 if (Math.max(Math.abs(p[0]), Math.abs(p[1])) != dentro) {
                     continue;
                 }
-                if (bocaDaPonte(planta.patio(), planta.torreCentro(),
-                        planta.torreMeia(), p[0], p[1])) {
-                    continue;
-                }
                 por(mundo, p[0], base + 1, p[1], Math.abs(i) % 4 == 0 ? estrutura : vidro);
                 laje(mundo, p[0], base + 2, p[1], parapeito);
             }
@@ -714,252 +705,270 @@ public final class LobbyBuilder {
     }
 
     // ------------------------------------------------------------------
-    //  As torres
+    //  A escada, dentro da galeria
     // ------------------------------------------------------------------
 
     /**
-     * Uma célula da rampa: em que fiada ela está e se é laje.
+     * O anel do poço da escada, em ordem de subida.
      *
-     * A conta é a alma da escada e por isso é estática e pura — o teste
-     * confere os quarenta degraus sem servidor. Meio bloco por célula: par
-     * fecha a fiada com bloco inteiro, ímpar põe laje em cima da seguinte.
+     * Retangular e não quadrado porque ele mora DENTRO da galeria: há dez de
+     * profundidade e dezenove de comprimento livres depois do último nicho, e
+     * o anel tem de ter exatamente duas células por fiada a subir. Com oito de
+     * profundidade sobram catorze de comprimento — 2(14+8)-4 são as quarenta
+     * células que sobem os vinte da galeria a meio bloco por vez.
+     *
+     * <p>A primeira versão punha quatro torres soltas nos cantos do pátio. A
+     * conta não fecha: o nicho de fora vai até 34 do centro e o pátio acaba
+     * em 43, então uma torre de treze com saída para a passarela cai em cima
+     * do último nicho de cada galeria — tapa a fachada e metade da entrada.
+     * Não é ajuste de número, é a geometria: não cabem as duas coisas ali.
+     * Dentro da galeria o maciço já existe e o pátio fica limpo.
+     */
+    static List<int[]> anelDaEscada(int ao0, int ao1, int fora0, int fora1) {
+        List<int[]> anel = new ArrayList<>();
+        for (int ao = ao0; ao <= ao1; ao++) {
+            anel.add(new int[]{ao, fora0});
+        }
+        for (int fora = fora0 + 1; fora <= fora1; fora++) {
+            anel.add(new int[]{ao1, fora});
+        }
+        for (int ao = ao1 - 1; ao >= ao0; ao--) {
+            anel.add(new int[]{ao, fora1});
+        }
+        for (int fora = fora1 - 1; fora >= fora0 + 1; fora--) {
+            anel.add(new int[]{ao0, fora});
+        }
+        return anel;
+    }
+
+    /** Se uma célula ainda está na borda do poço. */
+    static boolean naBorda(int[] celula, int ao0, int ao1, int fora0, int fora1) {
+        return celula[0] == ao0 || celula[0] == ao1
+                || celula[1] == fora0 || celula[1] == fora1;
+    }
+
+    /**
+     * O vizinho de uma célula do anel, um passo para dentro do poço.
+     *
+     * A rampa tem duas células de largura: a do anel e esta. Nas QUINAS o
+     * passo para dentro cai noutra célula do anel, e aí não há segunda
+     * largura — é o mesmo caso que já tinha derrubado o corrimão da versão
+     * das torres, e por isso quem chama confere com {@link #naBorda}.
+     */
+    static int[] paraDentroDoAnel(int[] celula, int ao0, int ao1, int fora0, int fora1) {
+        if (celula[0] == ao0) {
+            return new int[]{celula[0] + 1, celula[1]};
+        }
+        if (celula[0] == ao1) {
+            return new int[]{celula[0] - 1, celula[1]};
+        }
+        if (celula[1] == fora0) {
+            return new int[]{celula[0], celula[1] + 1};
+        }
+        return new int[]{celula[0], celula[1] - 1};
+    }
+
+    /**
+     * Uma fiada da rampa, e se o que se pisa ali é laje ou bloco inteiro.
+     *
+     * A rampa sobe MEIO bloco por célula alternando bloco e laje, em vez de
+     * usar {@code Stairs}. O motivo é chato e decisivo: a convenção de
+     * {@code setFacing} de escada só se confere dentro do jogo, e uma escada
+     * virada ao contrário não é um detalhe feio — é uma parede de vinte
+     * blocos entre o pátio e a passarela, descoberta por quem tentasse
+     * subir. Bloco e laje não têm orientação para errar.
      */
     record Degrau(int fiada, boolean laje) {
 
-        /** A altura em que se PISA, contada do piso. */
+        /** Em que altura o pé encosta: é isto que tem de subir 0,5 por célula. */
         double superficie() {
             return laje ? fiada + 0.5 : fiada + 1.0;
         }
     }
 
+    /**
+     * A célula de índice {@code celula} do anel, contada da base.
+     *
+     * Célula zero é o próprio piso do pátio: nada é colocado, e é por isso
+     * que a porta de baixo abre no nível de quem anda. Daí em diante cada
+     * célula sobe meio bloco — ímpar põe laje na fiada de cima, par fecha a
+     * fiada com bloco inteiro.
+     */
     static Degrau degrau(int celula) {
-        if (celula % 2 == 0) {
-            return new Degrau(celula / 2, false);
+        if (celula <= 0) {
+            return new Degrau(0, false);
         }
-        return new Degrau((celula + 1) / 2, true);
+        return (celula % 2 == 0)
+                ? new Degrau(celula / 2, false)
+                : new Degrau((celula + 1) / 2, true);
     }
 
     /**
-     * A volta completa na parede de dentro da torre, em ordem de subida.
+     * As quatro escadas ficam nas pontas das galerias do norte e do sul.
      *
-     * Começa encostada na face de dentro (onde fica a porta do pátio), passa
-     * pelas quatro paredes e termina um bloco antes de onde começou. Quarenta
-     * células para subir vinte: uma volta, meio bloco por vez.
+     * Uma em cada ponta das duas, o que dá os quatro cantos do claustro sem
+     * que nenhuma galeria tenha duas. Quem está no pátio não vê nenhuma: são
+     * portas na parede, depois do último nicho.
      */
-    static List<int[]> voltaDaTorre(int raio) {
-        List<int[]> volta = new ArrayList<>();
-        for (int ox = -raio; ox <= raio; ox++) {
-            volta.add(new int[]{ox, -raio});
-        }
-        for (int oz = -raio + 1; oz <= raio; oz++) {
-            volta.add(new int[]{raio, oz});
-        }
-        for (int ox = raio - 1; ox >= -raio; ox--) {
-            volta.add(new int[]{ox, raio});
-        }
-        for (int oz = raio - 1; oz >= -raio + 1; oz--) {
-            volta.add(new int[]{-raio, oz});
-        }
-        return volta;
-    }
-
-    /** Onde a porta de baixo entra: junto da primeira célula da volta. */
-    static int entradaDaTorre(int meia) {
-        return -meia + 1;
-    }
-
-    /** Onde a porta de cima sai: junto da ponte sobre o poço da rampa. */
-    static int saidaDaTorre(int meia) {
-        return 2;
-    }
-
-    private void torres(World mundo, MinigamesCatalog planta, int piso) {
-        for (int sx = -1; sx <= 1; sx += 2) {
-            for (int sz = -1; sz <= 1; sz += 2) {
-                torre(mundo, planta, piso, sx, sz);
-                contraforte(mundo, planta, piso, sx, sz);
+    private void escadas(World mundo, MinigamesCatalog planta, int piso) {
+        for (MinigamesCatalog.Lado lado : new MinigamesCatalog.Lado[]{
+                MinigamesCatalog.Lado.NORTE, MinigamesCatalog.Lado.SUL}) {
+            for (int sinal = -1; sinal <= 1; sinal += 2) {
+                escada(mundo, planta, piso, lado, sinal);
             }
         }
     }
 
-    /**
-     * Uma das quatro torres do canto do pátio.
-     *
-     * Sobe dez acima da galeria e é a única maneira de chegar na passarela.
-     * Entra-se pela face virada para o meio da praça, sobe-se uma volta
-     * inteira e sai-se pela face virada para a galeria, na altura de cima.
-     */
-    private void torre(World mundo, MinigamesCatalog planta, int piso, int sx, int sz) {
-        int centro = planta.torreCentro();
-        int meia = planta.torreMeia();
-        int altura = planta.torreAltura();
-        int patamar = planta.galeriaAltura();
+    private void escada(World mundo, MinigamesCatalog planta, int piso,
+                        MinigamesCatalog.Lado lado, int sinal) {
+        int ao0 = planta.escadaInicio();
+        int ao1 = ao0 + planta.escadaComprimento() - 1;
+        int fora0 = planta.patio() + 2;
+        int fora1 = fora0 + planta.escadaProfundidade() - 1;
+        int teto = planta.galeriaAltura();
 
         Material estrutura = planta.cor("estrutura", Material.QUARTZ_BLOCK);
         Material chao = planta.cor("piso", Material.SMOOTH_QUARTZ);
         Material escuro = planta.cor("piso-escuro", Material.POLISHED_DEEPSLATE);
         Material borda = planta.cor("borda", Material.DEEPSLATE_TILES);
-        Material vidro = planta.cor("vidro", Material.LIGHT_BLUE_STAINED_GLASS);
         Material parapeito = planta.cor("parapeito", Material.QUARTZ_SLAB);
         Material luz = planta.cor("luz", Material.SEA_LANTERN);
-        Material rod = planta.cor("luz-fria", Material.END_ROD);
-        Material nucleo = planta.cor("nucleo", Material.AMETHYST_BLOCK);
 
-        // 1. a casca
-        for (int ox = -meia; ox <= meia; ox++) {
-            for (int oz = -meia; oz <= meia; oz++) {
-                boolean parede = Math.abs(ox) == meia || Math.abs(oz) == meia;
-                if (!parede) {
-                    continue;
-                }
-                for (int y = 1; y <= altura; y++) {
-                    Material material;
-                    if (y == altura || y == patamar) {
-                        material = borda;
-                    } else if (y <= 2) {
-                        material = borda;
-                    } else if (Math.abs(ox) == meia && Math.abs(oz) == meia) {
-                        material = escuro;                 // as quinas
-                    } else if (y > patamar + 3 && y % 3 == 0) {
-                        material = vidro;                  // o mirante
-                    } else {
-                        material = estrutura;
-                    }
-                    por(mundo, mx(sx, centro, ox), piso + y, mx(sz, centro, oz), material);
-                }
-            }
-        }
+        List<int[]> anel = anelDaEscada(ao0, ao1, fora0, fora1);
 
-        // 2. o vazio de dentro
-        for (int ox = -meia + 1; ox <= meia - 1; ox++) {
-            for (int oz = -meia + 1; oz <= meia - 1; oz++) {
-                for (int y = 1; y <= altura - 1; y++) {
-                    ar(mundo, mx(sx, centro, ox), piso + y, mx(sz, centro, oz));
-                }
-            }
-        }
-
-        // 3. a rampa: uma volta, meio bloco por célula
-        List<int[]> volta = voltaDaTorre(meia - 1);
-        for (int i = 0; i < volta.size(); i++) {
-            int[] celula = volta.get(i);
+        for (int i = 0; i < anel.size(); i++) {
+            int[] celula = anel.get(i);
             Degrau d = degrau(i);
-            int x = mx(sx, centro, celula[0]);
-            int z = mx(sz, centro, celula[1]);
 
-            for (int y = 1; y < d.fiada(); y++) {
-                por(mundo, x, piso + y, z, estrutura);
-            }
-            if (d.laje()) {
-                laje(mundo, x, piso + d.fiada(), z, parapeito);
-            } else if (d.fiada() >= 1) {
-                por(mundo, x, piso + d.fiada(), z, chao);
-            }
+            colocarDegrau(mundo, planta, lado, sinal, celula, d, piso, teto,
+                    chao, estrutura, parapeito);
 
-            // O guarda-corpo de vidro, no lado de dentro da rampa.
-            //
-            // Duas condições, e as duas pegaram defeito de verdade. A altura
-            // sai de ceil() e não de floor(): com floor(), o corrimão da
-            // célula de meio degrau nasce um bloco acima do pé e fica
-            // pairando. E nas QUINAS o vizinho de dentro ainda é célula de
-            // rampa — pôr corrimão ali é pôr vidro no meio do caminho, uma
-            // fiada acima do degrau seguinte, e a escada emparedava na curva.
-            int[] dentro = paraDentro(celula, meia - 1);
-            boolean vizinhoEhRampa =
-                    Math.max(Math.abs(dentro[0]), Math.abs(dentro[1])) >= meia - 1;
-            if (d.superficie() < patamar - 2 && !vizinhoEhRampa) {
-                int base = (int) Math.ceil(d.superficie());
-                for (int y = base; y <= base + 1; y++) {
-                    por(mundo, mx(sx, centro, dentro[0]), piso + y,
-                            mx(sz, centro, dentro[1]), vidro);
-                }
+            int[] dentro = paraDentroDoAnel(celula, ao0, ao1, fora0, fora1);
+            if (!naBorda(dentro, ao0, ao1, fora0, fora1)) {
+                colocarDegrau(mundo, planta, lado, sinal, dentro, d, piso, teto,
+                        chao, estrutura, parapeito);
             }
         }
 
-        // 4. o patamar de cima, com a ponte por cima do poço da rampa
-        for (int ox = -meia + 1; ox <= meia - 1; ox++) {
-            for (int oz = -meia + 1; oz <= meia - 1; oz++) {
-                boolean miolo = Math.max(Math.abs(ox), Math.abs(oz)) <= meia - 2;
-                boolean ponte = ox >= saidaDaTorre(meia) && ox <= saidaDaTorre(meia) + 2
-                        && oz == meia - 1;
-                if (!miolo && !ponte) {
-                    continue;
-                }
-                por(mundo, mx(sx, centro, ox), piso + patamar, mx(sz, centro, oz),
-                        miolo && Math.abs(ox) == Math.abs(oz) ? escuro : chao);
-            }
-        }
-
-        // 5. as portas, cada uma onde a rampa a alcança
-        //
-        // A de baixo fica na primeira célula da volta: três blocos adiante e
-        // quem entrasse já encontraria a rampa na altura do peito.
-        int entrada = entradaDaTorre(meia);
-        for (int ox = entrada - 1; ox <= entrada + 1; ox++) {
+        // A porta de baixo, na parede do pátio, logo depois do último nicho.
+        // Ela abre bem em cima das três primeiras células da rampa.
+        for (int ao = ao0; ao <= ao0 + 2; ao++) {
             for (int y = 1; y <= 4; y++) {
-                ar(mundo, mx(sx, centro, ox), piso + y, mx(sz, centro, -meia));
+                ar(mundo, lado.x(sinal * ao, planta.patio() + 1), piso + y,
+                        lado.z(sinal * ao, planta.patio() + 1));
             }
+            por(mundo, lado.x(sinal * ao, planta.patio() + 1), piso + 5,
+                    lado.z(sinal * ao, planta.patio() + 1), borda);
         }
-        int saida = saidaDaTorre(meia);
-        for (int ox = saida; ox <= saida + 2; ox++) {
-            for (int y = patamar + 1; y <= patamar + 3; y++) {
-                ar(mundo, mx(sx, centro, ox), piso + y, mx(sz, centro, meia));
-            }
-        }
+        por(mundo, lado.x(sinal * (ao0 + 1), planta.patio()), piso + 5,
+                lado.z(sinal * (ao0 + 1), planta.patio()), luz);
 
-        // 6. o telhado e o facho
-        for (int ox = -meia; ox <= meia; ox++) {
-            for (int oz = -meia; oz <= meia; oz++) {
-                int d = Math.max(Math.abs(ox), Math.abs(oz));
-                por(mundo, mx(sx, centro, ox), piso + altura, mx(sz, centro, oz),
-                        d == meia ? borda : d >= meia - 2 ? chao : estrutura);
-                if (d <= 1) {
-                    por(mundo, mx(sx, centro, ox), piso + altura + 1,
-                            mx(sz, centro, oz), d == 0 ? luz : nucleo);
-                }
-            }
-        }
-        for (int y = 2; y <= 4; y++) {
-            por(mundo, mx(sx, centro, 0), piso + altura + y, mx(sz, centro, 0), rod);
+        // Uma guarda baixa na beira do poço, do lado de fora dele. Não é
+        // segurança — a queda é de três blocos em cima da própria escada —,
+        // é para a boca se ler como boca e não como falha no piso.
+        for (int fora = fora0; fora <= fora1; fora++) {
+            por(mundo, lado.x(sinal * (ao0 - 1), fora), piso + teto,
+                    lado.z(sinal * (ao0 - 1), fora), escuro);
         }
     }
 
     /**
-     * O maciço de um bloco que liga a torre à galeria.
+     * Uma célula da rampa: o cheio por baixo, o piso (ou a laje) em cima e o
+     * vazio por onde se passa.
      *
-     * Serve de duas coisas ao mesmo tempo: fecha a fenda de um bloco entre as
-     * duas (de onde se veria o void olhando para baixo) e, no topo, é o
-     * pedaço de chão que leva da porta de cima da torre para a passarela.
+     * O vazio sobe COM a rampa, três fiadas acima do pé. Teto reto no nível
+     * da passarela daria dois blocos de altura no começo e meio bloco no
+     * fim — e o fim é onde se sai. Onde essas três fiadas passam do teto da
+     * galeria, o poço abre na passarela: é assim que a boca da escada nasce,
+     * sem ninguém ter de escolher o tamanho dela.
      */
-    private void contraforte(World mundo, MinigamesCatalog planta, int piso, int sx, int sz) {
-        int patio = planta.patio();
-        int dentro = planta.torreCentro() - planta.torreMeia();
-        int altura = planta.galeriaAltura();
+    private void colocarDegrau(World mundo, MinigamesCatalog planta,
+                               MinigamesCatalog.Lado lado, int sinal, int[] celula,
+                               Degrau d, int piso, int teto, Material chao,
+                               Material estrutura, Material parapeito) {
+        int x = lado.x(sinal * celula[0], celula[1]);
+        int z = lado.z(sinal * celula[0], celula[1]);
+
+        for (int y = 1; y < d.fiada(); y++) {
+            por(mundo, x, piso + y, z, estrutura);
+        }
+        if (d.laje()) {
+            laje(mundo, x, piso + d.fiada(), z, parapeito);
+        } else if (d.fiada() >= 1) {
+            por(mundo, x, piso + d.fiada(), z, chao);
+        }
+        for (int y = d.fiada() + 1; y <= Math.min(d.fiada() + 3, teto); y++) {
+            ar(mundo, x, piso + y, z);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    //  As torretas dos cantos
+    // ------------------------------------------------------------------
+
+    /**
+     * Os quatro pavilhões abertos sobre os cantos da passarela.
+     *
+     * São o que sobrou das torres: a silhueta, sem o volume. Quatro pilares e
+     * um telhado, com a passarela passando por baixo. No pátio não ocupam um
+     * bloco — começam vinte acima dele.
+     */
+    private void torretas(World mundo, MinigamesCatalog planta, int piso) {
+        int dentro = planta.patio() + 1;
+        int fora = planta.galeriaFim();
+        int base = piso + planta.galeriaAltura();
+        int altura = planta.torretaAltura();
 
         Material estrutura = planta.cor("estrutura", Material.QUARTZ_BLOCK);
         Material chao = planta.cor("piso", Material.SMOOTH_QUARTZ);
+        Material escuro = planta.cor("piso-escuro", Material.POLISHED_DEEPSLATE);
         Material borda = planta.cor("borda", Material.DEEPSLATE_TILES);
+        Material metal = planta.cor("metal", Material.IRON_BLOCK);
+        Material luz = planta.cor("luz", Material.SEA_LANTERN);
+        Material rod = planta.cor("luz-fria", Material.END_ROD);
+        Material nucleo = planta.cor("nucleo", Material.AMETHYST_BLOCK);
 
-        for (int i = dentro; i <= patio; i++) {
-            for (int y = 1; y <= altura; y++) {
-                Material material = y == altura ? chao : y <= 2 ? borda : estrutura;
-                por(mundo, sx * patio, piso + y, sz * i, material);
-                por(mundo, sx * i, piso + y, sz * patio, material);
+        int pilar = dentro + 1;
+        for (int sx = -1; sx <= 1; sx += 2) {
+            for (int sz = -1; sz <= 1; sz += 2) {
+                for (int ox = 0; ox <= 1; ox++) {
+                    for (int oz = 0; oz <= 1; oz++) {
+                        for (int y = 1; y <= altura - 2; y++) {
+                            Material material = y <= 1 ? escuro
+                                    : y >= altura - 3 ? metal : estrutura;
+                            por(mundo, sx * (pilar + ox), base + y,
+                                    sz * (pilar + oz), material);
+                            por(mundo, sx * (fora - 1 - ox), base + y,
+                                    sz * (fora - 1 - oz), material);
+                            por(mundo, sx * (pilar + ox), base + y,
+                                    sz * (fora - 1 - oz), material);
+                            por(mundo, sx * (fora - 1 - ox), base + y,
+                                    sz * (pilar + oz), material);
+                        }
+                    }
+                }
+
+                // O telhado, cobrindo o canto inteiro da passarela.
+                for (int x = dentro; x <= fora; x++) {
+                    for (int z = dentro; z <= fora; z++) {
+                        int d = Math.max(x, z);
+                        Material material = d >= fora - 1 || x <= dentro + 1
+                                || z <= dentro + 1 ? borda : chao;
+                        por(mundo, sx * x, base + altura - 1, sz * z, material);
+                        if (x >= dentro + 3 && x <= fora - 3
+                                && z >= dentro + 3 && z <= fora - 3) {
+                            por(mundo, sx * x, base + altura, sz * z,
+                                    (x + z) % 3 == 0 ? luz : chao);
+                        }
+                    }
+                }
+                int meio = (dentro + fora) / 2;
+                por(mundo, sx * meio, base + altura + 1, sz * meio, nucleo);
+                for (int y = 2; y <= 4; y++) {
+                    por(mundo, sx * meio, base + altura + y, sz * meio, rod);
+                }
             }
         }
-    }
-
-    /** Espelha um deslocamento da torre para o quadrante certo. */
-    private static int mx(int sinal, int centro, int deslocamento) {
-        return sinal * (centro + deslocamento);
-    }
-
-    /** O vizinho de uma célula da volta, um passo na direção do meio. */
-    static int[] paraDentro(int[] celula, int raio) {
-        if (Math.abs(celula[0]) == raio) {
-            return new int[]{celula[0] - Integer.signum(celula[0]), celula[1]};
-        }
-        return new int[]{celula[0], celula[1] - Integer.signum(celula[1])};
     }
 
     // ------------------------------------------------------------------

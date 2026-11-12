@@ -48,11 +48,15 @@ praca:
   # largura 6, ou seja nicho de treze.
   nicho-pilar: 3
 
-  # Torres soltas nos quatro cantos do patio, com a escada para a
-  # passarela de cima.
-  torre-centro: 36
-  torre-lado: 13
-  torre-altura: 30
+  # A torreta aberta sobre cada canto da passarela: quatro pilares e
+  # um telhado, com a passarela passando por baixo. Quanto ela sobe
+  # acima da passarela.
+  #
+  # A ESCADA nao esta aqui porque nao se escolhe: ela sobe dentro do
+  # macico da galeria, e o tamanho do poco sai da altura da galeria
+  # (meio bloco por celula, 2xaltura celulas num anel de perimetro
+  # 2(W+H)-4). Mexer na altura reajusta o poco sozinho.
+  torreta-altura: 10
 
   # O monumento do meio: o podio, o pavilhao e o portal de volta para o
   # hub. Fica tres degraus acima do patio para ninguem atravessar de

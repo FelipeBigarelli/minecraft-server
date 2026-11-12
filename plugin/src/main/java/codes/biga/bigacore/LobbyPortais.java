@@ -8,7 +8,10 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.HashMap;
@@ -43,6 +46,21 @@ public final class LobbyPortais implements Listener {
 
     private final BigaCore plugin;
     private final Map<UUID, Long> ultimoSalto = new HashMap<>();
+
+    /**
+     * Por qual portal cada jogador SAIU do lobby.
+     *
+     * É o que faz a porta ser de ida e volta. Sem isto, quem voltasse de um
+     * jogo cairia no pódio do meio da praça e teria de atravessar o pátio
+     * inteiro de novo para achar o portal de onde tinha acabado de sair —
+     * e, num claustro de vinte, achar o mesmo de novo não é imediato.
+     *
+     * <p>Mora na memória de propósito. É estado de SESSÃO: se o servidor
+     * reiniciar enquanto o jogador está num minigame, ele volta para o pódio,
+     * que é o lugar certo para quem chegou sem vir de lugar nenhum.
+     */
+    private final Map<UUID, String> portalDeSaida = new HashMap<>();
+
     private BukkitTask tarefa;
 
     public LobbyPortais(BigaCore plugin) {
@@ -205,6 +223,7 @@ public final class LobbyPortais implements Listener {
         }
 
         ultimoSalto.put(jogador.getUniqueId(), agora);
+        portalDeSaida.put(jogador.getUniqueId(), portal.id());
         Location pouso = destino.getSpawnLocation().clone().add(0.5, 0, 0.5);
 
         jogador.playSound(jogador.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.5f, 1.4f);
@@ -224,6 +243,7 @@ public final class LobbyPortais implements Listener {
             return;
         }
         ultimoSalto.put(jogador.getUniqueId(), agora);
+        portalDeSaida.remove(jogador.getUniqueId());
 
         String nome = plugin.getConfig().getString("hub.mundo", "hub");
         World hub = Bukkit.getWorld(nome);
@@ -233,7 +253,7 @@ public final class LobbyPortais implements Listener {
             return;
         }
 
-        Location pouso = HubBuilder.pontoDeSpawn(hub, plugin.hubCatalog());
+        Location pouso = chegadaNoHub(hub);
         jogador.playSound(jogador.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.5f, 1.2f);
         jogador.teleportAsync(pouso).thenAccept(foi -> {
             if (Boolean.TRUE.equals(foi)) {
@@ -243,6 +263,76 @@ public final class LobbyPortais implements Listener {
                 jogador.playSound(pouso, Sound.ENTITY_ENDERMAN_TELEPORT, 0.6f, 1.2f);
             }
         });
+    }
+
+    /**
+     * Onde se chega no hub ao voltar do lobby: no portão do próprio lobby.
+     *
+     * Acha o portal do hub pelo MUNDO para onde ele aponta, e não por um id
+     * escrito aqui. Enquanto o portão roxo do hub ainda estiver em obra
+     * (sem mundo), não há portão para onde voltar e a chegada é o terraço de
+     * sempre — que é o certo, porque nesse caso o jogador não entrou por ele.
+     */
+    private Location chegadaNoHub(World hub) {
+        HubCatalog planta = plugin.hubCatalog();
+        String lobby = plugin.getConfig().getString("minigames.mundo", "minigames");
+        for (HubCatalog.Portal portal : planta.portais()) {
+            if (portal.aberto() && portal.mundo().equals(lobby)) {
+                return HubBuilder.pontoDoPortal(hub, planta, portal.face());
+            }
+        }
+        return HubBuilder.pontoDeSpawn(hub, planta);
+    }
+
+    /**
+     * Onde se chega no lobby ao voltar de um jogo: dentro da própria câmara.
+     *
+     * Quatro blocos à frente da porta, olhando para o pátio — ou seja, saindo
+     * do portal, não caindo nele. A folga importa: a caixa do portal começa a
+     * 2,2 do fundo, e chegar em cima dela mandaria o jogador de volta ao jogo
+     * no mesmo instante.
+     */
+    static Location pontoDoPortal(World lobby, MinigamesCatalog planta,
+                                  MinigamesCatalog.Portal portal) {
+        MinigamesCatalog.Lado lado = portal.lado();
+        int centro = planta.centroDoVao(portal.vao());
+        int fora = planta.galeriaFim() - 4;
+        Location pouso = new Location(lobby,
+                lado.x(centro, fora) + 0.5, planta.pisoY() + 1,
+                lado.z(centro, fora) + 0.5);
+        pouso.setYaw(lado.yawParaDentro());
+        pouso.setPitch(0f);
+        return pouso;
+    }
+
+    /**
+     * Quem volta de um jogo sai pelo portal por onde entrou.
+     *
+     * O minigame só precisa devolver o jogador para o mundo do lobby, em
+     * qualquer ponto; o lugar certo é escolhido aqui. Assim cada jogo que
+     * entrar não precisa saber onde fica o nicho dele — e não há vinte
+     * coordenadas espalhadas por vinte plugins para alguém manter.
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void aoChegarNoLobby(PlayerChangedWorldEvent evento) {
+        World lobby = mundoDoLobby();
+        if (lobby == null || !evento.getPlayer().getWorld().equals(lobby)) {
+            return;
+        }
+        String id = portalDeSaida.remove(evento.getPlayer().getUniqueId());
+        if (id == null) {
+            return;
+        }
+        for (MinigamesCatalog.Portal portal : plugin.minigamesCatalog().portais()) {
+            if (portal.id().equals(id)) {
+                // Sem reacender a espera: o jogador acabou de ser devolvido
+                // pelo jogo, e cobrar dele os três segundos faria o portal
+                // ignorá-lo se ele quisesse entrar de novo na hora.
+                evento.getPlayer().teleportAsync(pontoDoPortal(lobby,
+                        plugin.minigamesCatalog(), portal));
+                return;
+            }
+        }
     }
 
     /**

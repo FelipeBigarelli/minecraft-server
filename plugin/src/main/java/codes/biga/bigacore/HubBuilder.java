@@ -1008,7 +1008,24 @@ public final class HubBuilder {
 
     /** O ponto de pouso do hub, usado pelo spawn e pelo resgate do void. */
     public static Location pontoDeSpawn(World mundo, HubCatalog planta) {
-        HubCatalog.Face face = HubCatalog.faceLivre(planta.portais());
+        return pontoDoPortal(mundo, planta, HubCatalog.faceLivre(planta.portais()));
+    }
+
+    /**
+     * Onde se chega quando se VOLTA por um portal do hub.
+     *
+     * No meio do terraço daquela face, de frente para a praça. Quem volta de
+     * um mundo sai pelo mesmo portão por onde entrou, e não no terraço de
+     * chegada do outro lado do hub — senão o portal é uma porta só de ida, e
+     * o jogador que quer voltar para onde estava precisa atravessar a praça
+     * inteira para achar o portão de novo.
+     *
+     * <p>O terraço fica cinco blocos atrás do vão, que é mais do que a folga
+     * de 1,2 da caixa do portal: chegar em cima dela devolveria o jogador ao
+     * mundo de onde ele acabou de sair.
+     */
+    public static Location pontoDoPortal(World mundo, HubCatalog planta,
+                                         HubCatalog.Face face) {
         int d = planta.distanciaDoTerraco();
         Location pouso = new Location(mundo, face.du() * d + 0.5, planta.pisoY() + 2,
                 face.dv() * d + 0.5);
