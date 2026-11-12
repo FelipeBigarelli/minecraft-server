@@ -45,7 +45,12 @@ N=$(wc -l < "$CONTADOR" | tr -d ' ')
 CODIGO=$(echo "$ROTEIRO" | cut -d, -f"$N")
 [ -n "$CODIGO" ] || CODIGO=0
 if [ "$N" = "$PEDE_RESTART_NA" ]; then
-    sh "$PEDIR_RESTART" >/dev/null
+    if [ -n "$ATRASO_DO_SINAL" ]; then
+        # Como o Paper faz de verdade: dispara e sai sem esperar.
+        (sleep "$ATRASO_DO_SINAL"; sh "$PEDIR_RESTART" >/dev/null) &
+    else
+        sh "$PEDIR_RESTART" >/dev/null
+    fi
 fi
 exit "$CODIGO"
 """
@@ -73,7 +78,8 @@ class TestSupervisao(unittest.TestCase):
         self.contador = Path(self.temp.name) / "chamadas"
         self.contador.write_text("")
 
-    def rodar(self, roteiro="0", pede_restart_na="", interpretador="bash"):
+    def rodar(self, roteiro="0", pede_restart_na="", interpretador="bash",
+              atraso_do_sinal="", tentativas_sinal="1", pausa_sinal="0.05"):
         ambiente = dict(os.environ)
         ambiente.update({
             "PATH": f"{self.bin}:{os.environ['PATH']}",
@@ -86,6 +92,9 @@ class TestSupervisao(unittest.TestCase):
             "CONTADOR": str(self.contador),
             "ROTEIRO": roteiro,
             "PEDE_RESTART_NA": pede_restart_na,
+            "ATRASO_DO_SINAL": atraso_do_sinal,
+            "TENTATIVAS_SINAL": tentativas_sinal,
+            "PAUSA_SINAL": pausa_sinal,
             "PEDIR_RESTART": str(self.servidor / "scripts" / "pedir-restart.sh"),
         })
 
@@ -108,6 +117,24 @@ class TestSupervisao(unittest.TestCase):
         self.assertEqual(0, saida.returncode, saida.stderr)
         self.assertEqual(2, self.chamadas(), "o servidor não subiu de novo")
         self.assertIn("Reinício pedido", saida.stdout)
+
+    def test_restart_vence_a_corrida_com_o_shutdown_hook(self):
+        # O Paper dispara o pedir-restart.sh de dentro de um shutdown hook e
+        # NÃO espera ele terminar. Quem perde a corrida é o laço: ele acorda
+        # do `wait`, olha para o sinal antes de o arquivo existir e desliga
+        # como se fosse /stop. Intermitente, sem erro nenhum na tela.
+        saida = self.rodar(roteiro="0,0", pede_restart_na="1",
+                           atraso_do_sinal="0.4", tentativas_sinal="30",
+                           pausa_sinal="0.1")
+        self.assertEqual(0, saida.returncode, saida.stderr)
+        self.assertEqual(2, self.chamadas(),
+                         "o laço desistiu antes de o sinal chegar")
+
+    def test_espera_pelo_sinal_tem_fim(self):
+        # E a espera não pode virar trava: /stop é sinal que nunca chega.
+        saida = self.rodar(roteiro="0", tentativas_sinal="3", pausa_sinal="0.05")
+        self.assertEqual(0, saida.returncode, saida.stderr)
+        self.assertEqual(1, self.chamadas())
 
     def test_sinal_de_restart_nao_sobra_para_a_proxima(self):
         # Se o arquivo de sinal ficasse para trás, o /stop seguinte viraria

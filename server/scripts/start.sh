@@ -153,6 +153,19 @@ rm -f "$SINAL_RESTART"
 ESPERA_RESTART="${ESPERA_RESTART:-3}"
 ESPERA_QUEDA="${ESPERA_QUEDA:-10}"
 
+# Quanto esperar pelo sinal depois que o Java sai. O Paper dispara o
+# pedir-restart.sh de dentro de um shutdown hook e NÃO espera ele
+# terminar: a JVM pode morrer com o `sh` ainda engatinhando. Sem esta
+# espera o laço olharia para o sinal antes de ele existir e trataria o
+# /restart como /stop — e não sempre, só às vezes, que é o pior tipo de
+# defeito para alguém depurar.
+#
+# Três segundos é folga de sobra para um script que só encosta num
+# arquivo. Quem paga a espera é o /stop, uma vez, no fim, quando já não
+# há mais ninguém online.
+TENTATIVAS_SINAL="${TENTATIVAS_SINAL:-15}"
+PAUSA_SINAL="${PAUSA_SINAL:-0.2}"
+
 # Ctrl+C precisa ENCERRAR, e não virar mais uma volta do laço. O
 # sinal chega ao Java e ao bash ao mesmo tempo; como o bash está
 # esperando o filho, a trap só roda depois que o servidor salvou e
@@ -172,6 +185,17 @@ while true; do
     set -e
 
     AGORA=$(date +%s)
+
+    if [ "$CODIGO" -eq 0 ] && [ "$PARAR" -eq 0 ] && [ ! -f "$SINAL_RESTART" ]; then
+        TENTATIVA=0
+        while [ "$TENTATIVA" -lt "$TENTATIVAS_SINAL" ]; do
+            sleep "$PAUSA_SINAL"
+            if [ -f "$SINAL_RESTART" ]; then
+                break
+            fi
+            TENTATIVA=$((TENTATIVA + 1))
+        done
+    fi
 
     if [ "$PARAR" -eq 1 ]; then
         echo "[start] Interrompido no terminal. Servidor encerrado."
