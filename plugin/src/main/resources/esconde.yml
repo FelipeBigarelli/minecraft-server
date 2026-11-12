@@ -1,0 +1,159 @@
+# -------------------------------------------------------------
+#  ESCONDE — vire um caixote
+#
+#  Um galpão sobre o vazio, cheio de caixotes. Alguns deles são
+#  gente: quem se esconde fica INVISÍVEL e ganha um caixote que
+#  segue o corpo dele. Os caçadores começam trancados na cabine
+#  do meio e saem quando o tempo de esconder acaba.
+#
+#  O QUE DELATA UM CAIXOTE, E POR QUE É SÓ ISSO
+#
+#  O caixote de enfeite está no centro exato de um bloco. O
+#  caixote de um jogador está onde o jogador está — e isso
+#  quase nunca é o centro de um bloco. Quem fica PARADO por um
+#  segundo ENCAIXA: o jogo o empurra para o centro do bloco e o
+#  caixote dele passa a ser indistinguível dos outros. Quem anda
+#  desencaixa, e o caixote fica torto e deslizando.
+#
+#  Não há partícula, brilho nem nome em cima de quem se esconde.
+#  Seria mais fácil de achar e seria outro jogo: um rastro
+#  entrega o jogador para quem NÃO está olhando, e esconde-
+#  esconde é sobre quem olha. O que entrega é a posição do
+#  caixote, e ela só entrega quem se mexeu.
+#
+#  O ESCONDERIJO ACABA
+#
+#  Os caixotes de enfeite somem em ondas até sobrar quase um por
+#  jogador escondido. É o que impede o empate no relógio: no fim
+#  da partida não há mais onde encaixar, e quem está escondido
+#  tem de andar — e quem anda é visto.
+#
+#  OS DOIS PAPÉIS VALEM O MESMO
+#
+#  Quem se esconde ganha um ponto por segundo de pé. Quem caça
+#  ganha, por captura, o que vale sobreviver a partida INTEIRA
+#  dividido pelo número de escondidos por caçador. Ou seja: o
+#  caçador que pega a parte dele faz exatamente o que faria
+#  sobrevivendo até o fim. Com treze escondidos cada captura é
+#  barata; com dois, cada captura é preciosa. O número aparece
+#  no painel no começo de cada partida.
+# -------------------------------------------------------------
+
+mundo: esconde
+
+arena:
+  y: 100
+
+  # O disco do galpão. Fora dele é o vazio.
+  raio: 30
+
+  # O muro em volta, que fecha a vista e não deixa ninguém ver a
+  # arena de fora.
+  parede-altura: 7
+
+  # Os pilares: de quantos em quantos blocos, de que grossura e
+  # de que altura. São eles que cortam a linha de visão.
+  pilar-passo: 10
+  pilar-raio: 1
+  pilar-altura: 4
+
+  # A grade de lugares onde cabe um caixote.
+  caixote-passo: 4
+
+  # A cabine do meio, onde os caçadores ficam trancados enquanto
+  # os outros se escondem.
+  cabine-raio: 2
+  cabine-altura: 4
+
+  saguao-altura: 20
+  saguao-raio: 9
+  saguao-parapeito: 4
+  marco-altura: 18
+  painel-altura: 8
+
+paleta:
+  placa: DARK_OAK_WALL_SIGN
+
+  # O bloco que é o jogo: é o enfeite E o disfarce.
+  caixote: BARREL
+
+  piso: POLISHED_DEEPSLATE
+  piso-xadrez: DEEPSLATE_TILES
+  beira: DEEPSLATE_BRICKS
+
+  parede: DEEPSLATE_BRICKS
+  parede-topo: POLISHED_DEEPSLATE
+  pilar: CHISELED_DEEPSLATE
+  pilar-topo: PURPLE_TERRACOTTA
+
+  cabine: PURPLE_CONCRETE
+  cabine-piso: POLISHED_DEEPSLATE
+  cabine-teto: PURPLE_STAINED_GLASS
+
+  estrutura: DEEPSLATE_BRICKS
+  escuro: POLISHED_DEEPSLATE
+  borda: BLACKSTONE
+  metal: IRON_BLOCK
+  vidro: PURPLE_STAINED_GLASS
+  luz: SHROOMLIGHT
+  luz-fria: END_ROD
+  nucleo: AMETHYST_BLOCK
+  poste: DARK_OAK_FENCE
+  poste-luz: SOUL_LANTERN
+  torre: DEEPSLATE_BRICKS
+  torre-luz: SOUL_LANTERN
+
+regras:
+  minimo: 2
+  maximo: 16
+  contagem-segundos: 15
+  fim-segundos: 8
+  treino-sozinho: true
+
+  # Que fração dos jogadores caça. Com dezesseis dá três
+  # caçadores e treze escondidos; nunca dá zero de nenhum lado.
+  fracao-cacadores: 0.2
+
+  # Quantos segundos os caçadores ficam trancados na cabine
+  # enquanto os outros se escondem.
+  segredo-segundos: 25
+
+  # Quantos tiques parado para ENCAIXAR no centro do bloco.
+  encaixe-tiques: 20
+
+  # Quantos caixotes de enfeite por jogador escondido no começo
+  # e no fim da partida. O fim tem de ser apertado: é o que
+  # impede o empate no relógio.
+  caixotes-por-escondido: 7
+  caixotes-no-fim-por-escondido: 1
+
+  # Em quantas ondas os caixotes somem.
+  ondas: 4
+
+  # Um ponto por segundo de pé, para quem está escondido.
+  pontos-por-segundo: 1
+
+  queda-abaixo: 6
+  tempo-limite: 240
+
+textos:
+  titulo: "ESCONDE"
+  cor: "#B07CFF"
+  subtitulo: "vire um caixote"
+  regras:
+    - "clique em [ENTRAR] para entrar na fila"
+    - "quem se esconde fica invisível e vira um caixote"
+    - "parado por um segundo você ENCAIXA no bloco"
+    - "andando, o seu caixote fica torto e desliza"
+    - "os caixotes de enfeite somem em ondas"
+    - "os caçadores saem da cabine do meio"
+  escala-titulo: 2.6
+  escala-placa: 1.6
+  fundo-alpha: 0
+
+  placa-entrar: "[ENTRAR]"
+  placa-sair: "[SAIR]"
+  placa-fila: "na fila"
+  placa-esperando: "esperando"
+  placa-jogando: "CAÇANDO"
+  placa-refazendo: "refazendo"

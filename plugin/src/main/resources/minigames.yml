@@ -195,9 +195,9 @@ portais:
     lado: LESTE
     vao: 0
     titulo: "ESCONDE-ESCONDE"
-    descricao: "vire bloco e não respire"
-    detalhe: "um procura, o resto some"
-    mundo: ""
+    descricao: "vire um caixote"
+    detalhe: "parado você encaixa"
+    mundo: "esconde"
     cor: "#B07CFF"
     moldura: PURPLE_TERRACOTTA
     destaque: PURPLE_CONCRETE
