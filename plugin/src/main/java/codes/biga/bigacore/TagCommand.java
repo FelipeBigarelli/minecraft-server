@@ -351,7 +351,9 @@ public final class TagCommand implements CommandExecutor, TabCompleter {
             return;
         }
         if (args.length < 4) {
-            quem.sendMessage(Component.text("/tag definir <jogador> <cor> <texto>", COMANDO));
+            quem.sendMessage(Component.text("/tag definir <jogador> <estilo|cor> <texto>", COMANDO));
+            quem.sendMessage(Component.text("Estilos: "
+                    + String.join(", ", plugin.tagCatalog().estilos().keySet()), TEXTO));
             quem.sendMessage(Component.text("Cores: " + String.join(", ", todasAsCores()), TEXTO));
             return;
         }
@@ -362,9 +364,24 @@ public final class TagCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        String cor = args[2].toLowerCase(Locale.ROOT);
-        if (!plugin.tagCatalog().corPermitida(cor)) {
-            quem.sendMessage(Component.text("Cor desconhecida: " + cor, ALERTA));
+        // Estilo pronto vem primeiro: ele traz a cor do texto E a do
+        // colchete, que é o que faz [DONO] na lista bater com o prefixo do
+        // chat. Cor solta continua valendo, e aí o colchete fica no padrão.
+        String pedido = args[2].toLowerCase(Locale.ROOT);
+        TagCatalog.Estilo estilo = plugin.tagCatalog().estilo(pedido);
+
+        String cor;
+        String moldura;
+        if (estilo != null) {
+            cor = estilo.cor();
+            moldura = estilo.moldura();
+        } else if (plugin.tagCatalog().corPermitida(pedido)) {
+            cor = pedido;
+            moldura = "";
+        } else {
+            quem.sendMessage(Component.text("Não conheço o estilo nem a cor: " + pedido, ALERTA));
+            quem.sendMessage(Component.text("Estilos: "
+                    + String.join(", ", plugin.tagCatalog().estilos().keySet()), TEXTO));
             quem.sendMessage(Component.text("Cores: " + String.join(", ", todasAsCores()), TEXTO));
             return;
         }
@@ -379,7 +396,7 @@ public final class TagCommand implements CommandExecutor, TabCompleter {
         // comprouCor = true: tag dada é presente inteiro, e trocar a cor
         // dela depois não volta a cobrar.
         plugin.tagStore().guardar(alvo.getUniqueId(),
-                new TagStore.Tag(texto, cor, true, System.currentTimeMillis()));
+                new TagStore.Tag(texto, cor, moldura, true, System.currentTimeMillis()));
 
         Player online = alvo.getPlayer();
         if (online != null) {
@@ -401,6 +418,13 @@ public final class TagCommand implements CommandExecutor, TabCompleter {
         return todas;
     }
 
+    /** Estilos primeiro: é o que a administração usa quase sempre. */
+    private List<String> estilosECores() {
+        List<String> todas = new ArrayList<>(plugin.tagCatalog().estilos().keySet());
+        todas.addAll(todasAsCores());
+        return todas;
+    }
+
     // ------------------------------------------------------------------
 
     @Override
@@ -418,7 +442,7 @@ public final class TagCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("definir")
                 && quem.hasPermission(PERM_ADMIN)) {
-            return filtrar(todasAsCores(), args[2]);
+            return filtrar(estilosECores(), args[2]);
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("ver")
                 || args[0].equalsIgnoreCase("limpar")

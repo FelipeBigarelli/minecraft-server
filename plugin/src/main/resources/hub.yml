@@ -217,6 +217,23 @@ esculturas:
     - "   #############   "
 
 # -------------------------------------------------------------
+#  Os letreiros flutuantes
+#
+#  Acertados com /biga hub textos, que refaz só eles e não
+#  encosta num bloco. Mude aqui, /biga reload, /biga hub textos
+#  e olhe — sem desfazer e refazer o hub inteiro.
+# -------------------------------------------------------------
+textos:
+  # Opacidade da caixa atrás do texto, de 0 a 255. Zero deixa o
+  # texto solto, só com sombra — num hub branco a caixa cinza
+  # larga vira o elemento mais pesado da tela.
+  fundo-alpha: 0
+
+  escala-titulo: 2.6
+  escala-placa: 2.0
+  escala-chegada: 1.9
+
+# -------------------------------------------------------------
 #  Comportamento
 # -------------------------------------------------------------
 regras:

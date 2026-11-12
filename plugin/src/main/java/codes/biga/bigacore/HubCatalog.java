@@ -288,6 +288,33 @@ public final class HubCatalog {
     //  Regras
     // ------------------------------------------------------------------
 
+    // ------------------------------------------------------------------
+    //  Letreiros
+    // ------------------------------------------------------------------
+
+    /**
+     * Opacidade da caixa atrás do texto, de 0 a 255.
+     *
+     * Fica no arquivo porque é a coisa que mais se ajusta olhando, e olhar
+     * custa entrar no jogo. Zero deixa o texto solto, com sombra; acima de
+     * uns 120 a caixa cinza vira o elemento mais pesado de um hub branco.
+     */
+    public int fundoDoTexto() {
+        return Math.max(0, Math.min(255, config.getInt("textos.fundo-alpha", 0)));
+    }
+
+    public double escalaTitulo() {
+        return config.getDouble("textos.escala-titulo", 2.6);
+    }
+
+    public double escalaPlaca() {
+        return config.getDouble("textos.escala-placa", 2.0);
+    }
+
+    public double escalaChegada() {
+        return config.getDouble("textos.escala-chegada", 1.9);
+    }
+
     /**
      * Nível da poção de velocidade no hub, como gente escreve: 3 é Speed III.
      * Zero desliga.

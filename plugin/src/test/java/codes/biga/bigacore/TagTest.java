@@ -161,8 +161,13 @@ class TagTest {
                     .replace("<simbolo>", "B$")
                     .replace("<saldo>", "1240")
                     .replace("<ping>", "<green>23ms</green>")
-                    .replace("<cor>", "<gold>")
-                    .replace("</cor>", "</gold>");
+                    // O código troca os dois pares por <color:...>, e é
+                    // essa troca que o teste imita. Esquecer um deles aqui
+                    // esconderia exatamente o defeito que ele procura.
+                    .replace("<cor>", "<color:gold>")
+                    .replace("</cor>", "</color>")
+                    .replace("<moldura>", "<color:dark_gray>")
+                    .replace("</moldura>", "</color>");
 
             String visivel = plano.serialize(mini.deserialize(pronta,
                     Placeholder.unparsed("nome", "zBigaBiga"),

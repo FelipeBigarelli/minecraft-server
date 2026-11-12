@@ -21,11 +21,22 @@ import java.util.UUID;
 public final class TagStore {
 
     /**
-     * @param texto   o apelido, já aprovado pela moderação
-     * @param cor     nome de cor do Adventure
+     * @param texto      o apelido, já aprovado pela moderação
+     * @param cor        nome de cor do Adventure, ou #RRGGBB
+     * @param moldura    a cor dos colchetes. Vazio usa a do tags.yml — é o
+     *                   caso de toda tag comprada. Só os estilos da
+     *                   administração pintam o colchete de outra coisa, e é
+     *                   isso que faz [DONO] bater com o prefixo do chat.
      * @param comprouCor se ele pagou o direito de escolher cor
      */
-    public record Tag(String texto, String cor, boolean comprouCor, long criadaEm) {}
+    public record Tag(String texto, String cor, String moldura,
+                      boolean comprouCor, long criadaEm) {
+
+        /** Compatível com o arquivo antigo, que não tinha moldura. */
+        public Tag(String texto, String cor, boolean comprouCor, long criadaEm) {
+            this(texto, cor, "", comprouCor, criadaEm);
+        }
+    }
 
     private static final String ARQUIVO = "tags-jogadores.yml";
 
@@ -81,6 +92,7 @@ public final class TagStore {
                 tags.put(UUID.fromString(chave), new Tag(
                         item.getString("texto", ""),
                         item.getString("cor", "gold"),
+                        item.getString("moldura", ""),
                         item.getBoolean("comprou-cor", false),
                         item.getLong("criada-em", 0L)));
             } catch (IllegalArgumentException erro) {
@@ -97,6 +109,9 @@ public final class TagStore {
             String base = "tags." + entrada.getKey();
             yaml.set(base + ".texto", entrada.getValue().texto());
             yaml.set(base + ".cor", entrada.getValue().cor());
+            if (!entrada.getValue().moldura().isBlank()) {
+                yaml.set(base + ".moldura", entrada.getValue().moldura());
+            }
             yaml.set(base + ".comprou-cor", entrada.getValue().comprouCor());
             yaml.set(base + ".criada-em", entrada.getValue().criadaEm());
         }

@@ -311,6 +311,26 @@ class HubTest {
     }
 
     @Test
+    @DisplayName("o degrade do portal nasce da cor do proprio mundo")
+    void degradeClareiaACor() {
+        // O tom claro do titulo e calculado, nao escrito: dois hexadecimais
+        // no hub.yml por portal seriam dois numeros que alguem teria de
+        // lembrar de mexer juntos no dia em que a cor do survival mudasse.
+        assertEquals("#FFFFFF", HubBuilder.clarear("#000000", 1.0));
+        assertEquals("#000000", HubBuilder.clarear("#000000", 0.0));
+        assertEquals("#FFFFFF", HubBuilder.clarear("#FFFFFF", 0.5));
+
+        // E cor torta nao pode virar tag quebrada no MiniMessage: ela sai
+        // como texto cru no letreiro, sem nada no console.
+        assertEquals("#FFFFFF", HubBuilder.clarear("laranja", 0.5));
+        assertEquals("#FFFFFF", HubBuilder.clarear(null, 0.5));
+
+        String claro = HubBuilder.clarear("#5BE37D", 0.55);
+        assertTrue(claro.matches("#[0-9A-F]{6}"), "saiu " + claro);
+        assertTrue(claro.compareTo("#5BE37D") > 0, "o tom claro tem de ser mais claro");
+    }
+
+    @Test
     @DisplayName("o resgate do void acontece acima do fundo do mundo")
     void resgateAconteceAntesDaMorte() {
         int resgate = hub.getInt("regras.resgate-y", 60);

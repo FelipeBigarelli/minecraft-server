@@ -39,7 +39,8 @@ lista:
   # Como o nome de cada um aparece na lista.
   # <tag> some sozinho em quem não comprou.
   formato-do-nome: "<tag><white><nome></white> <ping>"
-  formato-da-tag: "<dark_gray>[</dark_gray><cor><texto></cor><dark_gray>]</dark_gray> "
+  # <moldura> é a cor dos colchetes, <cor> a do texto.
+  formato-da-tag: "<moldura>[</moldura><cor><texto></cor><moldura>]</moldura> "
 
   # Cor do ping por faixa, em milissegundos.
   ping:
@@ -77,6 +78,32 @@ tag:
     - white
 
   cor-padrao: gold
+
+  # Cor dos colchetes de quem não tem estilo próprio.
+  cor-da-moldura: dark_gray
+
+  # -----------------------------------------------------------
+  #  Estilos prontos — só por /tag definir, da administração
+  #
+  #  Cada um traz a cor do TEXTO e a dos COLCHETES. Cor sozinha
+  #  não dava conta: o prefixo do chat tem colchete laranja e
+  #  palavra dourada, e a tag pintava o colchete sempre de
+  #  cinza — a mesma palavra saía diferente nos dois lugares.
+  #
+  #  O estilo 'dono' é exatamente o prefixo do grupo dono no
+  #  LuckPerms (&#FF6A00[&#FFD700Dono&#FF6A00]). Mudou lá?
+  #  Mude aqui, senão volta a destoar.
+  # -----------------------------------------------------------
+  estilos:
+    dono:
+      cor: "#FFD700"
+      moldura: "#FF6A00"
+    equipe:
+      cor: "#8FD3FF"
+      moldura: "#3A7CA5"
+    vip:
+      cor: "#FFD700"
+      moldura: "#B8860B"
 
   # Cores que NÃO estão à venda: só saem por /tag definir, da
   # administração. Se "dono" é palavra barrada para todo mundo,

@@ -1,11 +1,14 @@
 package codes.biga.bigacore;
 
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.text.Normalizer;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * As regras do tags.yml: preço, formato e o que NÃO pode virar tag.
@@ -94,6 +97,62 @@ public final class TagCatalog {
      */
     public List<String> coresEspeciais() {
         return config.getStringList("tag.cores-especiais");
+    }
+
+    /**
+     * Um estilo pronto: a cor do texto e a dos colchetes, juntas.
+     *
+     * Existe porque cor sozinha não dava conta do pedido real — o prefixo
+     * do chat tem colchete laranja e palavra dourada, e a tag pintava o
+     * colchete sempre de cinza. Com os dois num pacote só, /tag definir
+     * continua tendo três argumentos.
+     */
+    public record Estilo(String cor, String moldura) {
+    }
+
+    /** Os estilos do tags.yml, por nome. */
+    public Map<String, Estilo> estilos() {
+        Map<String, Estilo> saida = new LinkedHashMap<>();
+        ConfigurationSection secao = config.getConfigurationSection("tag.estilos");
+        if (secao == null) {
+            return saida;
+        }
+        for (String nome : secao.getKeys(false)) {
+            ConfigurationSection item = secao.getConfigurationSection(nome);
+            if (item == null) {
+                continue;
+            }
+            saida.put(nome.toLowerCase(Locale.ROOT), new Estilo(
+                    item.getString("cor", corPadrao()),
+                    item.getString("moldura", "")));
+        }
+        return saida;
+    }
+
+    public Estilo estilo(String nome) {
+        return nome == null ? null : estilos().get(nome.toLowerCase(Locale.ROOT));
+    }
+
+    /** A cor dos colchetes de quem não tem estilo próprio. */
+    public String molduraPadrao() {
+        return config.getString("tag.cor-da-moldura", "dark_gray");
+    }
+
+    /**
+     * Uma cor que o MiniMessage entende: nome conhecido ou #RRGGBB.
+     *
+     * Sem esta peneira, um valor torto vindo do YAML entraria no
+     * MiniMessage como tag desconhecida e sairia na tela como texto cru —
+     * "<#GGG000>DONO" na lista de todo mundo, sem erro no console.
+     */
+    public static boolean corEscrevivel(String cor) {
+        if (cor == null || cor.isBlank()) {
+            return false;
+        }
+        if (cor.startsWith("#")) {
+            return cor.matches("#[0-9a-fA-F]{6}");
+        }
+        return cor.matches("[a-z_]{3,20}");
     }
 
     /** Cor que o jogador pode COMPRAR. É esta que o /tag cor aceita. */

@@ -121,15 +121,29 @@ public final class ListaDeJogadores implements Listener {
         }
 
         TagStore.Tag tag = guardada.get();
-        String formato = config.getString("lista.formato-da-tag",
-                "<dark_gray>[</dark_gray><cor><texto></cor><dark_gray>]</dark_gray> ");
+        TagCatalog regras = plugin.tagCatalog();
 
-        String cor = plugin.tagCatalog().corPermitida(tag.cor())
+        // Cor do texto: a guardada, se o jogo souber escrevê-la. O
+        // fallback existe porque uma cor torta no YAML sairia como tag
+        // desconhecida do MiniMessage — texto cru na lista de todo mundo,
+        // sem uma linha no console.
+        String cor = TagCatalog.corEscrevivel(tag.cor())
+                && (regras.corPermitida(tag.cor()) || tag.cor().startsWith("#"))
                 ? tag.cor().toLowerCase(Locale.ROOT)
-                : plugin.tagCatalog().corPadrao();
+                : regras.corPadrao();
 
-        return plugin.mini().deserialize(formato.replace("<cor>", "<" + cor + ">")
-                        .replace("</cor>", "</" + cor + ">"),
+        String moldura = TagCatalog.corEscrevivel(tag.moldura())
+                ? tag.moldura().toLowerCase(Locale.ROOT)
+                : regras.molduraPadrao();
+
+        String formato = config.getString("lista.formato-da-tag",
+                "<moldura>[</moldura><cor><texto></cor><moldura>]</moldura> ");
+
+        return plugin.mini().deserialize(formato
+                        .replace("<moldura>", "<color:" + moldura + ">")
+                        .replace("</moldura>", "</color>")
+                        .replace("<cor>", "<color:" + cor + ">")
+                        .replace("</cor>", "</color>"),
                 Placeholder.unparsed("texto", tag.texto()));
     }
 
