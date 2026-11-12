@@ -245,7 +245,7 @@ portais:
     titulo: "PEGA-PEGA"
     descricao: "quem encosta, passa a vez"
     detalhe: "o último limpo vence"
-    mundo: ""
+    mundo: "pega_pega"
     cor: "#FFE066"
     moldura: YELLOW_TERRACOTTA
     destaque: YELLOW_CONCRETE

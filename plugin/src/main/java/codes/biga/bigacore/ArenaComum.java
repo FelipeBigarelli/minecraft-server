@@ -64,6 +64,21 @@ public final class ArenaComum {
     }
 
     /**
+     * O disco de raio {@code raio + 0.5}, em contas de inteiro.
+     *
+     * O disco cru deixa FARPAS: na direção do eixo, a última casa fica
+     * sozinha — os vizinhos de lado dela caem fora por meio bloco. Numa
+     * arena de piso isso não se nota; num ANEL de andar de cima é uma ponta
+     * de corredor com um vizinho só, em que um jogador é encurralado sem ter
+     * errado nada. Meio bloco a mais tira todas as farpas, e a forma continua
+     * sendo um círculo.
+     */
+    public static boolean noDiscoMeio(int x, int z, int raio) {
+        long dobro = 2L * raio + 1;
+        return 4L * (x * (long) x + z * (long) z) <= dobro * dobro;
+    }
+
+    /**
      * Se a célula está nos anéis de fora.
      *
      * Conta em quadrado do raio para não precisar de raiz: um anel de
@@ -112,6 +127,20 @@ public final class ArenaComum {
      */
     public static long chave(int x, int y, int z) {
         return ((long) (x & 0xFFFFF) << 40) | ((long) (y & 0xFFFFF) << 20) | (z & 0xFFFFF);
+    }
+
+    /**
+     * Um dos três inteiros de volta da chave empacotada.
+     *
+     * Os vinte bits são COM SINAL, e é por isso que a conta tem a correção do
+     * último bit: sem ela, uma coordenada negativa volta como um número
+     * enorme e positivo, e a célula vai parar do outro lado do mundo.
+     *
+     * @param deslocamento 40 para x, 20 para a fiada, 0 para z.
+     */
+    public static int daChave(long chave, int deslocamento) {
+        int bruto = (int) ((chave >> deslocamento) & 0xFFFFF);
+        return bruto >= (1 << 19) ? bruto - (1 << 20) : bruto;
     }
 
     /**

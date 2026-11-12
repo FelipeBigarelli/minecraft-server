@@ -361,8 +361,7 @@ public final class LavaBuilder implements ConstrutorDeArena {
 
     /** Um inteiro de vinte bits com sinal, de volta da chave empacotada. */
     static int desempacotar(long chave, int deslocamento) {
-        int bruto = (int) ((chave >> deslocamento) & 0xFFFFF);
-        return bruto >= (1 << 19) ? bruto - (1 << 20) : bruto;
+        return ArenaComum.daChave(chave, deslocamento);
     }
 
     /**

@@ -66,6 +66,9 @@ public final class BigaCore extends JavaPlugin {
     private NeveCatalog neveCatalog;
     private NeveBuilder neveBuilder;
     private GuerraDeNeve guerraDeNeve;
+    private PegaPegaCatalog pegaCatalog;
+    private PegaPegaBuilder pegaBuilder;
+    private PegaPega pegaPega;
 
     /**
      * Os minigames registrados, por etiqueta.
@@ -177,6 +180,11 @@ public final class BigaCore extends JavaPlugin {
             saveResource("neve.yml", false);
         }
 
+        File pegaFile = new File(getDataFolder(), "pega-pega.yml");
+        if (!pegaFile.exists()) {
+            saveResource("pega-pega.yml", false);
+        }
+
         this.economyCatalog = new EconomyCatalog(this);
         this.economyBridge = new VaultEconomyBridge();
         this.spawnShopBuilder = new SpawnShopBuilder(this);
@@ -254,6 +262,11 @@ public final class BigaCore extends JavaPlugin {
         this.neveBuilder = new NeveBuilder(this);
         this.guerraDeNeve = new GuerraDeNeve(this);
         registrarJogo(neveCatalog, neveBuilder, guerraDeNeve);
+
+        this.pegaCatalog = new PegaPegaCatalog(this);
+        this.pegaBuilder = new PegaPegaBuilder(this);
+        this.pegaPega = new PegaPega(this);
+        registrarJogo(pegaCatalog, pegaBuilder, pegaPega);
 
         // As regras valem para o hub E para o lobby, então entram depois dos
         // dois: elas leem a configuração dos dois mundos para saber onde agir.
@@ -684,6 +697,18 @@ public final class BigaCore extends JavaPlugin {
 
     public GuerraDeNeve guerraDeNeve() {
         return guerraDeNeve;
+    }
+
+    public PegaPegaCatalog pegaCatalog() {
+        return pegaCatalog;
+    }
+
+    public PegaPegaBuilder pegaBuilder() {
+        return pegaBuilder;
+    }
+
+    public PegaPega pegaPega() {
+        return pegaPega;
     }
 
     /** Os minigames registrados, por etiqueta, na ordem em que entraram. */

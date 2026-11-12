@@ -1,0 +1,155 @@
+# -------------------------------------------------------------
+#  PEGA-PEGA — quem encosta, passa a vez
+#
+#  Quem está com a bomba na cabeça tem que ENCOSTAR em alguém
+#  antes do pavio acabar. Encostou, passou. Não encostou, explode
+#  e sai. O último que nunca explodiu ganha.
+#
+#  Não é um jogo de bater: a bomba passa no TOQUE, por distância,
+#  e não por clique. Bater exigiria mirar e clicar em quem está
+#  correndo; encostar exige só alcançar — que é o que "pega-pega"
+#  sempre quis dizer.
+#
+#  Quem carrega a bomba corre MAIS RÁPIDO e brilha. As duas coisas
+#  são necessárias: sem velocidade a bomba nunca alcança ninguém
+#  num pátio de gente igual, e sem brilho ninguém sabe de quem
+#  fugir num pátio de dois andares.
+#
+#  O pátio tem DOIS ANDARES ligados por quatro escadas e por
+#  quedas: de cima para baixo é fácil, de baixo para cima custa
+#  achar uma escada. É o que faz a perseguição ter geografia em
+#  vez de ser dois pontos num círculo.
+# -------------------------------------------------------------
+
+mundo: pega_pega
+
+arena:
+  # A fiada do piso de baixo.
+  y: 100
+
+  # O raio do pátio.
+  raio: 20
+
+  # O muro: ninguém sai do pátio, e sair não é o jogo.
+  muro-espessura: 2
+  muro-altura: 7
+
+  # A galeria de cima: um anel entre estes dois raios, nesta
+  # altura acima do piso. O meio é vazado e a beira também, então
+  # dá para cair dos dois lados.
+  anel-dentro: 12
+  anel-fora: 16
+  anel-altura: 4
+
+  # O plató do meio, na mesma altura da galeria, separado dela por
+  # um fosso que se salta.
+  plato-raio: 9
+
+  # Quantas escadas sobem do piso até a galeria, e a largura de
+  # cada uma. Elas ficam nas diagonais; as colunas ficam nos eixos
+  # e as largadas no meio dos dois, para ninguém nascer dentro de
+  # escada nem de coluna.
+  escadas: 4
+  escada-largura: 3
+
+  # Quantos buracos a galeria tem para se cair de propósito, e o
+  # lado de cada um.
+  buracos: 4
+  buraco-tamanho: 2
+
+  # As colunas de cobertura no anel de fora, entre a galeria e o
+  # muro.
+  colunas: 4
+  coluna-raio: 18
+  coluna-altura: 3
+
+  # O raio do anel de largada, no piso de baixo.
+  largada-raio: 19
+
+  saguao-altura: 18
+  saguao-raio: 9
+  saguao-parapeito: 4
+  marco-recuo: 8
+  marco-altura: 20
+
+paleta:
+  placa: BIRCH_WALL_SIGN
+
+  piso: SMOOTH_SANDSTONE
+  piso-marca: YELLOW_TERRACOTTA
+  muro: CUT_SANDSTONE
+  muro-faixa: YELLOW_CONCRETE
+  anel: CUT_SANDSTONE
+  anel-beira: YELLOW_CONCRETE
+  plato: SMOOTH_QUARTZ
+  plato-beira: YELLOW_CONCRETE
+  escada: SANDSTONE
+  coluna: CUT_SANDSTONE
+  coluna-topo: YELLOW_CONCRETE
+
+  estrutura: SMOOTH_QUARTZ
+  escuro: POLISHED_DEEPSLATE
+  borda: DEEPSLATE_TILES
+  metal: IRON_BLOCK
+  vidro: YELLOW_STAINED_GLASS
+  luz: SHROOMLIGHT
+  luz-fria: END_ROD
+  nucleo: GOLD_BLOCK
+
+regras:
+  minimo: 2
+  maximo: 16
+  contagem-segundos: 15
+  fim-segundos: 8
+  treino-sozinho: true
+
+  # O pavio da primeira rodada, quanto ele encurta a cada rodada e
+  # onde ele para de encurtar. Pavio que não encurta faz a partida
+  # de dezesseis durar sete minutos de espera.
+  pavio-segundos: 25
+  pavio-desconto: 3
+  pavio-minimo: 10
+
+  # Uma bomba a cada tantos jogadores vivos. Uma bomba só numa
+  # arena de dezesseis é quinze rodadas de ninguém fazer nada.
+  jogadores-por-bomba: 4
+
+  # A que distância encostar já conta.
+  alcance: 1.7
+
+  # Quantos tiques quem acabou de passar a bomba fica livre de
+  # recebê-la de volta. Sem isto, dois jogadores colados trocam a
+  # bomba vinte vezes por segundo e o pavio não decide nada.
+  carencia-tiques: 40
+
+  # Quanta velocidade a bomba dá a quem a carrega.
+  velocidade-extra: 1
+
+  # Quantas fiadas abaixo do piso já conta como ter caído. É só
+  # rede de segurança: o muro impede sair, e o jogo não é de cair.
+  queda-abaixo: 6
+
+  # O teto da partida.
+  tempo-limite: 420
+
+textos:
+  titulo: "PEGA-PEGA"
+  cor: "#FFE066"
+  subtitulo: "quem encosta, passa a vez"
+  regras:
+    - "clique em [ENTRAR] para entrar na fila"
+    - "quem tem a bomba na cabeça brilha"
+    - "encoste em alguém e a bomba passa"
+    - "o pavio acabou com você? explodiu"
+    - "a bomba deixa você mais rápido"
+    - "o último que nunca explodiu ganha"
+  escala-titulo: 2.6
+  escala-placa: 1.6
+  fundo-alpha: 0
+
+  placa-entrar: "[ENTRAR]"
+  placa-sair: "[SAIR]"
+  placa-fila: "na fila"
+  placa-esperando: "esperando"
+  placa-jogando: "CORRENDO"
+  placa-refazendo: "refazendo"
