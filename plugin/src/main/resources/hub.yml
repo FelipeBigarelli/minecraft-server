@@ -22,18 +22,55 @@ praca:
   y: 100
 
   # Raio da praça redonda do meio, em blocos.
-  raio: 17
+  raio: 21
 
   # Comprimento e largura de cada passarela que sai do centro
   # para um portal.
-  passarela-comprimento: 16
-  passarela-largura: 7
+  passarela-comprimento: 22
+  passarela-largura: 9
 
-  # Raio do terraço de cada portal, na ponta da passarela.
-  terraco-raio: 11
+  # Raio do terraço na ponta de cada passarela. O terraço é um
+  # quadrado de cantos arredondados, não um círculo: é o que
+  # segura a parede da escultura perto da borda sem o canto
+  # dela ficar boiando no ar.
+  terraco-raio: 15
 
-  # Altura da torre central acima do piso.
-  torre-altura: 34
+  # Quanto o portão fica adiante do meio do terraço, para
+  # sobrar chão onde parar e olhar antes de atravessar.
+  portal-avanco: 5
+
+  # Altura em que o anel suspenso flutua sobre a praça, e o raio
+  # dele. O chão do meio fica VAZIO de propósito: é onde o jogador
+  # nasce e de onde ele olha em volta, e uma torre plantada ali
+  # tapava os três caminhos ao mesmo tempo.
+  anel-altura: 24
+  anel-raio: 8
+
+# -------------------------------------------------------------
+#  O portão de cada portal
+# -------------------------------------------------------------
+portao:
+  # Meia largura do vão: 3 dá sete blocos de passagem.
+  vao: 3
+  # Espessura de cada montante ao lado do vão.
+  pilar: 3
+  altura: 14
+  # Quanto a escultura e a parede branca dela ficam atrás do
+  # portão. Ela tem de aparecer INTEIRA por cima dele de longe.
+  escultura-avanco: 6
+
+# -------------------------------------------------------------
+#  O monumento do centro
+#
+#  A parede que segura o paredão de ajuda, de frente para quem
+#  nasce. O tamanho dela sai do ajuda.yml — estes números são
+#  só o piso mínimo, para a peça não encolher a ponto de virar
+#  um muro se um dia o paredão ficar pequeno.
+# -------------------------------------------------------------
+monumento:
+  meia-largura-minima: 11
+  altura-minima: 14
+  espessura: 3
 
 paleta:
   # Futurista no Minecraft é quase sempre a mesma receita: muita
@@ -125,55 +162,59 @@ portais:
 # -------------------------------------------------------------
 esculturas:
   picareta:
-    - "    #######    "
-    - "  ##ooooooo##  "
-    - " #ooo     ooo# "
-    - "#oo    *    oo#"
-    - " #     #     # "
-    - "       #       "
-    - "       #       "
-    - "       #       "
-    - "       #       "
-    - "       #       "
-    - "       #       "
-    - "       #       "
-    - "      ###      "
-    - "      ###      "
-    - "       #       "
+    - "     #########     "
+    - "   ###ooooooo###   "
+    - "  ##ooo#####ooo##  "
+    - " ##oo##     ##oo## "
+    - " #oo#    *    #oo# "
+    - " ####    #    #### "
+    - "         #         "
+    - "         #         "
+    - "         #         "
+    - "         #         "
+    - "         #         "
+    - "         #         "
+    - "         #         "
+    - "        ###        "
+    - "        ###        "
+    - "        ###        "
+    - "         #         "
 
   casa:
-    - "       #       "
-    - "      ###      "
-    - "     #####     "
-    - "    #######    "
-    - "   #########   "
-    - "  ###########  "
-    - " ############# "
-    - " #ooooooooooo# "
-    - " #o##ooooo##o# "
-    - " #o##ooooo##o# "
-    - " #ooooo*ooooo# "
-    - " #oooo###oooo# "
-    - " #oooo###oooo# "
-    - " #oooo###oooo# "
-    - " ############# "
+    - "         #         "
+    - "        ###        "
+    - "       #####       "
+    - "      #######      "
+    - "     #########     "
+    - "    ###########    "
+    - "   #############   "
+    - "  ###############  "
+    - " ################# "
+    - " #ooooooooooooooo# "
+    - " #o##ooooooooo##o# "
+    - " #o##ooo***ooo##o# "
+    - " #ooooooo#ooooooo# "
+    - " #ooo#######ooooo# "
+    - " #ooo#######ooooo# "
+    - " #ooo##ooo##ooooo# "
+    - " ################# "
 
   trofeu:
-    - " ############# "
-    - " #ooooooooooo# "
-    - "##ooooooooooo##"
-    - "#*#ooooooooo#*#"
-    - "#*#ooo***ooo#*#"
-    - "##ooooooooooo##"
-    - " #ooooooooooo# "
-    - " ##ooooooooo## "
-    - "  ###ooooo###  "
-    - "    #######    "
-    - "      ###      "
-    - "      ###      "
-    - "      ###      "
-    - "   #########   "
-    - " ############# "
+    - "   #############   "
+    - "   #ooooooooooo#   "
+    - "  ##ooooooooooo##  "
+    - " #o#ooooooooooo#o# "
+    - " #o#oooo***oooo#o# "
+    - " #o#ooo*****ooo#o# "
+    - " #o#oooo***oooo#o# "
+    - " #oo#ooooooooo#oo# "
+    - "  ##ooooooooooo##  "
+    - "   ##ooooooooo##   "
+    - "    ###ooooo###    "
+    - "      #######      "
+    - "        ###        "
+    - "     #########     "
+    - "   #############   "
 
 # -------------------------------------------------------------
 #  Comportamento

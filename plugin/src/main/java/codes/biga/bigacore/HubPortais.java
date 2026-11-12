@@ -107,13 +107,13 @@ public final class HubPortais implements Listener {
         double atravessado = x * face.lu() + z * face.lv();
 
         return Math.abs(aoLongo - distancia) <= 1.2
-                && Math.abs(atravessado) <= 2.5
-                && y >= piso && y <= piso + 7;
+                && Math.abs(atravessado) <= 3.0
+                && y >= piso && y <= piso + 10;
     }
 
     private boolean dentroDoPortal(Location onde, HubCatalog planta, HubCatalog.Portal portal) {
         return dentroDaCaixa(onde.getX(), onde.getY(), onde.getZ(),
-                portal.face(), planta.distanciaDoTerraco(), planta.pisoY());
+                portal.face(), planta.distanciaDoPortal(), planta.pisoY());
     }
 
     private void atravessar(Player jogador, HubCatalog.Portal portal) {
@@ -186,14 +186,14 @@ public final class HubPortais implements Listener {
     /** A cortina de luz no vão do arco, na cor do destino. */
     private void cortina(World hub, HubCatalog planta, HubCatalog.Portal portal) {
         HubCatalog.Face face = portal.face();
-        int distancia = planta.distanciaDoTerraco();
+        int distancia = planta.distanciaDoPortal();
         int piso = planta.pisoY();
 
         Color cor = corDe(portal.cor());
         Particle.DustOptions po = new Particle.DustOptions(cor, 1.6f);
 
-        for (int lado = -2; lado <= 2; lado++) {
-            for (int altura = 1; altura <= 6; altura++) {
+        for (int lado = -3; lado <= 3; lado++) {
+            for (int altura = 1; altura <= 9; altura++) {
                 if ((lado + altura) % 2 != 0) {
                     continue;
                 }

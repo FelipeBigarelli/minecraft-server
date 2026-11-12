@@ -107,28 +107,83 @@ public final class HubCatalog {
     }
 
     public int raio() {
-        return config.getInt("praca.raio", 17);
+        return config.getInt("praca.raio", 21);
     }
 
     public int passarelaComprimento() {
-        return config.getInt("praca.passarela-comprimento", 16);
+        return config.getInt("praca.passarela-comprimento", 22);
     }
 
     public int passarelaLargura() {
-        return config.getInt("praca.passarela-largura", 7);
+        return config.getInt("praca.passarela-largura", 9);
     }
 
     public int terracoRaio() {
-        return config.getInt("praca.terraco-raio", 11);
+        return config.getInt("praca.terraco-raio", 15);
     }
 
-    public int torreAltura() {
-        return config.getInt("praca.torre-altura", 34);
+    /** Altura do anel suspenso sobre o piso da praça. */
+    public int anelAltura() {
+        return config.getInt("praca.anel-altura", 24);
+    }
+
+    public int anelRaio() {
+        return config.getInt("praca.anel-raio", 8);
     }
 
     /** Distância do centro até o meio do terraço de um portal. */
     public int distanciaDoTerraco() {
         return raio() + passarelaComprimento();
+    }
+
+    /** Quanto o portão fica adiante do meio do terraço. */
+    public int portalAvanco() {
+        return config.getInt("praca.portal-avanco", 5);
+    }
+
+    /** Onde o vão do portal fica, contado do centro da praça. */
+    public int distanciaDoPortal() {
+        return distanciaDoTerraco() + portalAvanco();
+    }
+
+    /** Meia largura do vão por onde se passa. */
+    public int portaoVao() {
+        return config.getInt("portao.vao", 3);
+    }
+
+    /** Espessura de cada montante, ao lado do vão. */
+    public int portaoPilar() {
+        return config.getInt("portao.pilar", 3);
+    }
+
+    public int portaoAltura() {
+        return config.getInt("portao.altura", 14);
+    }
+
+    /** Quanto a escultura fica atrás do portão. */
+    public int esculturaAvanco() {
+        return config.getInt("portao.escultura-avanco", 6);
+    }
+
+    // ------------------------------------------------------------------
+    //  Monumento
+    // ------------------------------------------------------------------
+
+    public int monumentoEspessura() {
+        return config.getInt("monumento.espessura", 3);
+    }
+
+    public int monumentoMeiaLarguraMinima() {
+        return config.getInt("monumento.meia-largura-minima", 11);
+    }
+
+    public int monumentoAlturaMinima() {
+        return config.getInt("monumento.altura-minima", 14);
+    }
+
+    /** Quanto a obra sobe acima do piso. Manda no desfazer e na conferência. */
+    public int alturaDaObra() {
+        return anelAltura() + 10;
     }
 
     /**
@@ -140,7 +195,7 @@ public final class HubCatalog {
      * que um que limpa ar demais num mundo que é só ar.
      */
     public int alcanceDaObra() {
-        return distanciaDoTerraco() + terracoRaio() + 6;
+        return distanciaDoTerraco() + terracoRaio() + 8;
     }
 
     // ------------------------------------------------------------------
@@ -267,6 +322,29 @@ public final class HubCatalog {
             }
         }
         return largura > 0;
+    }
+
+    /**
+     * A face que sobrou: é nela que o jogador nasce.
+     *
+     * Com três portais sobra uma das quatro. Se um dia houver quatro portais
+     * a chegada volta para o SUL e passa a dividir o terraço com ele — feio,
+     * mas ninguém nasce dentro de parede, que é o que importa.
+     */
+    public static Face faceLivre(List<Portal> portais) {
+        for (Face face : Face.values()) {
+            boolean usada = false;
+            for (Portal portal : portais) {
+                if (portal.face() == face) {
+                    usada = true;
+                    break;
+                }
+            }
+            if (!usada) {
+                return face;
+            }
+        }
+        return Face.SUL;
     }
 
     /** Dois portais na mesma face se constroem um por cima do outro. */

@@ -59,19 +59,32 @@ class HubTest {
     }
 
     @Test
-    @DisplayName("a escultura cabe no terraco em que ela e montada")
+    @DisplayName("a escultura e a parede dela cabem no terraco, na distancia em que ficam")
     void esculturaCabeNoTerraco() {
-        int terraco = hub.getInt("praca.terraco-raio", 11);
-        ConfigurationSection secao = hub.getConfigurationSection("esculturas");
+        int terraco = hub.getInt("praca.terraco-raio", 15);
+        int avancoDoPortao = hub.getInt("praca.portal-avanco", 5);
+        int avancoDaPeca = hub.getInt("portao.escultura-avanco", 6);
 
+        // O terraço é um quadrado de cantos arredondados, e a parede fica
+        // longe do meio dele. Medir só contra o diâmetro dava "cabe" para uma
+        // parede cujo canto, na verdade, nasce no void — e no void não dá
+        // erro, só fica um buraco que ninguém vê de cima.
+        int doCentro = avancoDoPortao + avancoDaPeca + 2;
+        int disponivel = HubBuilder.meiaLarguraEm(doCentro, terraco, 4);
+
+        ConfigurationSection secao = hub.getConfigurationSection("esculturas");
         for (String nome : secao.getKeys(false)) {
             List<String> desenho = secao.getStringList(nome);
             int largura = desenho.get(0).length();
-            assertTrue(largura <= terraco * 2,
-                    "a escultura '" + nome + "' tem " + largura
-                            + " de largura e o terraço só tem " + (terraco * 2));
             assertEquals(1, largura % 2,
                     "a escultura '" + nome + "' tem largura par e nasce fora do eixo");
+
+            // A parede de fundo passa dois blocos de cada lado do desenho.
+            int meia = largura / 2 + 2;
+            assertTrue(meia <= disponivel,
+                    "a parede da escultura '" + nome + "' precisa de " + meia
+                            + " blocos para cada lado e o terraço só dá " + disponivel
+                            + " a " + doCentro + " do meio");
         }
     }
 
@@ -165,16 +178,85 @@ class HubTest {
     }
 
     @Test
-    @DisplayName("a torre afina de baixo para cima, nunca ao contrario")
-    void torreAfina() {
-        int altura = 34;
+    @DisplayName("a plataforma afina para baixo, degrau por degrau")
+    void plataformaAfina() {
+        int raio = hub.getInt("praca.raio", 21);
         int anterior = Integer.MAX_VALUE;
-        for (int y = 0; y <= altura; y++) {
-            int raio = HubBuilder.raioDaTorre(y, altura);
-            assertTrue(raio <= anterior, "a torre engordou na altura " + y);
-            assertTrue(raio >= 1, "a torre sumiu na altura " + y);
-            anterior = raio;
+
+        for (int k = 0; k < HubBuilder.DEGRAUS.length; k++) {
+            int r = HubBuilder.raioDaCamada(k, raio);
+            assertTrue(r < anterior, "a camada " + k + " engordou em vez de encolher");
+            anterior = r;
         }
+        assertEquals(raio, HubBuilder.raioDaCamada(0, raio),
+                "a primeira camada tem de ter a largura do piso");
+        assertEquals(-1, HubBuilder.raioDaCamada(HubBuilder.DEGRAUS.length, raio),
+                "camada inexistente tem de avisar, não devolver raio");
+    }
+
+    @Test
+    @DisplayName("o arco sobe ate o anel e nunca abre no caminho de volta")
+    void arcoChegaNoAnel() {
+        int altura = hub.getInt("praca.anel-altura", 24);
+        int raioAnel = hub.getInt("praca.anel-raio", 8);
+        int raioBase = hub.getInt("praca.raio", 21) - 1;
+
+        double anterior = Double.MAX_VALUE;
+        for (int y = 1; y <= altura; y++) {
+            double r = HubBuilder.raioDoArco(y, altura, raioAnel, raioBase);
+            assertTrue(r <= anterior + 1.0e-9,
+                    "o arco abriu para fora na altura " + y);
+            anterior = r;
+        }
+
+        assertEquals(raioBase, HubBuilder.raioDoArco(1, altura, raioAnel, raioBase), 1.0e-6,
+                "o pé do arco tem de nascer na praça");
+        assertEquals(raioAnel, HubBuilder.raioDoArco(altura, altura, raioAnel, raioBase), 1.0e-6,
+                "o topo do arco tem de encostar no anel, senão ele fica solto no ar");
+    }
+
+    @Test
+    @DisplayName("o pe do arco nao cai em cima de nenhuma passarela")
+    void arcoNaoFechaCaminho() {
+        int raioBase = hub.getInt("praca.raio", 21) - 1;
+        int meia = hub.getInt("praca.passarela-largura", 9) / 2;
+
+        // O arco nasce na diagonal. Um bloco de cada lado por causa da seção
+        // 3x3, senão o pé encosta na boca da passarela sem o teste ver.
+        int napDiagonal = (int) Math.round(raioBase / Math.sqrt(2.0)) - 1;
+        assertTrue(napDiagonal > meia,
+                "o pé do arco fica a " + napDiagonal + " do eixo e a passarela "
+                        + "ocupa até " + meia + " — ele nasceria no meio do caminho");
+    }
+
+    @Test
+    @DisplayName("o monumento acompanha o tamanho do paredao e cabe na praca")
+    void monumentoCabeNaPraca() {
+        int raio = hub.getInt("praca.raio", 21);
+        int minimo = hub.getInt("monumento.meia-largura-minima", 11);
+
+        // Paredão pequeno: vale o mínimo do hub.yml.
+        assertEquals(minimo, HubBuilder.meiaLarguraDoMonumento(4.0, minimo));
+        // Paredão grande: a pedra cresce com ele, com folga dos dois lados.
+        assertEquals(12, HubBuilder.meiaLarguraDoMonumento(20.0, minimo));
+        assertEquals(17, HubBuilder.alturaDoMonumento(13.2, 14));
+
+        // E o plinto dele ainda tem de deixar gente passar dos dois lados.
+        int plinto = HubBuilder.meiaLarguraDoMonumento(20.0, minimo) + 3;
+        assertTrue(raio - plinto >= 5,
+                "sobram só " + (raio - plinto) + " blocos entre o plinto e a borda "
+                        + "da praça: o caminho do norte fica intransitável");
+    }
+
+    @Test
+    @DisplayName("o anel passa por cima do monumento, sem encostar nele")
+    void anelPassaPorCimaDoMonumento() {
+        int anel = hub.getInt("praca.anel-altura", 24);
+        int altura = hub.getInt("monumento.altura-minima", 14);
+
+        assertTrue(anel >= altura + 6,
+                "o anel em " + anel + " raspa no monumento de " + altura
+                        + " — e o feixe do farol sobe exatamente por ali");
     }
 
     @Test

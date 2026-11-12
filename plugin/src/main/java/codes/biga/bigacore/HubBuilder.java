@@ -13,6 +13,7 @@ import org.bukkit.entity.TextDisplay;
 import org.bukkit.util.Transformation;
 import org.joml.Vector3f;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -24,7 +25,19 @@ import java.util.List;
  * lisa e clara, pouquíssima cor, e a cor que existe sendo LUZ e não tinta —
  * quartzo, concreto, vidro e lanterna. Um único bloco de madeira ou de pedra
  * bruta derruba o efeito inteiro, e por isso a paleta do hub.yml não tem
- * nenhum dos dois.
+ * nenhum dos dois. A cor dos portais entra como FAIXA, nunca como parede:
+ * branco manda em tudo e o verde, o laranja e o roxo só marcam caminho.
+ *
+ * <h2>Por que o meio da praça é vazio</h2>
+ *
+ * A primeira versão tinha uma torre no centro. Ela tapava os três caminhos de
+ * uma vez e, de onde o jogador nascia, o hub inteiro virava um corredor entre
+ * a torre e o parapeito. O vertical agora é o ANEL suspenso: ele fecha a
+ * composição no alto, se vê de qualquer ponto, e o chão continua livre.
+ *
+ * O único volume no chão é o monumento — a parede que segura o paredão de
+ * ajuda, de frente para quem nasce. Ela é larga, baixa e fica num plinto
+ * redondo com nove blocos de passagem de cada lado.
  *
  * <h2>Por que tudo é redondo e alinhado ao norte</h2>
  *
@@ -83,29 +96,52 @@ public final class HubBuilder {
         if (!aplicar) {
             return new Resultado(true, "Área livre: " + (ocupados == 0 ? "sim" : "NÃO, "
                     + ocupados + " bloco(s) no caminho") + ". Diâmetro da obra: "
-                    + (planta.alcanceDaObra() * 2) + " blocos.", 0);
+                    + (planta.alcanceDaObra() * 2) + " blocos. Monumento: "
+                    + monumentoMeiaLargura(planta) * 2 + "x" + monumentoAltura(planta) + ".", 0);
         }
 
         int piso = planta.pisoY();
         contador = 0;
 
         limparPaineis(mundo);
-        pracaCentral(mundo, planta, piso);
-        torreCentral(mundo, planta, piso);
+        if (plugin.painelAjuda() != null) {
+            plugin.painelAjuda().limpar(mundo);
+        }
+
+        HubCatalog.Face chegada = HubCatalog.faceLivre(portais);
+        List<HubCatalog.Face> caminhos = new ArrayList<>();
+        for (HubCatalog.Portal portal : portais) {
+            caminhos.add(portal.face());
+        }
+        caminhos.add(chegada);
+
+        plataforma(mundo, planta, 0, 0, planta.raio(), 2, piso);
+        pisoDaPraca(mundo, planta, portais, chegada, piso);
+        parapeito(mundo, planta, 0, 0, planta.raio(), 2, caminhos, piso);
+        colunata(mundo, planta, piso);
+        monumento(mundo, planta, piso);
+        anelSuspenso(mundo, planta, piso);
 
         for (HubCatalog.Portal portal : portais) {
-            passarela(mundo, planta, portal, piso);
-            terraco(mundo, planta, portal, piso);
-            arcoDoPortal(mundo, planta, portal, piso);
+            passarela(mundo, planta, portal.face(), portal.destaque(), piso);
+            terraco(mundo, planta, portal.face(), portal.destaque(), piso);
+            portao(mundo, planta, portal, piso);
             esculturaDoPortal(mundo, planta, portal, piso);
             painelDoPortal(mundo, planta, portal, piso);
         }
 
-        mirante(mundo, planta, portais, piso);
+        passarela(mundo, planta, chegada, planta.cor("piso-linha",
+                Material.LIGHT_BLUE_CONCRETE), piso);
+        terraco(mundo, planta, chegada, planta.cor("piso-linha",
+                Material.LIGHT_BLUE_CONCRETE), piso);
+        terracoDaChegada(mundo, planta, chegada, piso);
         pousoDoJogador(mundo, planta, piso);
 
-        return new Resultado(true, "Hub levantado: " + contador + " blocos, "
-                + portais.size() + " portais.", contador);
+        int blocos = contador;
+        String ajuda = paredeDeAjuda(mundo, planta);
+
+        return new Resultado(true, "Hub levantado: " + blocos + " blocos, "
+                + portais.size() + " portais, chegada ao " + chegada + ". " + ajuda, blocos);
     }
 
     /** Apaga tudo dentro do alcance da obra. Só serve em mundo de hub. */
@@ -117,7 +153,7 @@ public final class HubBuilder {
 
         for (int u = -alcance; u <= alcance; u++) {
             for (int v = -alcance; v <= alcance; v++) {
-                for (int y = piso - 4; y <= piso + planta.torreAltura() + 6; y++) {
+                for (int y = piso - 8; y <= piso + planta.alturaDaObra(); y++) {
                     Block bloco = mundo.getBlockAt(u, y, v);
                     if (!bloco.getType().isAir()) {
                         bloco.setType(Material.AIR, false);
@@ -128,89 +164,106 @@ public final class HubBuilder {
         }
 
         limparPaineis(mundo);
+        if (plugin.painelAjuda() != null) {
+            plugin.painelAjuda().limpar(mundo);
+        }
         return new Resultado(true, "Hub removido: " + apagados + " blocos apagados.", apagados);
     }
 
     // ------------------------------------------------------------------
-    //  Praça
+    //  A plataforma
     // ------------------------------------------------------------------
 
-    private void pracaCentral(World mundo, HubCatalog planta, int piso) {
-        int raio = planta.raio();
+    /**
+     * Quanto cada camada de baixo encolhe em relação à borda do piso.
+     *
+     * Um disco de três blocos de espessura boiando no void lê como folha de
+     * papel grossa — e é de baixo que se chega voando. Os degraus crescendo
+     * para dentro fazem a plataforma virar um cone truncado: de longe parece
+     * peso, de perto some.
+     */
+    static final int[] DEGRAUS = {0, 1, 3, 6, 10, 15, 21};
 
-        Material pisoM = planta.cor("piso", Material.SMOOTH_QUARTZ);
-        Material linha = planta.cor("piso-linha", Material.LIGHT_BLUE_CONCRETE);
-        Material escuro = planta.cor("piso-escuro", Material.POLISHED_DEEPSLATE);
-        Material borda = planta.cor("borda", Material.DEEPSLATE_TILES);
+    /** O raio da camada {@code k} abaixo do piso. Negativo = camada não existe. */
+    static int raioDaCamada(int k, int raio) {
+        if (k < 0 || k >= DEGRAUS.length) {
+            return -1;
+        }
+        return raio - DEGRAUS[k];
+    }
+
+    /**
+     * O anel em que (du, dv) cai.
+     *
+     * @param expoente 2 desenha um círculo; 4 desenha um quadrado de cantos
+     *                 arredondados, que é o que segura parede larga perto da
+     *                 borda sem o canto ficar no ar.
+     */
+    static int anel(int du, int dv, int expoente) {
+        if (expoente == 2) {
+            return (int) Math.round(Math.sqrt((double) du * du + (double) dv * dv));
+        }
+        double soma = Math.pow(Math.abs(du), expoente) + Math.pow(Math.abs(dv), expoente);
+        return (int) Math.round(Math.pow(soma, 1.0 / expoente));
+    }
+
+    /** Meia largura disponível a {@code du} do centro de um terraço. */
+    static int meiaLarguraEm(int du, int raio, int expoente) {
+        double resto = Math.pow(raio, expoente) - Math.pow(Math.abs(du), expoente);
+        if (resto <= 0) {
+            return 0;
+        }
+        return (int) Math.floor(Math.pow(resto, 1.0 / expoente));
+    }
+
+    private void plataforma(World mundo, HubCatalog planta, int cu, int cv, int raio,
+                            int expoente, int piso) {
         Material estrutura = planta.cor("estrutura", Material.QUARTZ_BLOCK);
-        Material nucleo = planta.cor("nucleo", Material.AMETHYST_BLOCK);
+        Material borda = planta.cor("borda", Material.DEEPSLATE_TILES);
 
-        for (int u = -raio; u <= raio; u++) {
-            for (int v = -raio; v <= raio; v++) {
-                int distancia = (int) Math.round(Math.sqrt(u * u + v * v));
-                if (distancia > raio) {
-                    continue;
-                }
-
-                // Três camadas: a praça tem ESPESSURA. Disco de um bloco só
-                // flutuando no void parece folha de papel — e de baixo, que é
-                // de onde se chega voando, parece erro.
-                por(mundo, u, v, piso - 2, borda);
-                por(mundo, u, v, piso - 1, estrutura);
-                por(mundo, u, v, piso, pisoDaPraca(distancia, raio, pisoM, linha, escuro, nucleo));
+        for (int k = 0; k < DEGRAUS.length; k++) {
+            int r = raioDaCamada(k, raio);
+            if (r < 2) {
+                break;
             }
-        }
-
-        // Parapeito na borda, menos onde as passarelas saem — quem cai do
-        // hub cai no void, e no void não fica nem túmulo.
-        for (int u = -raio; u <= raio; u++) {
-            for (int v = -raio; v <= raio; v++) {
-                if ((int) Math.round(Math.sqrt(u * u + v * v)) != raio) {
-                    continue;
+            for (int du = -r; du <= r; du++) {
+                for (int dv = -r; dv <= r; dv++) {
+                    int d = anel(du, dv, expoente);
+                    if (d > r) {
+                        continue;
+                    }
+                    // Só a casca interessa nas camadas fundas: miolo maciço
+                    // a sete blocos de profundidade é bloco que ninguém vê.
+                    if (k >= 2 && d < r - 1) {
+                        continue;
+                    }
+                    por(mundo, cu + du, cv + dv, piso - 1 - k, d == r ? borda : estrutura);
                 }
-                if (ehBocaDePassarela(planta, u, v)) {
-                    continue;
-                }
-                laje(mundo, u, v, piso + 1, planta.cor("parapeito", Material.QUARTZ_SLAB));
             }
-        }
-
-        // Colunata: oito pilares de luz em volta, na mesma malha dos portais.
-        for (int i = 0; i < 8; i++) {
-            double angulo = Math.PI * i / 4.0;
-            int u = (int) Math.round(Math.cos(angulo) * (raio - 3));
-            int v = (int) Math.round(Math.sin(angulo) * (raio - 3));
-
-            for (int y = piso + 1; y <= piso + 7; y++) {
-                por(mundo, u, v, y, y % 3 == 0
-                        ? planta.cor("vidro", Material.LIGHT_BLUE_STAINED_GLASS)
-                        : estrutura);
-            }
-            por(mundo, u, v, piso + 8, planta.cor("luz", Material.SEA_LANTERN));
-            por(mundo, u, v, piso + 9, planta.cor("luz-fria", Material.END_ROD));
         }
     }
 
-    /** O desenho do chão da praça, em anéis. */
-    private Material pisoDaPraca(int distancia, int raio, Material piso, Material linha,
-                                 Material escuro, Material nucleo) {
-        if (distancia <= 3) {
-            return nucleo;
-        }
-        if (distancia == 4 || distancia == raio - 1) {
-            return linha;
-        }
-        if (distancia == raio) {
-            return escuro;
-        }
-        return distancia % 5 == 0 ? escuro : piso;
-    }
-
-    /** A boca de uma passarela não leva parapeito, senão ninguém passa. */
-    private boolean ehBocaDePassarela(HubCatalog planta, int u, int v) {
+    /** Parapeito na borda, menos onde um caminho sai. Quem cai, cai no void. */
+    private void parapeito(World mundo, HubCatalog planta, int cu, int cv, int raio,
+                           int expoente, List<HubCatalog.Face> caminhos, int piso) {
+        Material laje = planta.cor("parapeito", Material.QUARTZ_SLAB);
         int meia = planta.passarelaLargura() / 2;
-        for (HubCatalog.Portal portal : planta.portais()) {
-            HubCatalog.Face face = portal.face();
+
+        for (int du = -raio; du <= raio; du++) {
+            for (int dv = -raio; dv <= raio; dv++) {
+                if (anel(du, dv, expoente) != raio) {
+                    continue;
+                }
+                if (ehBocaDeCaminho(caminhos, meia, cu + du, cv + dv)) {
+                    continue;
+                }
+                laje(mundo, cu + du, cv + dv, piso + 1, laje);
+            }
+        }
+    }
+
+    private boolean ehBocaDeCaminho(List<HubCatalog.Face> caminhos, int meia, int u, int v) {
+        for (HubCatalog.Face face : caminhos) {
             int aoLongo = u * face.du() + v * face.dv();
             int atravessado = u * face.lu() + v * face.lv();
             if (aoLongo > 0 && Math.abs(atravessado) <= meia) {
@@ -221,102 +274,318 @@ public final class HubBuilder {
     }
 
     // ------------------------------------------------------------------
-    //  Torre
+    //  O chão da praça
+    // ------------------------------------------------------------------
+
+    /** Raio do plinto redondo em que o monumento se apoia. */
+    private int raioDoPlinto(HubCatalog planta) {
+        return monumentoMeiaLargura(planta) + 3;
+    }
+
+    /**
+     * Branco liso, uma linha de luz em volta do monumento, e uma faixa da cor
+     * de cada mundo saindo do plinto até a boca da passarela.
+     *
+     * A faixa é a única sinalização que funciona de longe: o jogador segue a
+     * cor antes de chegar perto o bastante para ler qualquer painel. Os anéis
+     * concêntricos da primeira versão faziam o contrário — de cima viravam um
+     * alvo de dardos, e o olho não achava mais o caminho.
+     */
+    private void pisoDaPraca(World mundo, HubCatalog planta, List<HubCatalog.Portal> portais,
+                             HubCatalog.Face chegada, int piso) {
+        int raio = planta.raio();
+        int plinto = raioDoPlinto(planta);
+
+        Material claro = planta.cor("piso", Material.SMOOTH_QUARTZ);
+        Material linha = planta.cor("piso-linha", Material.LIGHT_BLUE_CONCRETE);
+        Material borda = planta.cor("borda", Material.DEEPSLATE_TILES);
+
+        for (int u = -raio; u <= raio; u++) {
+            for (int v = -raio; v <= raio; v++) {
+                int d = anel(u, v, 2);
+                if (d > raio) {
+                    continue;
+                }
+                Material material = claro;
+                if (d >= raio - 1) {
+                    material = borda;
+                } else if (d == plinto) {
+                    material = linha;
+                }
+                por(mundo, u, v, piso, material);
+            }
+        }
+
+        // As faixas. Cada uma sai do plinto e vai até a passarela; as linhas
+        // escuras de fora dela separam um caminho do outro no chão.
+        Material escuro = planta.cor("piso-escuro", Material.POLISHED_DEEPSLATE);
+        for (HubCatalog.Portal portal : portais) {
+            faixa(mundo, portal.face(), portal.destaque(), escuro, plinto + 1, raio - 2, piso);
+        }
+        faixa(mundo, chegada, linha, escuro, plinto + 1, raio - 2, piso);
+    }
+
+    private void faixa(World mundo, HubCatalog.Face face, Material cor, Material escuro,
+                       int de, int ate, int piso) {
+        for (int passo = de; passo <= ate; passo++) {
+            por(mundo, face.du() * passo, face.dv() * passo, piso, cor);
+            for (int lado : new int[]{-2, 2}) {
+                por(mundo, face.du() * passo + face.lu() * lado,
+                        face.dv() * passo + face.lv() * lado, piso, escuro);
+            }
+        }
+    }
+
+    /**
+     * Oito mastros de luz em volta da praça.
+     *
+     * Ficam a 22,5 graus dos eixos de propósito: na malha antiga eles caíam
+     * em cima da boca das passarelas, e um pilar no meio do caminho é o tipo
+     * de erro que só aparece quando alguém tenta andar.
+     */
+    private void colunata(World mundo, HubCatalog planta, int piso) {
+        int raio = planta.raio() - 2;
+        Material estrutura = planta.cor("estrutura", Material.QUARTZ_BLOCK);
+        Material vidro = planta.cor("vidro", Material.LIGHT_BLUE_STAINED_GLASS);
+        Material luz = planta.cor("luz", Material.SEA_LANTERN);
+        Material laje = planta.cor("parapeito", Material.QUARTZ_SLAB);
+
+        for (int i = 0; i < 8; i++) {
+            double angulo = Math.PI / 8.0 + Math.PI * i / 4.0;
+            int u = (int) Math.round(Math.cos(angulo) * raio);
+            int v = (int) Math.round(Math.sin(angulo) * raio);
+
+            for (int y = piso + 1; y <= piso + 10; y++) {
+                por(mundo, u, v, y, (y - piso) % 4 == 0 ? vidro : estrutura);
+            }
+            por(mundo, u, v, piso + 11, luz);
+            for (int du = -1; du <= 1; du++) {
+                for (int dv = -1; dv <= 1; dv++) {
+                    if (du == 0 && dv == 0) {
+                        continue;
+                    }
+                    laje(mundo, u + du, v + dv, piso + 12, laje);
+                }
+            }
+            por(mundo, u, v, piso + 12, planta.cor("luz-fria", Material.END_ROD));
+        }
+    }
+
+    // ------------------------------------------------------------------
+    //  O monumento — a parede do paredão de ajuda
     // ------------------------------------------------------------------
 
     /**
-     * A torre do meio — o que se vê de qualquer ponto do hub.
+     * O tamanho real do paredão de ajuda, medido no ajuda.yml.
      *
-     * Ela afina em três degraus e termina num farol de verdade, com feixe
-     * subindo. O feixe é o único elemento do hub visível de longe no void, e
-     * é ele que diz "é por aqui" para quem chega voando.
+     * É daqui que sai o tamanho do monumento. Número fixo na parede quebra
+     * calado: basta alguém acrescentar um painel ao ajuda.yml e a última
+     * coluna passa a flutuar fora da pedra, contra o void.
      */
-    private void torreCentral(World mundo, HubCatalog planta, int piso) {
-        int altura = planta.torreAltura();
+    private PainelAjuda.Parede parede() {
+        PainelAjuda ajuda = plugin.painelAjuda();
+        return ajuda == null ? new PainelAjuda.Parede(0, 0, 11) : ajuda.tamanhoDaParede();
+    }
+
+    /** Metade da largura do monumento, em blocos. */
+    private int monumentoMeiaLargura(HubCatalog planta) {
+        return meiaLarguraDoMonumento(parede().largura(),
+                planta.monumentoMeiaLarguraMinima());
+    }
+
+    private int monumentoAltura(HubCatalog planta) {
+        return alturaDoMonumento(parede().altura(), planta.monumentoAlturaMinima());
+    }
+
+    /** Dois blocos de folga de cada lado do texto, e nunca menos que o mínimo. */
+    static int meiaLarguraDoMonumento(double larguraDaParede, int minimo) {
+        return Math.max(minimo, (int) Math.ceil(larguraDaParede / 2.0) + 2);
+    }
+
+    /** Três blocos de folga acima da última linha. */
+    static int alturaDoMonumento(double alturaDaParede, int minimo) {
+        return Math.max(minimo, (int) Math.ceil(alturaDaParede) + 3);
+    }
+
+    private void monumento(World mundo, HubCatalog planta, int piso) {
+        int meia = monumentoMeiaLargura(planta);
+        int altura = monumentoAltura(planta);
+        int fundo = Math.max(1, planta.monumentoEspessura() / 2);
+
+        Material claro = planta.cor("piso", Material.SMOOTH_QUARTZ);
         Material estrutura = planta.cor("estrutura", Material.QUARTZ_BLOCK);
-        Material escura = planta.cor("estrutura-escura", Material.BLACK_CONCRETE);
+        Material borda = planta.cor("borda", Material.DEEPSLATE_TILES);
         Material vidro = planta.cor("vidro", Material.LIGHT_BLUE_STAINED_GLASS);
-        Material nucleo = planta.cor("nucleo", Material.AMETHYST_BLOCK);
         Material luz = planta.cor("luz", Material.SEA_LANTERN);
         Material metal = planta.cor("metal", Material.IRON_BLOCK);
+        Material laje = planta.cor("parapeito", Material.QUARTZ_SLAB);
 
-        for (int y = 0; y <= altura; y++) {
-            int raio = raioDaTorre(y, altura);
-
-            for (int u = -raio; u <= raio; u++) {
-                for (int v = -raio; v <= raio; v++) {
-                    int distancia = Math.max(Math.abs(u), Math.abs(v));
-                    if (distancia > raio) {
-                        continue;
-                    }
-                    // Quina cortada: torre quadrada no void lê como caixa.
-                    if (Math.abs(u) == raio && Math.abs(v) == raio) {
-                        continue;
-                    }
-
+        for (int u = -meia; u <= meia; u++) {
+            for (int v = -fundo; v <= fundo; v++) {
+                for (int y = piso + 1; y <= piso + altura; y++) {
                     Material material;
-                    if (distancia < raio) {
-                        material = (u == 0 && v == 0) ? nucleo : Material.AIR;
-                    } else if (y % 6 == 0) {
-                        material = escura;
-                    } else if (y % 3 == 1) {
-                        material = vidro;
-                    } else {
+                    if (y == piso + 1) {
+                        material = borda;
+                    } else if (Math.abs(u) >= meia - 1) {
+                        // Os dois montantes das pontas: dão espessura à peça
+                        // e param o olho antes do texto começar.
                         material = estrutura;
+                    } else if (Math.abs(u) == meia - 2) {
+                        material = (y - piso) % 2 == 0 ? luz : vidro;
+                    } else if (y == piso + altura) {
+                        material = estrutura;
+                    } else {
+                        material = claro;
                     }
-
-                    if (material != Material.AIR) {
-                        por(mundo, u, v, piso + 1 + y, material);
-                    }
+                    por(mundo, u, v, y, material);
                 }
             }
         }
 
-        // Base do farol: pirâmide de metal, que é o que faz o feixe existir.
-        for (int camada = 0; camada < 3; camada++) {
-            int raio = 3 - camada;
-            for (int u = -raio; u <= raio; u++) {
-                for (int v = -raio; v <= raio; v++) {
-                    por(mundo, u, v, piso + altura + 2 + camada, metal);
-                }
+        // Beiral: uma fiada que avança um bloco para cada lado. É o que
+        // transforma a parede em peça, e não em pedaço de muro cortado.
+        for (int u = -meia - 1; u <= meia + 1; u++) {
+            for (int v = -fundo - 1; v <= fundo + 1; v++) {
+                laje(mundo, u, v, piso + altura + 1, laje);
             }
         }
-        por(mundo, 0, 0, piso + altura + 5, Material.BEACON);
+
+        // O farol no topo. A pirâmide de um nível cabe dentro da própria
+        // parede, então o feixe sobe do monumento sem nenhuma torre embaixo.
         for (int u = -1; u <= 1; u++) {
             for (int v = -1; v <= 1; v++) {
-                if (u != 0 || v != 0) {
-                    por(mundo, u, v, piso + altura + 5, luz);
-                }
+                por(mundo, u, v, piso + altura, metal);
             }
         }
+        por(mundo, 0, 0, piso + altura + 1, Material.BEACON);
 
-        letreiroDaTorre(mundo, planta, piso + altura - 4);
+        letreiroDoMonumento(mundo, planta, piso + altura + 3);
     }
 
-    /** Raio da torre naquela altura: três degraus, de baixo para cima. */
-    static int raioDaTorre(int y, int altura) {
-        if (y < altura * 0.45) {
-            return 3;
-        }
-        if (y < altura * 0.8) {
-            return 2;
-        }
-        return 1;
-    }
-
-    private void letreiroDaTorre(World mundo, HubCatalog planta, int y) {
+    /**
+     * O nome do servidor no alto do monumento, nos quatro lados.
+     *
+     * O texto de um TextDisplay FIXED só se lê de frente, e um hub tem gente
+     * chegando dos quatro lados.
+     */
+    private void letreiroDoMonumento(World mundo, HubCatalog planta, int y) {
         Component texto = plugin.mini().deserialize(
                 "<gradient:#FF6A00:#FFD700><bold>THE BIGAS</bold></gradient>"
                         + "<newline><color:#8FD3FF>escolha um caminho</color>");
 
-        // Quatro cópias, uma por lado: o texto de um TextDisplay FIXED só se
-        // lê de frente, e um hub tem gente chegando dos quatro lados.
+        int fora = monumentoMeiaLargura(planta) - 4;
         for (HubCatalog.Face face : HubCatalog.Face.values()) {
-            Location alvo = new Location(mundo, 0.5 + face.du() * 3.0, y,
-                    0.5 + face.dv() * 3.0);
+            Location alvo = new Location(mundo, face.du() * fora + 0.5, y,
+                    face.dv() * fora + 0.5);
             alvo.setYaw(face.yawParaOCentro() + 180f);
             alvo.setPitch(0f);
-            painel(mundo, alvo, texto, 2.2f);
+            painel(mundo, alvo, texto, 2.4f);
+        }
+    }
+
+    /**
+     * Levanta o paredão de ajuda de frente para o monumento.
+     *
+     * O jogador nasce no terraço de chegada olhando exatamente para esta
+     * parede: o primeiro texto que ele lê no servidor é o "COMO COMEÇAR".
+     */
+    private String paredeDeAjuda(World mundo, HubCatalog planta) {
+        PainelAjuda ajuda = plugin.painelAjuda();
+        if (ajuda == null) {
+            return "";
+        }
+        PainelAjuda.Relatorio r = ajuda.construir(mundo, baseDoPainel(mundo, planta), true);
+        return r.ok() ? "Paredão de ajuda: " + r.criados() + " painéis."
+                : "Paredão de ajuda NÃO subiu: " + r.erro();
+    }
+
+    /**
+     * De onde o paredão é medido: em frente à face do monumento que olha para
+     * a chegada, recuado da distância que o próprio ajuda.yml pede.
+     */
+    private Location baseDoPainel(World mundo, HubCatalog planta) {
+        double distancia = parede().distancia();
+        int frente = Math.max(1, planta.monumentoEspessura() / 2) + 1;
+
+        HubCatalog.Face chegada = HubCatalog.faceLivre(planta.portais());
+        Location base = new Location(mundo,
+                chegada.du() * (frente + distancia) + 0.5, planta.pisoY() + 1,
+                chegada.dv() * (frente + distancia) + 0.5);
+        base.setYaw(chegada.yawParaOCentro());
+        base.setPitch(0f);
+        return base;
+    }
+
+    // ------------------------------------------------------------------
+    //  O anel suspenso
+    // ------------------------------------------------------------------
+
+    /**
+     * O raio do arco naquela altura.
+     *
+     * Cosseno e não reta: a curva sai vertical do chão e só deita perto do
+     * topo, que é como um arcobotante se apoia. Reta pura lê como rampa.
+     */
+    static double raioDoArco(int y, int alturaAnel, int raioAnel, int raioBase) {
+        if (alturaAnel <= 1) {
+            return raioAnel;
+        }
+        double t = Math.min(1.0, Math.max(0.0, (y - 1.0) / (alturaAnel - 1.0)));
+        return raioAnel + (raioBase - raioAnel) * Math.cos(t * Math.PI / 2.0);
+    }
+
+    /**
+     * O anel que flutua sobre a praça, e os quatro arcos que o seguram.
+     *
+     * Este é o "colossal" do hub: ele fecha a composição no alto, se vê de
+     * qualquer canto do mundo, e não custa um metro quadrado de chão. Os
+     * arcos sobem nas diagonais justamente para não cruzar nenhum caminho.
+     */
+    private void anelSuspenso(World mundo, HubCatalog planta, int piso) {
+        int alturaAnel = planta.anelAltura();
+        int raioAnel = planta.anelRaio();
+        // O pé do arco encosta no parapeito de propósito: a quatro blocos
+        // para dentro ele caía bem na faixa por onde se contorna o
+        // monumento, e um contraforte de três por três no meio da única
+        // passagem é obstáculo, não arquitetura.
+        int raioBase = planta.raio() - 1;
+        int topo = piso + alturaAnel;
+
+        Material estrutura = planta.cor("estrutura", Material.QUARTZ_BLOCK);
+        Material vidro = planta.cor("vidro", Material.LIGHT_BLUE_STAINED_GLASS);
+        Material luz = planta.cor("luz", Material.SEA_LANTERN);
+        Material rod = planta.cor("luz-fria", Material.END_ROD);
+
+        for (int u = -raioAnel; u <= raioAnel; u++) {
+            for (int v = -raioAnel; v <= raioAnel; v++) {
+                int d = anel(u, v, 2);
+                if (d != raioAnel && d != raioAnel - 1) {
+                    continue;
+                }
+                por(mundo, u, v, topo, estrutura);
+                por(mundo, u, v, topo + 1, d == raioAnel ? estrutura : luz);
+                por(mundo, u, v, topo + 2, estrutura);
+                if (d == raioAnel - 1 && (Math.abs(u) + Math.abs(v)) % 3 == 0) {
+                    por(mundo, u, v, topo - 1, rod);
+                }
+            }
+        }
+
+        for (int su = -1; su <= 1; su += 2) {
+            for (int sv = -1; sv <= 1; sv += 2) {
+                for (int y = 1; y <= alturaAnel; y++) {
+                    double r = raioDoArco(y, alturaAnel, raioAnel, raioBase);
+                    int cu = (int) Math.round(su * r / Math.sqrt(2.0));
+                    int cv = (int) Math.round(sv * r / Math.sqrt(2.0));
+
+                    Material material = y % 8 == 0 ? luz : y % 4 == 0 ? vidro : estrutura;
+                    for (int du = -1; du <= 1; du++) {
+                        for (int dv = -1; dv <= 1; dv++) {
+                            por(mundo, cu + du, cv + dv, piso + y, material);
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -324,72 +593,84 @@ public final class HubBuilder {
     //  Caminho até o portal
     // ------------------------------------------------------------------
 
-    private void passarela(World mundo, HubCatalog planta, HubCatalog.Portal portal, int piso) {
-        HubCatalog.Face face = portal.face();
+    private void passarela(World mundo, HubCatalog planta, HubCatalog.Face face,
+                           Material destaque, int piso) {
         int meia = planta.passarelaLargura() / 2;
 
-        Material pisoM = planta.cor("piso", Material.SMOOTH_QUARTZ);
+        Material claro = planta.cor("piso", Material.SMOOTH_QUARTZ);
         Material estrutura = planta.cor("estrutura", Material.QUARTZ_BLOCK);
         Material borda = planta.cor("borda", Material.DEEPSLATE_TILES);
+        Material laje = planta.cor("parapeito", Material.QUARTZ_SLAB);
 
-        for (int passo = planta.raio() - 1; passo <= planta.distanciaDoTerraco(); passo++) {
+        for (int passo = planta.raio() - 2; passo <= planta.distanciaDoTerraco(); passo++) {
             for (int lado = -meia; lado <= meia; lado++) {
                 int u = face.du() * passo + face.lu() * lado;
                 int v = face.dv() * passo + face.lv() * lado;
 
+                por(mundo, u, v, piso - 2, borda);
                 por(mundo, u, v, piso - 1, estrutura);
-                // Faixa central na cor do mundo de destino: o caminho JÁ diz
-                // para onde vai, antes de qualquer texto.
-                por(mundo, u, v, piso, lado == 0 ? portal.destaque()
-                        : Math.abs(lado) == meia ? borda : pisoM);
+                por(mundo, u, v, piso, lado == 0 ? destaque
+                        : Math.abs(lado) == meia ? borda : claro);
 
                 if (Math.abs(lado) == meia) {
-                    laje(mundo, u, v, piso + 1, planta.cor("parapeito", Material.QUARTZ_SLAB));
+                    laje(mundo, u, v, piso + 1, laje);
                 }
             }
 
-            // Poste de luz a cada cinco passos, dos dois lados.
-            if (passo % 5 == 0) {
-                for (int lado : new int[]{-meia, meia}) {
-                    int u = face.du() * passo + face.lu() * lado;
-                    int v = face.dv() * passo + face.lv() * lado;
-                    for (int y = piso + 1; y <= piso + 3; y++) {
-                        por(mundo, u, v, y, estrutura);
-                    }
-                    por(mundo, u, v, piso + 4, portal.destaque());
-                    por(mundo, u, v, piso + 5, planta.cor("luz-fria", Material.END_ROD));
-                }
+            // Arcada: um pórtico leve a cada seis passos. É o que dá ritmo e
+            // comprimento à passarela — sem ele são noventa metros de chão.
+            if (passo % 6 == 0) {
+                arcadaDaPassarela(mundo, planta, face, destaque, passo, meia, piso);
             }
         }
     }
 
-    private void terraco(World mundo, HubCatalog planta, HubCatalog.Portal portal, int piso) {
-        HubCatalog.Face face = portal.face();
+    private void arcadaDaPassarela(World mundo, HubCatalog planta, HubCatalog.Face face,
+                                   Material destaque, int passo, int meia, int piso) {
+        Material estrutura = planta.cor("estrutura", Material.QUARTZ_BLOCK);
+        Material rod = planta.cor("luz-fria", Material.END_ROD);
+        Material laje = planta.cor("parapeito", Material.QUARTZ_SLAB);
+
+        for (int lado : new int[]{-meia, meia}) {
+            int u = face.du() * passo + face.lu() * lado;
+            int v = face.dv() * passo + face.lv() * lado;
+            for (int y = piso + 1; y <= piso + 5; y++) {
+                por(mundo, u, v, y, estrutura);
+            }
+            por(mundo, u, v, piso + 6, destaque);
+            por(mundo, u, v, piso + 7, rod);
+
+            int dentro = lado > 0 ? lado - 1 : lado + 1;
+            laje(mundo, face.du() * passo + face.lu() * dentro,
+                    face.dv() * passo + face.lv() * dentro, piso + 6, laje);
+        }
+    }
+
+    private void terraco(World mundo, HubCatalog planta, HubCatalog.Face face,
+                         Material destaque, int piso) {
         int centroU = face.du() * planta.distanciaDoTerraco();
         int centroV = face.dv() * planta.distanciaDoTerraco();
         int raio = planta.terracoRaio();
 
-        Material pisoM = planta.cor("piso", Material.SMOOTH_QUARTZ);
-        Material estrutura = planta.cor("estrutura", Material.QUARTZ_BLOCK);
+        Material claro = planta.cor("piso", Material.SMOOTH_QUARTZ);
         Material borda = planta.cor("borda", Material.DEEPSLATE_TILES);
+
+        plataforma(mundo, planta, centroU, centroV, raio, 4, piso);
 
         for (int du = -raio; du <= raio; du++) {
             for (int dv = -raio; dv <= raio; dv++) {
-                int distancia = (int) Math.round(Math.sqrt(du * du + dv * dv));
-                if (distancia > raio) {
+                int d = anel(du, dv, 4);
+                if (d > raio) {
                     continue;
                 }
-
                 int u = centroU + du;
                 int v = centroV + dv;
+                por(mundo, u, v, piso, d >= raio - 1 ? borda
+                        : d == raio - 4 ? destaque : claro);
 
-                por(mundo, u, v, piso - 2, borda);
-                por(mundo, u, v, piso - 1, estrutura);
-                por(mundo, u, v, piso, distancia >= raio - 1 ? borda
-                        : distancia % 4 == 0 ? portal.destaque() : pisoM);
-
-                if (distancia == raio && !olhandoParaOCentro(face, du, dv)) {
-                    laje(mundo, u, v, piso + 1, planta.cor("parapeito", Material.QUARTZ_SLAB));
+                if (d == raio && !olhandoParaOCentro(face, du, dv)) {
+                    laje(mundo, u, v, piso + 1,
+                            planta.cor("parapeito", Material.QUARTZ_SLAB));
                 }
             }
         }
@@ -401,57 +682,86 @@ public final class HubBuilder {
     }
 
     // ------------------------------------------------------------------
-    //  Arco, escultura e painel
+    //  Portão, escultura e painel
     // ------------------------------------------------------------------
 
     /**
-     * O arco por onde se passa.
+     * O portão por onde se passa.
      *
      * O vão fica VAZIO: a cortina de partículas é desenhada pelo HubPortais,
      * e não por bloco. Bloco de portal do Nether aqui dentro levaria o
      * jogador para o Nether de verdade na primeira vez que alguém esbarrasse
      * nele — e ninguém desconfiaria do hub.
+     *
+     * O corpo é branco e a cor do mundo entra só na faixa: um portão inteiro
+     * de concreto colorido some contra a escultura, que é a peça que precisa
+     * ser vista de longe.
      */
-    private void arcoDoPortal(World mundo, HubCatalog planta, HubCatalog.Portal portal,
-                              int piso) {
+    private void portao(World mundo, HubCatalog planta, HubCatalog.Portal portal, int piso) {
         HubCatalog.Face face = portal.face();
-        int centro = planta.distanciaDoTerraco();
+        int centro = planta.distanciaDoPortal();
+        int vao = planta.portaoVao();
+        int pilar = planta.portaoPilar();
+        int altura = planta.portaoAltura();
+        int meia = vao + pilar;
+
+        Material estrutura = planta.cor("estrutura", Material.QUARTZ_BLOCK);
+        Material claro = planta.cor("piso", Material.SMOOTH_QUARTZ);
         Material luz = planta.cor("luz", Material.SEA_LANTERN);
+        Material rod = planta.cor("luz-fria", Material.END_ROD);
 
-        for (int lado = -3; lado <= 3; lado++) {
-            for (int altura = 0; altura <= 8; altura++) {
-                boolean pilar = Math.abs(lado) == 3;
-                boolean verga = altura >= 7;
-                boolean quina = Math.abs(lado) == 3 && altura >= 7;
+        for (int lado = -meia; lado <= meia; lado++) {
+            boolean montante = Math.abs(lado) > vao;
+            for (int fundo = -1; fundo <= 1; fundo++) {
+                for (int y = 1; y <= altura; y++) {
+                    boolean verga = y > altura - 4;
+                    if (!montante && !verga) {
+                        continue;
+                    }
 
-                if (!pilar && !verga) {
-                    continue;
+                    Material material;
+                    if (Math.abs(lado) == vao + 1 && !verga) {
+                        // A aresta do vão é a única faixa de cor do portão.
+                        material = y % 3 == 1 ? luz : portal.destaque();
+                    } else if (y == altura - 2) {
+                        material = portal.destaque();
+                    } else if (y == altura) {
+                        material = portal.moldura();
+                    } else {
+                        material = montante && Math.abs(fundo) == 1 ? claro : estrutura;
+                    }
+
+                    por(mundo, face.du() * centro + face.lu() * lado + face.du() * fundo,
+                            face.dv() * centro + face.lv() * lado + face.dv() * fundo,
+                            piso + y, material);
                 }
-
-                Material material = quina ? portal.destaque()
-                        : (altura % 3 == 1 && pilar) ? luz : portal.moldura();
-
-                int u = face.du() * centro + face.lu() * lado;
-                int v = face.dv() * centro + face.lv() * lado;
-                por(mundo, u, v, piso + 1 + altura, material);
             }
         }
 
+        for (int lado : new int[]{-meia, meia}) {
+            por(mundo, face.du() * centro + face.lu() * lado,
+                    face.dv() * centro + face.lv() * lado, piso + altura + 1, rod);
+        }
+
         // Soleira: a linha no chão que marca onde o portal começa.
-        for (int lado = -2; lado <= 2; lado++) {
-            int u = face.du() * centro + face.lu() * lado;
-            int v = face.dv() * centro + face.lv() * lado;
-            por(mundo, u, v, piso, portal.destaque());
+        for (int lado = -vao; lado <= vao; lado++) {
+            for (int fundo = -1; fundo <= 1; fundo++) {
+                por(mundo, face.du() * (centro + fundo) + face.lu() * lado,
+                        face.dv() * (centro + fundo) + face.lv() * lado,
+                        piso, portal.destaque());
+            }
         }
     }
 
     /**
-     * A escultura: um desenho do hub.yml carimbado em pé, de frente para quem
-     * chega.
+     * A escultura: um desenho do hub.yml carimbado em pé, numa parede branca
+     * de fundo, de frente para quem chega.
      *
-     * É o que faz o hub funcionar sem legenda. Uma picareta de quinze blocos
-     * diz "survival" para qualquer pessoa, em qualquer idioma, antes de ela
-     * chegar perto o bastante para ler o painel.
+     * É o que faz o hub funcionar sem legenda. Uma picareta de dezessete
+     * blocos diz "survival" para qualquer pessoa, em qualquer idioma, antes
+     * de ela chegar perto o bastante para ler o painel. O fundo branco não é
+     * enfeite: sem ele a peça colorida fica recortada contra o void e some
+     * de dia.
      */
     private void esculturaDoPortal(World mundo, HubCatalog planta, HubCatalog.Portal portal,
                                    int piso) {
@@ -465,12 +775,29 @@ public final class HubBuilder {
         }
 
         HubCatalog.Face face = portal.face();
-        int distancia = planta.distanciaDoTerraco() + 6;
+        int distancia = planta.distanciaDoPortal() + planta.esculturaAvanco();
         int largura = desenho.get(0).length();
         int meia = largura / 2;
         int base = piso + 3;
+        int topo = base + desenho.size() - 1;
 
+        Material claro = planta.cor("piso", Material.SMOOTH_QUARTZ);
+        Material estrutura = planta.cor("estrutura", Material.QUARTZ_BLOCK);
+        Material borda = planta.cor("borda", Material.DEEPSLATE_TILES);
         Material luz = planta.cor("luz-fria", Material.END_ROD);
+
+        // A parede de fundo, duas fiadas atrás do desenho.
+        for (int lado = -meia - 2; lado <= meia + 2; lado++) {
+            for (int y = piso + 1; y <= topo + 2; y++) {
+                Material material = y == piso + 1 || y == topo + 2
+                        || Math.abs(lado) > meia + 1 ? borda
+                        : Math.abs(lado) == meia + 1 ? estrutura : claro;
+                for (int fundo = 1; fundo <= 2; fundo++) {
+                    por(mundo, face.du() * (distancia + fundo) + face.lu() * lado,
+                            face.dv() * (distancia + fundo) + face.lv() * lado, y, material);
+                }
+            }
+        }
 
         for (int linha = 0; linha < desenho.size(); linha++) {
             int y = base + (desenho.size() - 1 - linha);
@@ -489,7 +816,7 @@ public final class HubBuilder {
 
                 int lado = coluna - meia;
                 // Duas espessuras: de lado, uma escultura de um bloco some.
-                for (int fundo = 0; fundo <= 1; fundo++) {
+                for (int fundo = -1; fundo <= 0; fundo++) {
                     int u = face.du() * (distancia + fundo) + face.lu() * lado;
                     int v = face.dv() * (distancia + fundo) + face.lv() * lado;
                     por(mundo, u, v, y, material);
@@ -498,22 +825,29 @@ public final class HubBuilder {
         }
 
         // Pedestal, para a peça não nascer do chão sem apoio.
-        for (int lado = -meia - 1; lado <= meia + 1; lado++) {
-            for (int fundo = -1; fundo <= 2; fundo++) {
+        for (int lado = -meia - 2; lado <= meia + 2; lado++) {
+            for (int fundo = -2; fundo <= 2; fundo++) {
                 int u = face.du() * (distancia + fundo) + face.lu() * lado;
                 int v = face.dv() * (distancia + fundo) + face.lv() * lado;
-                por(mundo, u, v, piso + 1, planta.cor("estrutura-escura", Material.BLACK_CONCRETE));
-                por(mundo, u, v, piso + 2, portal.moldura());
+                por(mundo, u, v, piso + 1, borda);
+                por(mundo, u, v, piso + 2, estrutura);
             }
         }
     }
 
+    /**
+     * O painel flutuante do portal.
+     *
+     * Olha para o CENTRO, porque é de lá que o jogador vem. Virado para fora
+     * ele só seria legível por quem já atravessou — ou seja, por ninguém.
+     */
     private void painelDoPortal(World mundo, HubCatalog planta, HubCatalog.Portal portal,
                                 int piso) {
         HubCatalog.Face face = portal.face();
-        int centro = planta.distanciaDoTerraco();
+        int centro = planta.distanciaDoTerraco() - planta.terracoRaio() + 2;
 
-        String aviso = portal.aberto() ? "" : "<newline><color:#FF6A6A>em obra, ainda não abre</color>";
+        String aviso = portal.aberto() ? ""
+                : "<newline><color:#FF6A6A>em obra, ainda não abre</color>";
         Component texto = plugin.mini().deserialize(
                 "<color:" + portal.cor() + "><bold>" + escapar(portal.titulo()) + "</bold></color>"
                         + "<newline><gray>" + escapar(portal.descricao()) + "</gray>"
@@ -521,10 +855,10 @@ public final class HubBuilder {
                         + aviso);
 
         Location alvo = new Location(mundo,
-                face.du() * centro + 0.5, piso + 11.5, face.dv() * centro + 0.5);
-        alvo.setYaw(face.yawParaOCentro() + 180f);
+                face.du() * centro + 0.5, piso + 6.5, face.dv() * centro + 0.5);
+        alvo.setYaw(face.yawParaOCentro());
         alvo.setPitch(0f);
-        painel(mundo, alvo, texto, 1.6f);
+        painel(mundo, alvo, texto, 1.8f);
     }
 
     /**
@@ -538,39 +872,78 @@ public final class HubBuilder {
     }
 
     // ------------------------------------------------------------------
-    //  Mirante e pouso
+    //  Chegada
     // ------------------------------------------------------------------
 
-    /** A face que sobrou vira varanda: o hub fica simétrico e tem onde parar. */
-    private void mirante(World mundo, HubCatalog planta, List<HubCatalog.Portal> portais,
-                         int piso) {
-        for (HubCatalog.Face face : HubCatalog.Face.values()) {
-            boolean usada = portais.stream().anyMatch(portal -> portal.face() == face);
-            if (usada) {
-                continue;
-            }
+    /**
+     * O terraço em que o jogador nasce.
+     *
+     * Fica ABERTO: sem teto, sem parede, sem torre na frente. A primeira
+     * versão nascia dentro da praça, encostada na torre, e a queixa foi
+     * exatamente essa — "onde os players nascem tá fechado". Daqui se vê, em
+     * linha reta, a passarela, o monumento, o feixe e o anel.
+     */
+    private void terracoDaChegada(World mundo, HubCatalog planta, HubCatalog.Face face,
+                                  int piso) {
+        int centroU = face.du() * planta.distanciaDoTerraco();
+        int centroV = face.dv() * planta.distanciaDoTerraco();
 
-            int meia = planta.passarelaLargura() / 2;
-            Material pisoM = planta.cor("piso", Material.SMOOTH_QUARTZ);
-            Material estrutura = planta.cor("estrutura", Material.QUARTZ_BLOCK);
-            Material borda = planta.cor("borda", Material.DEEPSLATE_TILES);
+        Material claro = planta.cor("piso", Material.SMOOTH_QUARTZ);
+        Material linha = planta.cor("piso-linha", Material.LIGHT_BLUE_CONCRETE);
+        Material estrutura = planta.cor("estrutura", Material.QUARTZ_BLOCK);
+        Material luz = planta.cor("luz", Material.SEA_LANTERN);
+        Material laje = planta.cor("parapeito", Material.QUARTZ_SLAB);
 
-            for (int passo = planta.raio() - 1; passo <= planta.raio() + 6; passo++) {
-                for (int lado = -meia; lado <= meia; lado++) {
-                    int u = face.du() * passo + face.lu() * lado;
-                    int v = face.dv() * passo + face.lv() * lado;
-                    por(mundo, u, v, piso - 1, estrutura);
-                    por(mundo, u, v, piso, Math.abs(lado) == meia ? borda : pisoM);
-                    if (Math.abs(lado) == meia || passo == planta.raio() + 6) {
-                        laje(mundo, u, v, piso + 1,
-                                planta.cor("parapeito", Material.QUARTZ_SLAB));
-                    }
+        // O estrado de onde ele nasce: um degrau só, para o olho dele passar
+        // por cima do parapeito e achar o monumento na primeira volta.
+        for (int du = -5; du <= 5; du++) {
+            for (int dv = -5; dv <= 5; dv++) {
+                int d = anel(du, dv, 2);
+                if (d > 5) {
+                    continue;
+                }
+                if (d == 5) {
+                    laje(mundo, centroU + du, centroV + dv, piso + 1, laje);
+                } else {
+                    por(mundo, centroU + du, centroV + dv, piso + 1,
+                            d == 4 ? linha : d == 0 ? luz : claro);
                 }
             }
         }
+
+        // Quatro mastros nas diagonais do terraço: fecham o espaço sem tapar
+        // nada, que é a diferença entre "aberto" e "vazio".
+        Material rod = planta.cor("luz-fria", Material.END_ROD);
+        for (int su = -1; su <= 1; su += 2) {
+            for (int sv = -1; sv <= 1; sv += 2) {
+                int u = centroU + su * 9;
+                int v = centroV + sv * 9;
+                for (int y = piso + 1; y <= piso + 8; y++) {
+                    por(mundo, u, v, y, (y - piso) % 4 == 0
+                            ? planta.cor("vidro", Material.LIGHT_BLUE_STAINED_GLASS)
+                            : estrutura);
+                }
+                por(mundo, u, v, piso + 9, luz);
+                por(mundo, u, v, piso + 10, rod);
+            }
+        }
+
+        Component texto = plugin.mini().deserialize(
+                "<gradient:#8FD3FF:#FFFFFF><bold>BEM-VINDO AO THE BIGAS</bold></gradient>"
+                        + "<newline><gray>siga em frente: a parede branca explica tudo</gray>"
+                        + "<newline><color:#5BE37D>oeste survival</color>  "
+                        + "<color:#FFB84D>leste lotes</color>  "
+                        + "<color:#C77DFF>norte minigames</color>");
+
+        Location alvo = new Location(mundo,
+                face.du() * (planta.distanciaDoTerraco() - 12) + 0.5, piso + 7.5,
+                face.dv() * (planta.distanciaDoTerraco() - 12) + 0.5);
+        alvo.setYaw(face.yawParaOCentro() + 180f);
+        alvo.setPitch(0f);
+        painel(mundo, alvo, texto, 1.9f);
     }
 
-    /** Onde o jogador nasce: na praça, de frente para a torre. */
+    /** Onde o jogador nasce: no estrado do terraço de chegada. */
     private void pousoDoJogador(World mundo, HubCatalog planta, int piso) {
         Location pouso = pontoDeSpawn(mundo, planta);
         mundo.setSpawnLocation(pouso.getBlockX(), pouso.getBlockY(), pouso.getBlockZ());
@@ -578,9 +951,11 @@ public final class HubBuilder {
 
     /** O ponto de pouso do hub, usado pelo spawn e pelo resgate do void. */
     public static Location pontoDeSpawn(World mundo, HubCatalog planta) {
-        Location pouso = new Location(mundo, 0.5, planta.pisoY() + 1,
-                planta.raio() - 5 + 0.5);
-        pouso.setYaw(180f);
+        HubCatalog.Face face = HubCatalog.faceLivre(planta.portais());
+        int d = planta.distanciaDoTerraco();
+        Location pouso = new Location(mundo, face.du() * d + 0.5, planta.pisoY() + 2,
+                face.dv() * d + 0.5);
+        pouso.setYaw(face.yawParaOCentro());
         pouso.setPitch(0f);
         return pouso;
     }
@@ -646,7 +1021,7 @@ public final class HubBuilder {
 
         for (int u = -alcance; u <= alcance; u++) {
             for (int v = -alcance; v <= alcance; v++) {
-                for (int y = piso - 2; y <= piso + planta.torreAltura() + 5; y++) {
+                for (int y = piso - 8; y <= piso + planta.alturaDaObra(); y++) {
                     if (!mundo.getBlockAt(u, y, v).getType().isAir()) {
                         achados++;
                     }

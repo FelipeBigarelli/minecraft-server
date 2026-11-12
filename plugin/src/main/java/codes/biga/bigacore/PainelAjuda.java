@@ -192,14 +192,26 @@ public final class PainelAjuda {
      * @param aplicar false faz a simulação: conta e valida sem criar nada.
      */
     public Relatorio construir(Player jogador, boolean aplicar) {
+        return construir(jogador.getWorld(), jogador.getLocation(), aplicar);
+    }
+
+    /**
+     * A mesma parede, medida de um ponto qualquer em vez de um jogador.
+     *
+     * É por aqui que o hub levanta o paredão sozinho: o monumento do centro
+     * já sabe onde a parede começa e para que lado ela olha, e obrigar um
+     * humano a ficar exatamente no bloco certo para digitar o comando seria
+     * pedir para a parede nascer dois blocos torta.
+     *
+     * @param base de onde se mede: a parede nasce à frente deste ponto, na
+     *             direção do yaw dele.
+     */
+    public Relatorio construir(World mundo, Location base, boolean aplicar) {
         List<Painel> paineis = lerPaineis();
         if (paineis.isEmpty()) {
             return new Relatorio(false, 0, 0, 0, 0,
                     "ajuda.yml não tem nenhum painel em 'paineis'.");
         }
-
-        World mundo = jogador.getWorld();
-        Location base = jogador.getLocation();
 
         ConfigurationSection l = config.getConfigurationSection("layout");
         double distancia = valor(l, "distancia", 6.0);
@@ -627,6 +639,54 @@ public final class PainelAjuda {
      * como conferir no jogo se a conta bateu com o que apareceu na
      * parede.
      */
+    /**
+     * O tamanho que a parede VAI ter, em blocos, sem construir nada.
+     *
+     * Existe para o hub poder dimensionar o monumento pelo conteúdo do
+     * ajuda.yml. Sem isso o tamanho da pedra seria um número copiado à mão,
+     * e o primeiro painel novo faria a última coluna flutuar fora dela.
+     *
+     * @param largura   quanto a parede inteira ocupa de ponta a ponta
+     * @param altura    do pé da fileira de baixo ao topo da de cima
+     * @param distancia o recuo que o layout pede entre o leitor e a parede
+     */
+    public record Parede(double largura, double altura, double distancia) {
+    }
+
+    public Parede tamanhoDaParede() {
+        ConfigurationSection l = config.getConfigurationSection("layout");
+        double distancia = valor(l, "distancia", 6.0);
+
+        List<Painel> paineis = lerPaineis();
+        if (paineis.isEmpty()) {
+            return new Parede(0, 0, distancia);
+        }
+
+        float escala = (float) valor(l, "escala", 1.0);
+        double margem = valor(l, "margem", 1.0);
+        double altura = valor(l, "altura", 2.4);
+        int porFileira = l == null ? 3 : Math.max(1, l.getInt("por_fileira", 3));
+
+        int larguraAlvo = larguraPixelMaxima(paineis);
+        int linhasAlvo = linhasMaximas(paineis);
+
+        double espacamento = valor(l, "espacamento", 0.0);
+        if (espacamento <= 0) {
+            espacamento = larguraAlvo * BLOCO_POR_PIXEL * escala + margem;
+        }
+        double espacamentoV = valor(l, "espacamento_vertical", 0.0);
+        if (espacamentoV <= 0) {
+            espacamentoV = (linhasAlvo + 2) * ALTURA_LINHA * escala + margem;
+        }
+
+        int fileiras = (paineis.size() + porFileira - 1) / porFileira;
+        int colunas = Math.min(porFileira, paineis.size());
+        double caixa = (linhasAlvo + 2) * ALTURA_LINHA * escala;
+
+        return new Parede(colunas * espacamento,
+                altura + (fileiras - 1) * espacamentoV + caixa, distancia);
+    }
+
     public record Relatorio(boolean ok, int criados, int removidos,
                             double espacamento, double espacamentoVertical,
                             String erro) {
