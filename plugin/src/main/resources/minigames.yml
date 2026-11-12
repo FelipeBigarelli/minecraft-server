@@ -257,7 +257,7 @@ portais:
     titulo: "MINERAÇÃO"
     descricao: "cave mais que o vizinho"
     detalhe: "minério vale ponto"
-    mundo: ""
+    mundo: "mineracao"
     cor: "#B5835A"
     moldura: BROWN_TERRACOTTA
     destaque: BROWN_CONCRETE

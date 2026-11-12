@@ -1,0 +1,185 @@
+# -------------------------------------------------------------
+#  MINERAÇÃO — cave mais que o vizinho
+#
+#  Uma mina só, de trinta e cinco por trinta e cinco por doze, e
+#  dezesseis pessoas dentro dela. Cada minério vale ponto; quem
+#  tiver mais ponto quando o relógio fechar ganha.
+#
+#  Quatro decisões, e cada uma é uma coisa que as minas de
+#  servidor de prisão fazem ao contrário:
+#
+#  - MINÉRIO EM VEIO, e não sorteado bloco por bloco. Sorteio por
+#    bloco espalha minério solto: cavar em qualquer direção paga
+#    exatamente o mesmo, e aí não existe ler a mina, não existe
+#    seguir o veio, não existe decisão — existe clicar. Em veio,
+#    quem encontra tem o que seguir, e o lugar passa a importar.
+#  - FUNDO PAGA MAIS. Cada minério tem a faixa de profundidade
+#    dele. Carvão em cima, esmeralda nas duas últimas fiadas. É o
+#    que transforma "quanto eu me comprometo com o fundo" na
+#    decisão central da partida, e não custa nada: é a mesma conta
+#    com a fiada dentro.
+#  - A MINA É OUTRA A CADA RODADA. Mina fixa se decora, e decorar
+#    uma mina de quatro minutos ganha a partida sozinho.
+#  - O ÚLTIMO MINUTO VALE DOBRADO. Sem isso, quem abre vantagem
+#    nos dois primeiros minutos joga os dois últimos sozinho, e os
+#    outros quinze ficam cavando por nada.
+#
+#  Ninguém toma dano e ninguém é eliminado. A picareta é a MESMA
+#  para todos e não melhora: o que decide é rota e leitura, não
+#  equipamento.
+# -------------------------------------------------------------
+
+mundo: mineracao
+
+arena:
+  # A fiada da SUPERFÍCIE da mina — é nela que todo mundo larga, e
+  # o primeiro bloco que se quebra é o de baixo dos pés.
+  y: 100
+
+  # O lado do maciço, em blocos. Ímpar, para o meio cair no (0,0).
+  lado: 35
+
+  # Quantas fiadas de rocha. A última é bedrock e não se quebra.
+  profundidade: 12
+
+  # Da fiada 'fundo-profundo' para baixo a rocha vira ardósia:
+  # mais dura de quebrar e visivelmente outra. É o aviso de que o
+  # jogador chegou na zona que paga.
+  fundo-profundo: 6
+
+  # A moldura de bedrock em volta e o parapeito dela.
+  moldura: 1
+  parapeito: 2
+
+  saguao-altura: 22
+  saguao-raio: 9
+  saguao-parapeito: 4
+  marco-altura: 18
+
+  # -1 sorteia uma mina nova a cada rodada. Um número prende a
+  # mina (eventos, testes).
+  semente: -1
+
+# A tabela de minérios. 'fundo' e 'fundura' são as fiadas, contadas
+# de cima para baixo a partir de zero. O bloco de ardósia sai do
+# nome: COAL_ORE na zona funda é DEEPSLATE_COAL_ORE.
+minerios:
+  - nome: carvão
+    bloco: COAL_ORE
+    pontos: 1
+    veios: 30
+    tamanho: 7
+    fundo: 0
+    fundura: 5
+  - nome: cobre
+    bloco: COPPER_ORE
+    pontos: 2
+    veios: 18
+    tamanho: 8
+    fundo: 1
+    fundura: 6
+  - nome: ferro
+    bloco: IRON_ORE
+    pontos: 3
+    veios: 26
+    tamanho: 6
+    fundo: 2
+    fundura: 8
+  - nome: redstone
+    bloco: REDSTONE_ORE
+    pontos: 4
+    veios: 16
+    tamanho: 6
+    fundo: 5
+    fundura: 10
+  - nome: lazulita
+    bloco: LAPIS_ORE
+    pontos: 5
+    veios: 14
+    tamanho: 5
+    fundo: 5
+    fundura: 10
+  - nome: ouro
+    bloco: GOLD_ORE
+    pontos: 7
+    veios: 12
+    tamanho: 5
+    fundo: 7
+    fundura: 11
+  - nome: diamante
+    bloco: DIAMOND_ORE
+    pontos: 12
+    veios: 9
+    tamanho: 4
+    fundo: 9
+    fundura: 11
+  - nome: esmeralda
+    bloco: EMERALD_ORE
+    pontos: 18
+    veios: 6
+    tamanho: 3
+    fundo: 10
+    fundura: 11
+
+paleta:
+  placa: DARK_OAK_WALL_SIGN
+
+  rocha: STONE
+  rocha-funda: DEEPSLATE
+  superficie: COBBLESTONE
+  moldura: BEDROCK
+  moldura-topo: POLISHED_DEEPSLATE
+  torre: DEEPSLATE_BRICKS
+  torre-luz: LANTERN
+
+  estrutura: POLISHED_DEEPSLATE
+  escuro: DEEPSLATE_BRICKS
+  borda: DEEPSLATE_TILES
+  metal: IRON_BLOCK
+  vidro: BROWN_STAINED_GLASS
+  luz: LANTERN
+  luz-fria: END_ROD
+  nucleo: RAW_IRON_BLOCK
+
+regras:
+  minimo: 2
+  maximo: 16
+  contagem-segundos: 15
+  fim-segundos: 8
+  treino-sozinho: true
+
+  # Quantos sonares cada jogador leva. O sonar diz o minério mais
+  # valioso num raio e a direção dele, e gasta um uso.
+  sonares: 2
+  sonar-alcance: 10
+
+  # Os últimos segundos, em que todo minério vale dobrado.
+  dobro-segundos: 45
+
+  # Quantas fiadas abaixo do piso de bedrock já conta como queda.
+  # Não deveria acontecer nunca: o piso não se quebra.
+  queda-abaixo: 4
+
+  # A rodada acaba no relógio, sempre.
+  tempo-limite: 240
+
+textos:
+  titulo: "MINERAÇÃO"
+  cor: "#B5835A"
+  subtitulo: "cave mais que o vizinho"
+  regras:
+    - "clique em [ENTRAR] para entrar na fila"
+    - "minério vale ponto; quanto mais fundo, mais ponto"
+    - "a mina é outra a cada rodada"
+    - "o minério vem em VEIO: achou um, siga"
+    - "os últimos 45s valem dobrado"
+  escala-titulo: 2.6
+  escala-placa: 1.6
+  fundo-alpha: 0
+
+  placa-entrar: "[ENTRAR]"
+  placa-sair: "[SAIR]"
+  placa-fila: "na fila"
+  placa-esperando: "esperando"
+  placa-jogando: "CAVANDO"
+  placa-refazendo: "refazendo"

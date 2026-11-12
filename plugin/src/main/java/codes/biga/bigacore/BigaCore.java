@@ -75,6 +75,9 @@ public final class BigaCore extends JavaPlugin {
     private LabirintoCatalog labirintoCatalog;
     private LabirintoBuilder labirintoBuilder;
     private Labirinto labirinto;
+    private MineracaoCatalog mineracaoCatalog;
+    private MineracaoBuilder mineracaoBuilder;
+    private Mineracao mineracao;
 
     /**
      * Os minigames registrados, por etiqueta.
@@ -191,6 +194,11 @@ public final class BigaCore extends JavaPlugin {
             saveResource("pega-pega.yml", false);
         }
 
+        File mineracaoFile = new File(getDataFolder(), "mineracao.yml");
+        if (!mineracaoFile.exists()) {
+            saveResource("mineracao.yml", false);
+        }
+
         File labirintoFile = new File(getDataFolder(), "labirinto.yml");
         if (!labirintoFile.exists()) {
             saveResource("labirinto.yml", false);
@@ -293,6 +301,11 @@ public final class BigaCore extends JavaPlugin {
         this.labirintoBuilder = new LabirintoBuilder(this);
         this.labirinto = new Labirinto(this);
         registrarJogo(labirintoCatalog, labirintoBuilder, labirinto);
+
+        this.mineracaoCatalog = new MineracaoCatalog(this);
+        this.mineracaoBuilder = new MineracaoBuilder(this);
+        this.mineracao = new Mineracao(this);
+        registrarJogo(mineracaoCatalog, mineracaoBuilder, mineracao);
 
         // As regras valem para o hub E para o lobby, então entram depois dos
         // dois: elas leem a configuração dos dois mundos para saber onde agir.
@@ -759,6 +772,18 @@ public final class BigaCore extends JavaPlugin {
 
     public Labirinto labirinto() {
         return labirinto;
+    }
+
+    public MineracaoCatalog mineracaoCatalog() {
+        return mineracaoCatalog;
+    }
+
+    public MineracaoBuilder mineracaoBuilder() {
+        return mineracaoBuilder;
+    }
+
+    public Mineracao mineracao() {
+        return mineracao;
     }
 
     /** Os minigames registrados, por etiqueta, na ordem em que entraram. */
