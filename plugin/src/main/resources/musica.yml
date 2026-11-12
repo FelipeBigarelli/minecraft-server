@@ -1,0 +1,193 @@
+# -------------------------------------------------------------
+#  RITMO — acerte a batida
+#
+#  Cada jogador tem o SEU tablado, num anel em volta do metrônomo.
+#  O metrônomo toca, e a cada batida você tem de PULAR. Pulou fora
+#  da batida, ou não pulou, perde uma vida — e o tablado encolhe um
+#  anel, de modo que de longe se vê quantas vidas cada um tem. Sem
+#  tablado, cai.
+#
+#  O andamento sobe: oito faixas, de sessenta a cento e cinquenta
+#  batidas por minuto, e no fim fica na mais rápida até sobrar um.
+#
+#  POR QUE A FOLGA É FRAÇÃO DA BATIDA, E NUNCA MILISSEGUNDO
+#
+#  Os jogos de ritmo de verdade medem a folga em milissegundos — o
+#  osu! usa 50, 100 e 150 ms para as três notas. Num servidor a
+#  vinte tiques por segundo, um tique é 50 ms: as três faixas do
+#  osu! viram UM, DOIS e TRÊS tiques, e o pulo do jogador também
+#  chega carimbado em tique inteiro. O que se mede nesse caso é o
+#  arredondamento, não a pessoa.
+#
+#  E tem o defeito pior: a 150 batidas por minuto a batida dura 8
+#  tiques, e uma folga de 150 ms cobre 6 desses 8. Qualquer pulo
+#  cai dentro da folga de ALGUMA batida, e o jogo não pode mais ser
+#  perdido — ele continua tocando, bonito, sem erro nenhum.
+#
+#  Então aqui a folga é uma FRAÇÃO da batida, e a conferência da
+#  obra recusa:
+#   - folga maior que metade da batida, que faz as folgas de duas
+#     batidas vizinhas se tocarem e nenhum pulo errar;
+#   - folga menor que dois tiques, que é medir a grade de tiques do
+#     servidor em vez do jogador.
+#
+#  E a faixa mais lenta tem de dar folga de 250 ms ou mais: é ela
+#  que absorve o ping, para as primeiras batidas serem possíveis
+#  para quem joga de longe.
+#
+#  POR QUE O ANDAMENTO PARA EM 85 BPM
+#
+#  Um pulo no Minecraft leva doze tiques entre sair do chão e
+#  voltar a ele, e só se pula do chão. Doze tiques são 100 batidas
+#  por minuto — e o teto não é 100, é 85, por causa de um detalhe:
+#  o jogador erra um tique para cada lado, e dois pulos seguidos
+#  precisam de doze tiques ENTRE eles. Pular um tique atrasado e
+#  depois um tique adiantado pede uma batida de 14 tiques. A 100
+#  bpm, quem acertasse a primeira batida não conseguiria a segunda.
+#
+#  Então a escada sobe de 60 a 85 bpm, e a dificuldade que falta
+#  vem da FOLGA, que aperta de ±6 tiques (300 ms) para ±3 (150 ms).
+#  É por isso que a folga está escrita faixa por faixa em vez de
+#  sair de uma fração: a fração encolheria junto com a batida e
+#  deixaria o fim da escada com a mesma dificuldade do começo.
+#
+#  POR QUE SEGURAR O ESPAÇO NÃO JOGA SOZINHO
+#
+#  Quem segura a tecla de pulo pula a cada doze tiques, exatos,
+#  sem erro nenhum. Numa batida de 16 tiques com folga de ±4, esse
+#  trilho de doze cai dentro da folga de TODAS as batidas — a
+#  tecla presa tira nota máxima. É por isso que a faixa de 75 bpm
+#  tem folga ±3 e não ±4, e é por isso que a conferência da obra
+#  simula o trilho de doze tiques em cada faixa e recusa a escada
+#  se ele sobrevive.
+#
+#  E é por isso que a regra do pulo é a estrita: pulo fora da
+#  folga QUEIMA a batida que ele mirava, em vez de ser ignorado.
+#  Ignorando, quem martela a tecla aproveita as batidas em que o
+#  trilho casa e não paga pelas outras.
+# -------------------------------------------------------------
+
+mundo: musica
+
+arena:
+  y: 100
+
+  # Um tablado por jogador, num anel. O raio do anel é grande de
+  # propósito: com 16 tablados de raio 3 nele, sobram mais de cinco
+  # blocos de vazio entre tablados vizinhos, e cinco blocos não se
+  # pulam nem correndo — ninguém invade o tablado do vizinho.
+  tablados: 16
+  tablado-raio: 3
+  tablado-anel: 32
+
+  # O metrônomo, no meio: a ilha que ninguém alcança. Ele é só
+  # relógio e painel, e por isso fica a 24 blocos de vazio dos
+  # tablados — assim não há como se esconder nele.
+  metronomo-raio: 5
+  metronomo-altura: 14
+
+  saguao-altura: 20
+  saguao-raio: 9
+  saguao-parapeito: 4
+  marco-altura: 18
+  painel-altura: 6
+
+paleta:
+  placa: WARPED_WALL_SIGN
+
+  tablado: PURPUR_BLOCK
+  tablado-beira: PURPUR_PILLAR
+  tablado-nucleo: AMETHYST_BLOCK
+  tablado-aceso: SHROOMLIGHT
+
+  metronomo: PURPUR_BLOCK
+  metronomo-beira: PURPUR_PILLAR
+  coluna: PURPUR_PILLAR
+  nucleo: AMETHYST_BLOCK
+  nucleo-aceso: SEA_LANTERN
+
+  poste: WARPED_FENCE
+  poste-luz: SHROOMLIGHT
+
+  estrutura: PURPUR_PILLAR
+  escuro: POLISHED_BLACKSTONE
+  borda: BLACKSTONE
+  metal: IRON_BLOCK
+  vidro: PURPLE_STAINED_GLASS
+  luz: SHROOMLIGHT
+  luz-fria: END_ROD
+  torre: PURPUR_PILLAR
+  torre-luz: SHROOMLIGHT
+
+regras:
+  minimo: 2
+  maximo: 16
+  contagem-segundos: 15
+  fim-segundos: 8
+  treino-sozinho: true
+
+  # Quantos tiques entre batidas, em cada faixa de andamento. São
+  # TIQUES e não batidas por minuto porque o tique é a unidade que
+  # o servidor tem: 1200/20 = 60 bpm, 1200/14 = 85 bpm, e um
+  # andamento de 90 bpm pediria 13,33 tiques, que não existe.
+  #
+  # Nenhuma faixa pode ficar abaixo de 14 tiques: são os 12 do
+  # ciclo do pulo mais um tique de erro para cada lado.
+  tempos: [20, 19, 18, 17, 16, 15, 14]
+
+  batidas-por-compasso: 4
+  compassos-por-tempo: 4
+
+  # O compasso de aviso: ele toca, o metrônomo pisca, e ninguém
+  # perde vida. Sem ele a primeira batida cobraria de quem ainda
+  # está entendendo de onde vem o som.
+  compassos-de-aviso: 1
+
+  # A folga de cada faixa, em tiques, para cada lado da batida. Uma
+  # por faixa de 'tempos': é o aperto dela que faz a escada subir
+  # de dificuldade, já que o andamento para em 100 bpm.
+  #
+  # Nenhuma pode passar de metade da batida (senão as folgas de
+  # duas batidas vizinhas se encostam e nenhum pulo erra) nem cair
+  # abaixo de 2 (senão o que se mede é a grade de tiques). E a de
+  # 75 bpm é ±3 e não ±4 porque com ±4 o trilho de doze tiques de
+  # quem segura a tecla acerta todas as batidas dela.
+  folgas: [6, 5, 5, 4, 3, 3, 3]
+  folga-minima: 2
+
+  # Quantas vidas, que são também os anéis do tablado: com três
+  # vidas o tablado tem raio 3, e cada erro tira um anel.
+  vidas: 3
+
+  pontos-na-batida: 1
+
+  queda-abaixo: 6
+  tempo-limite: 300
+
+# A melodia, em tons de bloco de nota, repetida batida após batida.
+# É enfeite com uma função: um metrônomo seco de cem batidas é
+# desagradável de ouvir, e um jogo que castiga quem não escuta não
+# pode ser desagradável de escutar.
+melodia: [0.63, 0.75, 0.84, 1.0, 0.84, 0.75, 0.63, 0.5]
+
+textos:
+  titulo: "RITMO"
+  cor: "#D89BFF"
+  subtitulo: "acerte a batida"
+  regras:
+    - "clique em [ENTRAR] para entrar na fila"
+    - "cada um tem o seu tablado"
+    - "PULE em cima de cada batida"
+    - "pulo fora da batida tira uma vida"
+    - "o tablado encolhe a cada vida perdida"
+    - "o andamento sobe de faixa em faixa"
+  escala-titulo: 2.6
+  escala-placa: 1.6
+  fundo-alpha: 0
+
+  placa-entrar: "[ENTRAR]"
+  placa-sair: "[SAIR]"
+  placa-fila: "na fila"
+  placa-esperando: "esperando"
+  placa-jogando: "NA BATIDA"
+  placa-refazendo: "refazendo"

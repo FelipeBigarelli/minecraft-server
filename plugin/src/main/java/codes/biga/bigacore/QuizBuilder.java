@@ -1,16 +1,11 @@
 package codes.biga.bigacore;
 
 import net.kyori.adventure.text.Component;
-import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.entity.Display;
-import org.bukkit.entity.TextDisplay;
-import org.bukkit.util.Transformation;
-import org.joml.Vector3f;
 
 import java.util.HashSet;
 import java.util.List;
@@ -598,52 +593,28 @@ public final class QuizBuilder implements ConstrutorDeArena {
     /**
      * Pendura os painéis da pergunta: um no átrio e um sobre cada tablado.
      *
-     * <p>Não usa {@link ArenaComum#painel} por um motivo só, e é o motivo de
-     * o Quiz ser diferente dos outros jogos: o letreiro compartilhado nasce
-     * FIXO, virado para um lado, porque o painel de instrução do saguão é
-     * lido de frente. Esta arena é lida das QUATRO direções ao mesmo tempo —
-     * quem corre para o tablado norte está de costas para quem corre para o
-     * sul — e um painel fixo seria ilegível para três dos quatro.
+     * <p>Usa {@link ArenaComum#painelVirado} e não {@link ArenaComum#painel}
+     * porque esta arena é lida das QUATRO direções ao mesmo tempo: quem corre
+     * para o tablado norte está de costas para quem corre para o sul, e um
+     * painel fixo seria ilegível para três dos quatro.
      */
     public void painelDaPergunta(World mundo, QuizCatalog planta,
                                  Component noAtrio, List<Component> nosTablados) {
         ArenaComum.limparPaineis(mundo, TAG_PERGUNTA);
         Location meio = new Location(mundo, 0.5,
                 planta.topoY() + planta.painelAltura(), 0.5);
-        virado(mundo, meio, noAtrio, (float) planta.escalaTitulo(),
-                planta.fundoDoTexto());
+        ArenaComum.painelVirado(mundo, meio, noAtrio,
+                (float) planta.escalaTitulo(), planta.fundoDoTexto(),
+                TAG_PERGUNTA);
 
         for (int k = 0; k < planta.tablados() && k < nosTablados.size(); k++) {
             int[] centro = planta.centroDoTablado(k);
             Location sobre = new Location(mundo, centro[0] + 0.5,
                     planta.topoY() + 3.2, centro[1] + 0.5);
-            virado(mundo, sobre, nosTablados.get(k),
-                    (float) planta.escalaPlaca() * 1.4f, planta.fundoDoTexto());
+            ArenaComum.painelVirado(mundo, sobre, nosTablados.get(k),
+                    (float) planta.escalaPlaca() * 1.4f,
+                    planta.fundoDoTexto(), TAG_PERGUNTA);
         }
-    }
-
-    private static void virado(World mundo, Location alvo, Component texto,
-                               float escala, int fundoAlpha) {
-        alvo.setYaw(0f);
-        alvo.setPitch(0f);
-        mundo.spawn(alvo, TextDisplay.class, novo -> {
-            novo.text(texto);
-            // CENTER, e não FIXED: o painel acompanha quem olha.
-            novo.setBillboard(Display.Billboard.CENTER);
-            novo.setAlignment(TextDisplay.TextAlignment.CENTER);
-            novo.setBackgroundColor(Color.fromARGB(fundoAlpha, 0, 0, 0));
-            novo.setShadowed(true);
-            novo.setBrightness(new Display.Brightness(15, 15));
-            novo.setLineWidth(260);
-            novo.setViewRange(2.0f);
-            novo.setPersistent(false);
-            novo.addScoreboardTag(TAG_PERGUNTA);
-
-            Transformation t = novo.getTransformation();
-            novo.setTransformation(new Transformation(
-                    t.getTranslation(), t.getLeftRotation(),
-                    new Vector3f(escala, escala, escala), t.getRightRotation()));
-        });
     }
 
     // ------------------------------------------------------------------

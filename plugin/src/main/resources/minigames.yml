@@ -293,7 +293,7 @@ portais:
     titulo: "RITMO"
     descricao: "acerte a batida"
     detalhe: "errou, caiu"
-    mundo: ""
+    mundo: "musica"
     cor: "#D89BFF"
     moldura: PURPUR_PILLAR
     destaque: PURPUR_BLOCK

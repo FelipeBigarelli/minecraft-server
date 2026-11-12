@@ -329,6 +329,40 @@ public final class ArenaComum {
         });
     }
 
+    /**
+     * Pendura um letreiro que acompanha quem olha.
+     *
+     * A diferença com {@link #painel} é uma linha — {@code Billboard.CENTER}
+     * em vez de {@code FIXED} — e ela existe para as arenas que são lidas de
+     * várias direções ao mesmo tempo. O painel de instrução do saguão é lido
+     * de frente e fica FIXO, que é mais bonito e não tremelica; o painel no
+     * meio de uma arena em anel, com dezesseis pessoas em volta, tem de
+     * virar, ou é ilegível para quinze delas.
+     */
+    public static void painelVirado(World mundo, Location alvo, Component texto,
+                                    float escala, int fundoAlpha,
+                                    String etiqueta) {
+        alvo.setYaw(0f);
+        alvo.setPitch(0f);
+        mundo.spawn(alvo, TextDisplay.class, novo -> {
+            novo.text(texto);
+            novo.setBillboard(Display.Billboard.CENTER);
+            novo.setAlignment(TextDisplay.TextAlignment.CENTER);
+            novo.setBackgroundColor(Color.fromARGB(fundoAlpha, 0, 0, 0));
+            novo.setShadowed(true);
+            novo.setBrightness(new Display.Brightness(15, 15));
+            novo.setLineWidth(260);
+            novo.setViewRange(2.0f);
+            novo.setPersistent(false);
+            novo.addScoreboardTag(etiqueta);
+
+            Transformation t = novo.getTransformation();
+            novo.setTransformation(new Transformation(
+                    t.getTranslation(), t.getLeftRotation(),
+                    new Vector3f(escala, escala, escala), t.getRightRotation()));
+        });
+    }
+
     public static void limparPaineis(World mundo, String etiqueta) {
         for (Entity entidade : mundo.getEntities()) {
             if (entidade.getScoreboardTags().contains(etiqueta)) {
