@@ -1,0 +1,121 @@
+# -------------------------------------------------------------
+#  CORRIDA — primeiro a cruzar leva
+#
+#  Um autódromo flutuante de três bojos, duas voltas, oito
+#  portões por volta e três ATALHOS: pontes de dois blocos de
+#  largura sobre o vazio, que cortam a ponta de cada bojo e
+#  economizam um sexto da volta. Cair não elimina: devolve ao
+#  último portão, e isso custa mais tempo do que o atalho
+#  economiza. "Atalho é por sua conta" é regra, não enfeite.
+#
+#  A pista é GERADA: um anel ondulado r = raio - onda*cos(voltas*t),
+#  reamostrado de um em um bloco. Com menos cosseno a largada cai
+#  num VALE, que é o ponto mais longe dos bojos — e a linha de
+#  chegada não pode ser contornável por atalho.
+#
+#  Os portões são planos verticais, e o jogo testa o SEGMENTO que
+#  o jogador andou no tique contra o plano. Testar só a posição
+#  perderia a passagem de quem corre com Velocidade II, e um
+#  portão perdido tranca a volta para sempre.
+# -------------------------------------------------------------
+
+mundo: corrida
+
+arena:
+  # A fiada da pista.
+  y: 100
+
+  # O anel: raio médio e quanto a onda abre para fora.
+  raio: 36
+  onda: 9
+
+  # Quantos bojos a pista tem. É também quantos atalhos.
+  voltas-da-onda: 3
+
+  # A largura da faixa, em blocos. Ímpar: tem eixo.
+  largura: 7
+
+  # O muro de cada lado, que é o que impede cortar caminho a pé.
+  muro-altura: 2
+
+  # Quantos portões por volta. Mais portões: volta ao cair mais
+  # perto. Menos portões: atalho mais ousado possível.
+  portoes: 8
+
+  # Quantos graus de arco cada atalho corta, e a largura da ponte.
+  atalho-abertura: 72
+  atalho-largura: 2
+
+  # As torres de refletor, para a pista ter escala de estádio.
+  torre-recuo: 8
+  torre-altura: 18
+
+  # Abaixo de y menos isto, volta ao último portão.
+  queda-abaixo: 6
+
+  saguao-altura: 16
+  saguao-raio: 9
+  saguao-parapeito: 4
+
+paleta:
+  placa: DARK_OAK_WALL_SIGN
+
+  pista: LIGHT_GRAY_CONCRETE
+  pista-eixo: WHITE_CONCRETE
+  guia-clara: WHITE_CONCRETE
+  guia-escura: RED_CONCRETE
+  largada-clara: WHITE_CONCRETE
+  largada-escura: BLACK_CONCRETE
+
+  muro: WHITE_TERRACOTTA
+  muro-topo: BLACK_CONCRETE
+
+  ponte: POLISHED_BLACKSTONE
+  ponte-borda: GOLD_BLOCK
+
+  estrutura: QUARTZ_BLOCK
+  escuro: POLISHED_DEEPSLATE
+  borda: DEEPSLATE_TILES
+  metal: IRON_BLOCK
+  vidro: WHITE_STAINED_GLASS
+  luz: SEA_LANTERN
+  luz-fria: END_ROD
+  nucleo: REDSTONE_LAMP
+
+regras:
+  # Dois: corrida de um só é treino de volta rápida.
+  minimo: 2
+  maximo: 16
+  contagem-segundos: 15
+  fim-segundos: 8
+  treino-sozinho: true
+
+  # Quantas voltas tem a corrida.
+  voltas: 2
+
+  # Velocidade que todo mundo ganha na largada (0 = nenhuma,
+  # 1 = Velocidade I, 2 = Velocidade II).
+  velocidade: 2
+
+  # O teto da partida. Quem estiver na frente ganha se estourar.
+  tempo-limite: 300
+
+textos:
+  titulo: "CORRIDA"
+  cor: "#D0D0D0"
+  subtitulo: "primeiro a cruzar leva"
+  regras:
+    - "clique em [ENTRAR] para entrar na fila"
+    - "duas voltas, oito portões por volta"
+    - "as pontes de ouro cortam caminho"
+    - "cair devolve ao último portão"
+  escala-titulo: 2.6
+  escala-placa: 1.6
+  fundo-alpha: 0
+
+  placa-entrar: "[ENTRAR]"
+  placa-sair: "[SAIR]"
+  placa-fila: "na fila"
+  placa-esperando: "esperando"
+  placa-jogando: "CORRENDO"
+  placa-refazendo: "refazendo"

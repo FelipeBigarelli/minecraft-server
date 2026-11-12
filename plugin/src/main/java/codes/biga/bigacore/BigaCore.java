@@ -56,6 +56,9 @@ public final class BigaCore extends JavaPlugin {
     private ParkourCatalog parkourCatalog;
     private ParkourBuilder parkourBuilder;
     private Parkour parkour;
+    private CorridaCatalog corridaCatalog;
+    private CorridaBuilder corridaBuilder;
+    private Corrida corrida;
 
     /**
      * Os minigames registrados, por etiqueta.
@@ -152,6 +155,11 @@ public final class BigaCore extends JavaPlugin {
             saveResource("parkour.yml", false);
         }
 
+        File corridaFile = new File(getDataFolder(), "corrida.yml");
+        if (!corridaFile.exists()) {
+            saveResource("corrida.yml", false);
+        }
+
         this.economyCatalog = new EconomyCatalog(this);
         this.economyBridge = new VaultEconomyBridge();
         this.spawnShopBuilder = new SpawnShopBuilder(this);
@@ -211,6 +219,11 @@ public final class BigaCore extends JavaPlugin {
         this.parkourBuilder = new ParkourBuilder(this);
         this.parkour = new Parkour(this);
         registrarJogo(parkourCatalog, parkourBuilder, parkour);
+
+        this.corridaCatalog = new CorridaCatalog(this);
+        this.corridaBuilder = new CorridaBuilder(this);
+        this.corrida = new Corrida(this);
+        registrarJogo(corridaCatalog, corridaBuilder, corrida);
 
         // As regras valem para o hub E para o lobby, então entram depois dos
         // dois: elas leem a configuração dos dois mundos para saber onde agir.
@@ -584,6 +597,18 @@ public final class BigaCore extends JavaPlugin {
 
     public Parkour parkour() {
         return parkour;
+    }
+
+    public CorridaCatalog corridaCatalog() {
+        return corridaCatalog;
+    }
+
+    public CorridaBuilder corridaBuilder() {
+        return corridaBuilder;
+    }
+
+    public Corrida corrida() {
+        return corrida;
     }
 
     /** Os minigames registrados, por etiqueta, na ordem em que entraram. */

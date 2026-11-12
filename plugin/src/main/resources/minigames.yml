@@ -185,7 +185,7 @@ portais:
     titulo: "CORRIDA"
     descricao: "primeiro a cruzar leva"
     detalhe: "atalho é por sua conta"
-    mundo: ""
+    mundo: "corrida"
     cor: "#D0D0D0"
     moldura: WHITE_TERRACOTTA
     destaque: BLACK_CONCRETE
