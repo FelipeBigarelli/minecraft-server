@@ -17,7 +17,7 @@ layout:
   # digitou: você mira para onde quer a parede e constrói.
   #
   # 8 deixa a parede inteira no campo de visão com 3 colunas.
-  distancia: 8
+  distancia: 11
 
   # Espaço horizontal entre o centro de dois painéis vizinhos.
   #
@@ -33,14 +33,21 @@ layout:
 
   # Altura do centro de cada painel em relação aos pés de quem
   # construiu.
-  altura: 2.4
+  altura: 1.5
 
   # Quantos painéis por fileira.
   #
-  # 3 com 6 painéis: duas fileiras cheias, nenhuma sobra. Com 4 colunas a
-  # parede passava de 25 blocos de largura e os painéis das pontas ficavam
-  # quase de perfil para quem está no meio — legíveis só andando até eles.
-  por_fileira: 3
+  # 4 com 11 painéis: 4, 4 e 3 — três fileiras, nenhum painel sozinho.
+  #
+  # Era 3, e com 11 painéis isso virou QUATRO fileiras: 16 blocos de parede,
+  # mais alta que larga. Painel acima da cabeça não se lê, se adivinha.
+  #
+  # Largura e altura não custam o mesmo. Para ler o painel da ponta você
+  # anda dois passos; para ler o de cima você não tem o que fazer. Então a
+  # conta é sempre tirar fileira e pagar em coluna — com a escala 0.7 as
+  # quatro colunas dão 16 blocos de largura, menos que os 25 da versão que
+  # ficou ruim antes.
+  por_fileira: 4
 
   # Espaço vertical entre fileiras. 0 = calcule sozinho, a partir do
   # painel com mais linhas.
@@ -54,7 +61,7 @@ layout:
   # vez de seis placas soltas no céu. Aumente se quiser respiro.
   margem: 0.4
 
-  escala: 1.0
+  escala: 0.7
 
   # Distância, em blocos, a partir da qual o texto some. O padrão
   # do servidor é curto de propósito: paredão só aparece de perto,
@@ -149,11 +156,9 @@ paineis:
       - "<#6FD3FF>/tag comprar <white>Rei da Ilha"
       - "<#6FD3FF>/tag cor <white>light_purple"
       - "<gray>vira <dark_gray>[<light_purple>Rei da Ilha<dark_gray>] <white>seu nome"
-      - ""
       - "<gray>As cores liberadas:"
       - "<gold>gold <yellow>yellow <aqua>aqua <green>green"
       - "<light_purple>light_purple <red>red <blue>blue <white>white"
-      - ""
       - "<dark_gray>Tag <simbolo><tag-preco> · cor <simbolo><tag-cor>, uma vez só."
 
   - titulo: "<gradient:#FF6A00:#FFD700><bold>ENCOMENDAS</bold></gradient>"
@@ -197,13 +202,12 @@ paineis:
       - "<#6FD3FF>/terreno teleportar <white>1 <dark_gray>— volta lá"
       - "<#6FD3FF>/terreno ver <dark_gray>— acende as bordas"
       - "<#6FD3FF>/terreno convidar <white>nome <dark_gray>— libera"
-      - ""
       - "<#FFD700><simbolo><terreno-bloco><gray> por bloco de chão:"
       - "<gray>16x16 <dark_gray>·· <#FFD700><simbolo><terreno-preco-16>"
       - "<gray>32x32 <dark_gray>·· <#FFD700><simbolo><terreno-preco-32>"
       - "<dark_gray>Afaste-se <terreno-spawn> blocos do spawn."
-      - "<dark_gray>Até <terreno-limite> terrenos por pessoa."
-      - "<dark_gray>No teleporte, fique parado <terreno-espera>s."
+      - "<dark_gray>Até <terreno-limite> terrenos por pessoa, e no"
+      - "<dark_gray>teleporte fique parado <terreno-espera>s."
 
   - titulo: "<gradient:#FF6A00:#FFD700><bold>BAIRRO DE LOTES</bold></gradient>"
     linhas:
