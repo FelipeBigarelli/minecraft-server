@@ -329,7 +329,7 @@ portais:
     titulo: "GUERRA DE NEVE"
     descricao: "acertou, derrubou"
     detalhe: "bola infinita"
-    mundo: ""
+    mundo: "neve"
     cor: "#E8F4FF"
     moldura: LIGHT_GRAY_TERRACOTTA
     destaque: SNOW_BLOCK

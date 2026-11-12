@@ -103,15 +103,6 @@ public final class ArenaComum {
     }
 
     /**
-     * Yaw de quem está em (x, z) e olha para o centro.
-     *
-     * Yaw do Bukkit: 0 olha para +Z, 90 para -X, 180 para -Z, 270 para +X. A
-     * direção do centro é (-x, -z), que dá {@code atan2(x, -z)}. A conta
-     * trocada — {@code atan2(-x, z)} — é a mesma virada ao contrário, e
-     * largaria todo mundo de costas para a arena: a primeira reação de meia
-     * arena seria correr para fora dela.
-     */
-    /**
      * Três inteiros numa chave só, para mapa de posição.
      *
      * Um mapa de três inteiros por jogador por tique é alocação à toa trinta
@@ -134,6 +125,15 @@ public final class ArenaComum {
         return (float) Math.toDegrees(Math.atan2(-dx, dz));
     }
 
+    /**
+     * Yaw de quem está em (x, z) e olha para o centro.
+     *
+     * Yaw do Bukkit: 0 olha para +Z, 90 para -X, 180 para -Z, 270 para +X. A
+     * direção do centro é (-x, -z), que dá {@code atan2(x, -z)}. A conta
+     * trocada — {@code atan2(-x, z)} — é a mesma virada ao contrário, e
+     * largaria todo mundo de costas para a arena: a primeira reação de meia
+     * arena seria correr para fora dela.
+     */
     public static float yawParaOCentro(int x, int z) {
         return (float) Math.toDegrees(Math.atan2(x, -z));
     }
@@ -141,6 +141,28 @@ public final class ArenaComum {
     // ------------------------------------------------------------------
     //  Regras de rodada que não são de nenhum jogo em particular
     // ------------------------------------------------------------------
+
+    /**
+     * O raio da arena depois de tantos segundos de aperto.
+     *
+     * Toda arena de disco precisa acabar antes do relógio, senão a rodada em
+     * que os dois últimos se escondem dura até o tempo limite e termina em
+     * empate — que não é o fim que ninguém quer ver. O aperto é o que obriga
+     * o encontro: a partir de certo segundo, o disco come um anel por vez.
+     */
+    public static int raioDoAperto(int segundos, int raio, int apertoSegundos,
+                                   int apertoIntervalo) {
+        if (segundos < apertoSegundos) {
+            return raio;
+        }
+        int passos = 1 + (segundos - apertoSegundos) / Math.max(1, apertoIntervalo);
+        return Math.max(1, raio - passos);
+    }
+
+    /** A casa está no disco original mas já fora do disco apertado? */
+    public static boolean foraDoApertoAtual(int x, int z, int raioAtual, int raio) {
+        return noDisco(x, z, raio) && !noDisco(x, z, raioAtual);
+    }
 
     /**
      * Se a rodada acabou.

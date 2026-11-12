@@ -173,11 +173,7 @@ public final class SpleefCatalog extends CatalogoDeArena {
      */
     public static int raioDoAperto(int segundos, int raio, int apertoSegundos,
                                    int apertoIntervalo) {
-        if (segundos < apertoSegundos) {
-            return raio;
-        }
-        int passos = 1 + (segundos - apertoSegundos) / Math.max(1, apertoIntervalo);
-        return Math.max(1, raio - passos);
+        return ArenaComum.raioDoAperto(segundos, raio, apertoSegundos, apertoIntervalo);
     }
 
     /**
@@ -187,6 +183,6 @@ public final class SpleefCatalog extends CatalogoDeArena {
      * muro: o muro está em raio+1 e nunca entra na conta.
      */
     public static boolean foraDoApertoAtual(int x, int z, int raioAtual, int raio) {
-        return ArenaComum.noDisco(x, z, raio) && !ArenaComum.noDisco(x, z, raioAtual);
+        return ArenaComum.foraDoApertoAtual(x, z, raioAtual, raio);
     }
 }

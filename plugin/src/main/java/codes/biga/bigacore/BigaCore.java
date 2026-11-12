@@ -59,9 +59,13 @@ public final class BigaCore extends JavaPlugin {
     private CorridaCatalog corridaCatalog;
     private CorridaBuilder corridaBuilder;
     private Corrida corrida;
+    private Mochila mochila;
     private LavaCatalog lavaCatalog;
     private LavaBuilder lavaBuilder;
     private FugaDaLava fugaDaLava;
+    private NeveCatalog neveCatalog;
+    private NeveBuilder neveBuilder;
+    private GuerraDeNeve guerraDeNeve;
 
     /**
      * Os minigames registrados, por etiqueta.
@@ -168,6 +172,11 @@ public final class BigaCore extends JavaPlugin {
             saveResource("lava.yml", false);
         }
 
+        File neveFile = new File(getDataFolder(), "neve.yml");
+        if (!neveFile.exists()) {
+            saveResource("neve.yml", false);
+        }
+
         this.economyCatalog = new EconomyCatalog(this);
         this.economyBridge = new VaultEconomyBridge();
         this.spawnShopBuilder = new SpawnShopBuilder(this);
@@ -213,6 +222,9 @@ public final class BigaCore extends JavaPlugin {
         getServer().getPluginManager().registerEvents(lobbyPortais, this);
         this.lobbyPortais.start();
 
+        this.mochila = new Mochila(this);
+        getServer().getPluginManager().registerEvents(mochila, this);
+
         this.tntRunCatalog = new TntRunCatalog(this);
         this.tntRunBuilder = new TntRunBuilder(this);
         this.tntRun = new TntRun(this);
@@ -237,6 +249,11 @@ public final class BigaCore extends JavaPlugin {
         this.lavaBuilder = new LavaBuilder(this);
         this.fugaDaLava = new FugaDaLava(this);
         registrarJogo(lavaCatalog, lavaBuilder, fugaDaLava);
+
+        this.neveCatalog = new NeveCatalog(this);
+        this.neveBuilder = new NeveBuilder(this);
+        this.guerraDeNeve = new GuerraDeNeve(this);
+        registrarJogo(neveCatalog, neveBuilder, guerraDeNeve);
 
         // As regras valem para o hub E para o lobby, então entram depois dos
         // dois: elas leem a configuração dos dois mundos para saber onde agir.
@@ -461,6 +478,13 @@ public final class BigaCore extends JavaPlugin {
         for (JogoRegistrado registrado : jogos.values()) {
             registrado.jogo().parar();
         }
+        // Devolver antes de desligar: quem está dentro de uma arena neste
+        // instante tem o inventário guardado, e um desligamento que não
+        // devolve deixa o jogador de mãos vazias até alguém perceber.
+        if (mochila != null && mochila.quantasGuardadas() > 0) {
+            getLogger().info("[mochila] devolvendo " + mochila.devolverTodos()
+                    + " mochila(s) antes de desligar.");
+        }
         if (regrasDoHub != null) {
             regrasDoHub.parar();
         }
@@ -624,6 +648,20 @@ public final class BigaCore extends JavaPlugin {
         return corrida;
     }
 
+    public Mochila mochila() {
+        return mochila;
+    }
+
+    /** O nome é de um mundo de arena de minigame? */
+    public boolean ehMundoDeMinigame(String nome) {
+        for (JogoRegistrado registrado : jogos.values()) {
+            if (registrado.mundo().equalsIgnoreCase(nome)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public LavaCatalog lavaCatalog() {
         return lavaCatalog;
     }
@@ -634,6 +672,18 @@ public final class BigaCore extends JavaPlugin {
 
     public FugaDaLava fugaDaLava() {
         return fugaDaLava;
+    }
+
+    public NeveCatalog neveCatalog() {
+        return neveCatalog;
+    }
+
+    public NeveBuilder neveBuilder() {
+        return neveBuilder;
+    }
+
+    public GuerraDeNeve guerraDeNeve() {
+        return guerraDeNeve;
     }
 
     /** Os minigames registrados, por etiqueta, na ordem em que entraram. */

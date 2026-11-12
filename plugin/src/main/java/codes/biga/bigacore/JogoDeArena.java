@@ -399,6 +399,13 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
         PlantaDeArena planta = planta();
         naArena.add(jogador.getUniqueId());
         modoAnterior.putIfAbsent(jogador.getUniqueId(), jogador.getGameMode());
+
+        // A mochila é guardada para TODO jogo, e não só para os que dão item.
+        // O perigo é o contrário do que parece: sem guardar, nada impede
+        // alguém de levar arco, poção e blocos para dentro do TNT Run.
+        if (jogador.getGameMode() != GameMode.CREATIVE) {
+            plugin.mochila().guardar(jogador);
+        }
         if (barra != null) {
             jogador.showBossBar(barra);
         }
@@ -449,6 +456,7 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
                 jogador.hideBossBar(barra);
             }
             devolverModo(jogador);
+            plugin.mochila().devolver(jogador);
         } else {
             modoAnterior.remove(id);
         }

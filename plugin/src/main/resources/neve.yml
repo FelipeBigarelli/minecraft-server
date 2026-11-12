@@ -1,0 +1,129 @@
+# -------------------------------------------------------------
+#  GUERRA DE NEVE — acertou, derrubou
+#
+#  Um campo de neve sobre o vazio, com iglus, pinheiros e muretas
+#  para se esconder. Bola de neve infinita. Cada acerto empurra e
+#  tira uma vida; três acertos congelam. Quem for empurrado para
+#  fora do disco, caiu.
+#
+#  Depois de um tempo o campo começa a encolher. É o que impede a
+#  rodada dos dois últimos escondidos atrás de iglu: sem aperto,
+#  ela dura até o relógio e termina sem vencedor.
+#
+#  Os abrigos são SORTEADOS de uma semente fixa: a mesma semente
+#  dá sempre o mesmo campo, então o teste confere que nenhum
+#  abrigo nasce em cima do outro, nem na beira, nem no meio.
+# -------------------------------------------------------------
+
+mundo: neve
+
+arena:
+  # A fiada do campo.
+  y: 100
+
+  # O raio do disco e quantos anéis de beira.
+  raio: 28
+  beira-aneis: 2
+
+  # O monte do meio: alto o bastante para ser vantagem, baixo o
+  # bastante para ser tomado.
+  monte-raio: 5
+  monte-altura: 3
+
+  # Quantos abrigos, e a semente do sorteio.
+  abrigos: 16
+  semente: 70712
+
+  # Quanto do raio fica livre no meio e na beira, sem abrigo.
+  # A folga da beira tem outro papel além de não pendurar abrigo no
+  # vazio: é nela que fica o anel de largada, e um jogador que nasce
+  # dentro de um iglu nasce preso.
+  abrigo-folga-centro: 8
+  abrigo-folga-beira: 7
+
+  # A quantos blocos da beira todos nascem.
+  largada-recuo: 3
+
+  saguao-altura: 16
+  saguao-raio: 9
+  saguao-parapeito: 4
+  marco-recuo: 8
+  marco-altura: 22
+
+paleta:
+  placa: SPRUCE_WALL_SIGN
+
+  piso: SNOW_BLOCK
+  beira: PACKED_ICE
+  monte: PACKED_ICE
+  monte-topo: BLUE_ICE
+
+  iglu: SNOW_BLOCK
+  iglu-porta: PACKED_ICE
+  mureta: PACKED_ICE
+  tronco: SPRUCE_LOG
+  folha: SPRUCE_LEAVES
+
+  estrutura: QUARTZ_BLOCK
+  escuro: POLISHED_DEEPSLATE
+  borda: DEEPSLATE_TILES
+  metal: IRON_BLOCK
+  vidro: LIGHT_BLUE_STAINED_GLASS
+  luz: SEA_LANTERN
+  luz-fria: END_ROD
+  nucleo: DIAMOND_BLOCK
+
+regras:
+  minimo: 2
+  maximo: 16
+  contagem-segundos: 15
+  fim-segundos: 8
+  treino-sozinho: true
+
+  # Quantos acertos cada um aguenta antes de congelar.
+  vidas: 3
+
+  # Quantas bolas de neve ficam sempre na mão.
+  bolas: 16
+
+  # A força do empurrão de cada acerto, e quanto ele levanta.
+  empurrao: 0.85
+  empurrao-altura: 0.36
+
+  # Quantos segundos de invencibilidade depois de um acerto, para
+  # que uma rajada de perto não tire as três vidas de uma vez.
+  carencia-tiques: 10
+
+  # A partir de quantos segundos o campo começa a encolher, e de
+  # quantos em quantos segundos ele come um anel.
+  aperto-segundos: 90
+  aperto-intervalo: 8
+
+  # Quantas fiadas abaixo do campo já conta como ter caído. Não há
+  # chão nenhum lá embaixo: é só o vazio.
+  queda-abaixo: 8
+
+  # O teto da partida.
+  tempo-limite: 300
+
+textos:
+  titulo: "GUERRA DE NEVE"
+  cor: "#BFE9FF"
+  subtitulo: "acertou, derrubou"
+  regras:
+    - "clique em [ENTRAR] para entrar na fila"
+    - "a bola de neve nunca acaba"
+    - "três acertos congelam você"
+    - "o empurrão derruba quem está na beira"
+    - "o monte de gelo é alto e escorregadio"
+    - "depois de 90s o campo encolhe"
+  escala-titulo: 2.6
+  escala-placa: 1.6
+  fundo-alpha: 0
+
+  placa-entrar: "[ENTRAR]"
+  placa-sair: "[SAIR]"
+  placa-fila: "na fila"
+  placa-esperando: "esperando"
+  placa-jogando: "NEVANDO"
+  placa-refazendo: "refazendo"
