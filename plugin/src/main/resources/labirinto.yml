@@ -1,0 +1,148 @@
+# -------------------------------------------------------------
+#  LABIRINTO — ache a saída antes deles
+#
+#  Todo mundo nasce no CORAÇÃO do labirinto, no meio, e corre
+#  para a única porta que existe na borda. O facho de luz mostra
+#  ONDE a porta está; o labirinto é que decide COMO se chega lá.
+#
+#  O mapa é outro todo dia. A semente sai da data, então o
+#  labirinto de hoje é o mesmo para todo mundo o dia inteiro —
+#  dá para decorar, dá para contar para um amigo, dá para
+#  disputar o recorde do dia — e amanhã não vale mais nada.
+#
+#  Três decisões que vêm do gênero e que são o jogo inteiro:
+#
+#  - LABIRINTO COM VOLTAS, e não labirinto perfeito. O algoritmo
+#    clássico faz um caminho só entre dois pontos quaisquer: num
+#    labirinto assim, errar a curva custa a partida e os quinze
+#    de trás só seguem o primeiro. Abrimos 'aberturas-extras'
+#    paredes depois de cavar, e aí existem rotas, e aí existe
+#    escolha.
+#  - A PORTA SE VÊ, O CAMINHO NÃO. O facho entrega a direção de
+#    graça. Sem ele o jogo seria sorteio; com ele é labirinto.
+#  - A CAMINHADA TEM DE VALER A PENA. Sorteio de labirinto dá
+#    dias em que a porta cai a cinco passos do meio. A planta
+#    re-sorteia a semente do dia até a caminhada ficar dentro da
+#    janela de 'passos-minimos' a 'passos-maximos'.
+#
+#  Não há dano, não há eliminação e não há como quebrar o muro:
+#  o que existe é giz, e giz é memória. Doze marcas no chão, da
+#  sua cor, para você saber por onde já passou — e para os
+#  outros também saberem.
+# -------------------------------------------------------------
+
+mundo: labirinto
+
+arena:
+  # A fiada do piso do labirinto.
+  y: 100
+
+  # O labirinto em CÉLULAS. Tem de ser ímpar: é o que põe a sala
+  # do meio exatamente em cima do (0,0) do mundo, que é onde fica
+  # o saguão.
+  celulas: 13
+
+  # Largura do corredor e espessura do muro, em blocos. As duas
+  # têm de ser ímpares pelo mesmo motivo.
+  celula: 3
+  parede: 1
+
+  # Altura do muro. Três é o mínimo: com dois um jogador pula em
+  # cima do muro e o labirinto acaba.
+  parede-altura: 3
+
+  # O raio da sala do meio, em células. 1 dá uma sala de 3x3
+  # células — onde todo mundo nasce.
+  sala: 1
+
+  # A porta: quantos blocos de fundo e de largura tem o patamar
+  # de fora, onde fica o facho.
+  saida-fundo: 5
+  saida-largura: 7
+
+  # Quantas paredes internas se abrem DEPOIS de cavar. É o que
+  # transforma um labirinto perfeito num labirinto com voltas.
+  aberturas-extras: 12
+
+  # A janela de caminhada aceitável, em células, do meio até a
+  # porta. Fora dela a semente do dia é re-sorteada.
+  passos-minimos: 12
+  passos-maximos: 30
+  tentativas: 64
+
+  # A semente base. Some-se a ela o número do dia.
+  semente: 4712
+
+  # Para prender o mapa num dia específico (eventos, testes).
+  # -1 usa o dia de hoje.
+  dia-fixo: -1
+
+  saguao-altura: 24
+  saguao-raio: 9
+  saguao-parapeito: 4
+  marco-altura: 20
+
+paleta:
+  placa: WARPED_WALL_SIGN
+
+  piso: STONE_BRICKS
+  piso-xadrez: ANDESITE
+  muro: PRISMARINE_BRICKS
+  muro-base: PRISMARINE
+  muro-topo: DARK_PRISMARINE
+  coracao: GOLD_BLOCK
+  coracao-beira: CHISELED_STONE_BRICKS
+  coracao-coluna: POLISHED_DIORITE
+  patamar: POLISHED_DIORITE
+  patamar-beira: DARK_PRISMARINE
+  farol-base: IRON_BLOCK
+  torre: DARK_PRISMARINE
+  torre-luz: SEA_LANTERN
+
+  estrutura: PRISMARINE_BRICKS
+  escuro: DARK_PRISMARINE
+  borda: DEEPSLATE_TILES
+  metal: IRON_BLOCK
+  vidro: CYAN_STAINED_GLASS
+  luz: SEA_LANTERN
+  luz-fria: END_ROD
+  nucleo: PRISMARINE_LAMP
+
+regras:
+  minimo: 2
+  maximo: 16
+  contagem-segundos: 15
+  fim-segundos: 8
+  treino-sozinho: true
+
+  # Quantas marcas de giz cada jogador leva.
+  giz: 12
+
+  # Quantas fiadas abaixo do piso já conta como ter caído.
+  queda-abaixo: 6
+
+  # O teto da partida. Se ninguém achar a porta, ganha quem
+  # estiver mais perto dela pelo caminho do labirinto — e não em
+  # linha reta, que premiaria quem parou atrás do muro certo.
+  tempo-limite: 300
+
+textos:
+  titulo: "LABIRINTO"
+  cor: "#4FD1C5"
+  subtitulo: "ache a saída antes deles"
+  regras:
+    - "clique em [ENTRAR] para entrar na fila"
+    - "o mapa é outro todo dia"
+    - "todos nascem no meio; a porta é uma só"
+    - "o facho de luz mostra onde ela fica"
+    - "o giz marca o chão por onde você passou"
+  escala-titulo: 2.6
+  escala-placa: 1.6
+  fundo-alpha: 0
+
+  placa-entrar: "[ENTRAR]"
+  placa-sair: "[SAIR]"
+  placa-fila: "na fila"
+  placa-esperando: "esperando"
+  placa-jogando: "CORRENDO"
+  placa-refazendo: "refazendo"

@@ -233,7 +233,7 @@ portais:
     titulo: "LABIRINTO"
     descricao: "ache a saída antes deles"
     detalhe: "o mapa muda todo dia"
-    mundo: ""
+    mundo: "labirinto"
     cor: "#4FD1C5"
     moldura: CYAN_TERRACOTTA
     destaque: CYAN_CONCRETE

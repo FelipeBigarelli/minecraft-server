@@ -72,6 +72,9 @@ public final class BigaCore extends JavaPlugin {
     private ReiCatalog reiCatalog;
     private ReiBuilder reiBuilder;
     private ReiDaMontanha reiDaMontanha;
+    private LabirintoCatalog labirintoCatalog;
+    private LabirintoBuilder labirintoBuilder;
+    private Labirinto labirinto;
 
     /**
      * Os minigames registrados, por etiqueta.
@@ -188,6 +191,11 @@ public final class BigaCore extends JavaPlugin {
             saveResource("pega-pega.yml", false);
         }
 
+        File labirintoFile = new File(getDataFolder(), "labirinto.yml");
+        if (!labirintoFile.exists()) {
+            saveResource("labirinto.yml", false);
+        }
+
         File reiFile = new File(getDataFolder(), "rei.yml");
         if (!reiFile.exists()) {
             saveResource("rei.yml", false);
@@ -280,6 +288,11 @@ public final class BigaCore extends JavaPlugin {
         this.reiBuilder = new ReiBuilder(this);
         this.reiDaMontanha = new ReiDaMontanha(this);
         registrarJogo(reiCatalog, reiBuilder, reiDaMontanha);
+
+        this.labirintoCatalog = new LabirintoCatalog(this);
+        this.labirintoBuilder = new LabirintoBuilder(this);
+        this.labirinto = new Labirinto(this);
+        registrarJogo(labirintoCatalog, labirintoBuilder, labirinto);
 
         // As regras valem para o hub E para o lobby, então entram depois dos
         // dois: elas leem a configuração dos dois mundos para saber onde agir.
@@ -734,6 +747,18 @@ public final class BigaCore extends JavaPlugin {
 
     public ReiDaMontanha reiDaMontanha() {
         return reiDaMontanha;
+    }
+
+    public LabirintoCatalog labirintoCatalog() {
+        return labirintoCatalog;
+    }
+
+    public LabirintoBuilder labirintoBuilder() {
+        return labirintoBuilder;
+    }
+
+    public Labirinto labirinto() {
+        return labirinto;
     }
 
     /** Os minigames registrados, por etiqueta, na ordem em que entraram. */
