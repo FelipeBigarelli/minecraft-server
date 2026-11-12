@@ -1,0 +1,120 @@
+# -------------------------------------------------------------
+#  SPLEEF — cave o chão de quem corre
+#
+#  O avô dos minigames de Minecraft. Um disco de neve, todo mundo
+#  em cima, e uma regra só: o chão é cavável. Quem cai, caiu.
+#
+#  A diferença para o TNT Run é inteira: lá o chão some sozinho sob
+#  os SEUS pés e o adversário é o relógio; aqui o chão só some se
+#  alguém cavar, e o adversário é gente. Por isso o TNT Run tem três
+#  pisos (três chances) e o Spleef tem UM — cavar o chão de alguém dá
+#  trabalho e merece valer a partida.
+#
+#  A geometria sai de poucos números; o resto é calculado. Mexer em
+#  'raio' muda o disco, o muro, o lago e as largadas de uma vez.
+# -------------------------------------------------------------
+
+mundo: spleef
+
+arena:
+  # A fiada do chão de neve. Tudo é medido a partir dela.
+  y: 100
+
+  # O raio do disco. 20 dá 1257 blocos de chão: grande o bastante
+  # para fugir, pequeno o bastante para se encontrarem.
+  raio: 20
+
+  # Os anéis de gelo da borda. São só leitura: de longe, saber onde o
+  # chão acaba é a informação mais útil que a arena pode dar.
+  beira-aneis: 2
+
+  # O muro em volta, UM bloco fora do disco. Ele não é enfeite: sem
+  # muro, perder o jogo é andar distraído para fora. Com muro, só se
+  # cai por um buraco — que é o jogo.
+  muro-altura: 6
+
+  # A queda. Abaixo de y-poço o jogador está eliminado.
+  poco: 24
+
+  # Quantas fiadas abaixo do limite de queda fica o lago congelado.
+  # É cenário: cair num vazio preto não dá noção de altura nenhuma.
+  lago-fundo: 6
+
+  saguao-altura: 16
+  saguao-raio: 9
+  saguao-parapeito: 4
+
+  marco-recuo: 8
+  marco-altura: 26
+
+paleta:
+  # Placa DE PAREDE: ela fica pendurada no muro da fachada.
+  placa: BIRCH_WALL_SIGN
+
+  piso: SNOW_BLOCK
+  beira: PACKED_ICE
+  muro: LIGHT_BLUE_STAINED_GLASS
+  muro-topo: BLUE_ICE
+  # Nenhum destes pode ser igual ao 'piso' ou à 'beira': o que se cava tem
+  # de ser diferente do que fica de pé, senão um erro na conta da fiada
+  # passa a comer o cenário.
+  lago: BLUE_ICE
+  lago-veio: WHITE_CONCRETE
+
+  estrutura: QUARTZ_BLOCK
+  escuro: POLISHED_DEEPSLATE
+  borda: DEEPSLATE_TILES
+  metal: IRON_BLOCK
+  vidro: LIGHT_BLUE_STAINED_GLASS
+  luz: SEA_LANTERN
+  luz-fria: END_ROD
+  nucleo: DIAMOND_BLOCK
+
+regras:
+  # Dois. Spleef sozinho não é jogo: não há chão de ninguém para cavar.
+  minimo: 2
+  maximo: 16
+  contagem-segundos: 20
+  fim-segundos: 6
+
+  # Treino sozinho: a rodada de um jogador só acaba quando ele cai, em
+  # vez de acabar no tique em que começa. É o que permite testar.
+  treino-sozinho: true
+
+  # O gelo range sob quem fica parado, e cede alguns segundos depois.
+  # Sem isto, ficar parado num canto é seguro — no Spleef, ao contrário
+  # do TNT Run, o chão não some sozinho — e dois jogadores parados em
+  # pontas opostas esperam até o servidor cair.
+  parado-aviso: 5
+  parado-racha: 9
+
+  # O aperto: passado este tempo, a arena encolhe um anel de tantos em
+  # tantos segundos. É o que garante que toda partida termina.
+  aperto-segundos: 120
+  aperto-intervalo: 10
+
+  # O teto absoluto da partida, caso o aperto ainda não tenha bastado.
+  tempo-limite: 420
+
+textos:
+  titulo: "SPLEEF"
+  cor: "#7FD8FF"
+  subtitulo: "cave o chão de quem corre"
+  regras:
+    - "clique em [ENTRAR] para entrar na fila"
+    - "clique no gelo para cavar"
+    - "quem cair, caiu"
+    - "parado, o gelo cede"
+    - "depois de 2 min a arena encolhe"
+  escala-titulo: 2.6
+  escala-placa: 1.6
+  fundo-alpha: 0
+
+  # O que vai escrito nas duas placas do saguão. A linha de baixo de
+  # cada uma é o estado, e quem escreve é o jogo.
+  placa-entrar: "[ENTRAR]"
+  placa-sair: "[SAIR]"
+  placa-fila: "na fila"
+  placa-esperando: "esperando"
+  placa-jogando: "JOGANDO"
+  placa-refazendo: "refazendo"

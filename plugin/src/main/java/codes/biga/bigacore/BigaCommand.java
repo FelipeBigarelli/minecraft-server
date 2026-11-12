@@ -27,8 +27,8 @@ import java.util.OptionalDouble;
 public final class BigaCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBCOMANDOS =
-            List.of("info", "eco", "loja", "hub", "lobby", "tntrun", "painel",
-                    "reload", "voar");
+            List.of("info", "eco", "loja", "hub", "lobby", "tntrun", "spleef",
+                    "painel", "reload", "voar");
     private static final List<String> PAINEL_SUBCOMANDOS = List.of("construir", "limpar");
     private static final List<String> ECO_SUBCOMANDOS =
             List.of("status", "saldo", "preco", "vender", "regras");
@@ -38,6 +38,7 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             List.of("info", "construir", "desfazer", "textos", "ir");
     private static final List<String> TNTRUN_SUBCOMANDOS =
             List.of("info", "construir", "desfazer", "textos", "ir", "comecar", "parar");
+    private static final List<String> SPLEEF_SUBCOMANDOS = TNTRUN_SUBCOMANDOS;
     private static final List<String> LOJA_SUBCOMANDOS =
             List.of("local", "validar", "preview", "criar", "placas", "vitrine",
                     "proteger", "desproteger", "desfazer");
@@ -64,6 +65,7 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             case "hub" -> hub(sender, label, args);
             case "lobby" -> lobby(sender, label, args);
             case "tntrun" -> tntRun(sender, label, args);
+            case "spleef" -> spleef(sender, label, args);
             case "painel" -> paredaoAjuda(sender, label, args);
             case "reload" -> recarregar(sender);
             case "voar" -> alternarVoo(sender);
@@ -797,6 +799,159 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
                 TntRunBuilder.pontoDoSaguao(mundo, plugin.tntRunCatalog()));
     }
 
+    // ------------------------------------------------------------------
+    //  /biga spleef
+    // ------------------------------------------------------------------
+
+    /**
+     * A arena do Spleef.
+     *
+     * Mesmos sete subcomandos do TNT Run, de propósito: são vinte jogos, e um
+     * administrador que decorou o caminho de um não pode ter de decorar o do
+     * seguinte. O que muda de jogo para jogo é a arena, não a manivela.
+     */
+    private void spleef(CommandSender sender, String label, String[] args) {
+        if (!sender.hasPermission("bigacore.admin")) {
+            semPermissao(sender);
+            return;
+        }
+        if (args.length < 2) {
+            enviarAjudaSpleef(sender, label);
+            return;
+        }
+
+        switch (args[1].toLowerCase(Locale.ROOT)) {
+            case "info" -> spleefInfo(sender);
+            case "construir" -> spleefConstruir(sender, label, args);
+            case "desfazer" -> spleefDesfazer(sender, label, args);
+            case "textos" -> spleefTextos(sender);
+            case "ir" -> spleefIr(sender);
+            case "comecar" -> sender.sendMessage(Component.text(
+                    plugin.spleef().comecarAgora(), NamedTextColor.GRAY));
+            case "parar" -> sender.sendMessage(Component.text(
+                    plugin.spleef().pararRodada(), NamedTextColor.GRAY));
+            default -> enviarAjudaSpleef(sender, label);
+        }
+    }
+
+    private void enviarAjudaSpleef(CommandSender sender, String label) {
+        sender.sendMessage(Component.text("A arena do Spleef", NamedTextColor.GOLD));
+        sender.sendMessage(Component.text("O mundo é criado sozinho na subida. "
+                + "Falta só levantar a arena:", NamedTextColor.GRAY));
+        for (String[] linha : new String[][]{
+                {"info", "confere o terreno e mostra a geometria"},
+                {"construir CONFIRMAR", ""},
+                {"desfazer CONFIRMAR", ""},
+                {"textos", "refaz só os letreiros"},
+                {"ir", "leva você ao saguão"},
+                {"comecar", "larga a rodada agora, mesmo sozinho (treino)"},
+                {"parar", "cancela a rodada e devolve todos ao saguão"}}) {
+            Component texto = Component.text("/" + label + " spleef " + linha[0],
+                    NamedTextColor.YELLOW);
+            if (!linha[1].isEmpty()) {
+                texto = texto.append(Component.text(" — " + linha[1],
+                        NamedTextColor.GRAY));
+            }
+            sender.sendMessage(texto);
+        }
+    }
+
+    /** O mundo da arena do Spleef, criado na hora se ainda não existir. */
+    private org.bukkit.World mundoDoSpleef(CommandSender sender) {
+        String nome = plugin.spleefCatalog().mundo();
+        org.bukkit.World mundo = MundoDeJogo.garantir(plugin, nome);
+        if (mundo == null) {
+            sender.sendMessage(Component.text("Não foi possível criar nem carregar o "
+                    + "mundo \"" + nome + "\". Veja o console.", NamedTextColor.RED));
+            sender.sendMessage(Component.text("Crie à mão: /mv create " + nome
+                    + " normal -g BigaCore", NamedTextColor.YELLOW));
+        }
+        return mundo;
+    }
+
+    private void spleefInfo(CommandSender sender) {
+        org.bukkit.World mundo = mundoDoSpleef(sender);
+        if (mundo == null) {
+            return;
+        }
+        SpleefBuilder.Resultado conferido = plugin.spleefBuilder().construir(mundo, false);
+        sender.sendMessage(Component.text(conferido.mensagem(),
+                conferido.ok() ? NamedTextColor.GRAY : NamedTextColor.RED));
+
+        Spleef jogo = plugin.spleef();
+        sender.sendMessage(Component.text("  estado: ", NamedTextColor.DARK_GRAY)
+                .append(Component.text(jogo.estado().name(), NamedTextColor.AQUA))
+                .append(Component.text("  no saguão: ", NamedTextColor.DARK_GRAY))
+                .append(Component.text(jogo.quantosProntos() + "/"
+                        + jogo.quantosNaArena(), NamedTextColor.WHITE))
+                .append(Component.text("  de pé: ", NamedTextColor.DARK_GRAY))
+                .append(Component.text(String.valueOf(jogo.quantosVivos()),
+                        NamedTextColor.WHITE)));
+    }
+
+    private void spleefConstruir(CommandSender sender, String label, String[] args) {
+        org.bukkit.World mundo = mundoDoSpleef(sender);
+        if (mundo == null) {
+            return;
+        }
+        if (args.length < 3 || !args[2].equals("CONFIRMAR")) {
+            sender.sendMessage(Component.text("Isto levanta a arena inteira no mundo "
+                    + mundo.getName() + ". O servidor trava por um instante.",
+                    NamedTextColor.GRAY));
+            sender.sendMessage(Component.text("/" + label + " spleef construir CONFIRMAR",
+                    NamedTextColor.YELLOW));
+            return;
+        }
+
+        SpleefBuilder.Resultado feito = plugin.spleefBuilder().construir(mundo, true);
+        sender.sendMessage(Component.text(feito.mensagem(),
+                feito.ok() ? NamedTextColor.GREEN : NamedTextColor.RED));
+        if (feito.ok()) {
+            sender.sendMessage(Component.text("O portal azul do lobby já aponta "
+                    + "para cá. Entre por ele, ou use /" + label + " spleef ir.",
+                    NamedTextColor.GRAY));
+        }
+    }
+
+    private void spleefDesfazer(CommandSender sender, String label, String[] args) {
+        org.bukkit.World mundo = mundoDoSpleef(sender);
+        if (mundo == null) {
+            return;
+        }
+        if (args.length < 3 || !args[2].equals("CONFIRMAR")) {
+            sender.sendMessage(Component.text("Isto APAGA tudo na área da arena em "
+                    + mundo.getName() + ". Não há cópia para restaurar.",
+                    NamedTextColor.RED));
+            sender.sendMessage(Component.text("/" + label + " spleef desfazer CONFIRMAR",
+                    NamedTextColor.YELLOW));
+            return;
+        }
+        SpleefBuilder.Resultado feito = plugin.spleefBuilder().desfazer(mundo);
+        sender.sendMessage(Component.text(feito.mensagem(), NamedTextColor.GREEN));
+    }
+
+    private void spleefTextos(CommandSender sender) {
+        org.bukkit.World mundo = mundoDoSpleef(sender);
+        if (mundo == null) {
+            return;
+        }
+        SpleefBuilder.Resultado feito = plugin.spleefBuilder().textos(mundo);
+        sender.sendMessage(Component.text(feito.mensagem(), NamedTextColor.GREEN));
+    }
+
+    private void spleefIr(CommandSender sender) {
+        if (!(sender instanceof Player jogador)) {
+            sender.sendMessage(Component.text("Só dentro do jogo.", NamedTextColor.RED));
+            return;
+        }
+        org.bukkit.World mundo = mundoDoSpleef(sender);
+        if (mundo == null) {
+            return;
+        }
+        jogador.teleportAsync(
+                SpleefBuilder.pontoDoSaguao(mundo, plugin.spleefCatalog()));
+    }
+
     private void mostrarLocalLoja(Player jogador) {
         SpawnShopBuilder.Analysis analysis = plugin.spawnShopBuilder().analyze(jogador.getWorld());
         if (!analysis.valid()) {
@@ -1416,6 +1571,18 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
         if (args[0].equalsIgnoreCase("lobby")) {
             if (args.length == 2) {
                 return filtrar(LOBBY_SUBCOMANDOS, args[1]);
+            }
+            boolean pedeConfirmacao = args[1].equalsIgnoreCase("construir")
+                    || args[1].equalsIgnoreCase("desfazer");
+            if (args.length == 3 && pedeConfirmacao) {
+                return filtrar(List.of("CONFIRMAR"), args[2]);
+            }
+            return List.of();
+        }
+
+        if (args[0].equalsIgnoreCase("spleef")) {
+            if (args.length == 2) {
+                return filtrar(SPLEEF_SUBCOMANDOS, args[1]);
             }
             boolean pedeConfirmacao = args[1].equalsIgnoreCase("construir")
                     || args[1].equalsIgnoreCase("desfazer");

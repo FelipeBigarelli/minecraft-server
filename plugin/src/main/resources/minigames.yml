@@ -125,7 +125,7 @@ portais:
     titulo: "SPLEEF"
     descricao: "cave o chão de quem corre"
     detalhe: "quem cair, caiu"
-    mundo: ""
+    mundo: "spleef"
     cor: "#7FD8FF"
     moldura: LIGHT_BLUE_TERRACOTTA
     destaque: LIGHT_BLUE_CONCRETE

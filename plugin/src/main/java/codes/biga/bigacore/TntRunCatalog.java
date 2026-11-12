@@ -4,7 +4,6 @@ import org.bukkit.Material;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
@@ -280,84 +279,36 @@ public final class TntRunCatalog {
     //  Conferências — estáticas e puras, para o teste rodar sem servidor
     // ------------------------------------------------------------------
 
-    /** O disco: é aqui que se pisa, e em nenhum outro lugar. */
+    /**
+     * As contas que não são deste jogo moram em {@link ArenaComum}.
+     *
+     * Ficam repetidas aqui como uma linha cada porque é por estes nomes que o
+     * jogo e o teste do TNT Run chamam — e porque o dia em que o TNT Run
+     * precisar de uma largada diferente da dos outros, é esta linha que muda,
+     * e só ela.
+     */
     public static boolean noDisco(int x, int z, int raio) {
-        return x * x + z * z <= raio * raio;
+        return ArenaComum.noDisco(x, z, raio);
     }
 
-    /**
-     * Se a célula está nos anéis escuros da beira.
-     *
-     * Conta em quadrado do raio para não precisar de raiz: um anel de
-     * espessura n por fora é tudo que não cabe no disco de raio-n.
-     */
     public static boolean naBeira(int x, int z, int raio, int aneis) {
-        return noDisco(x, z, raio) && !noDisco(x, z, raio - aneis);
+        return ArenaComum.naBeira(x, z, raio, aneis);
     }
 
-    /**
-     * As posições de largada: {@code quantos} pontos num anel, igualmente
-     * espaçados.
-     *
-     * Largada espalhada e não queda do saguão. Dezesseis pessoas caindo de
-     * uma caixa de dezenove de largura chegam em cima uma da outra e o
-     * primeiro segundo é empurrão; num anel todos têm a mesma folga e a mesma
-     * distância da beira, que é o que faz a partida ser decidida por corrida.
-     *
-     * @return pares {x, z} em blocos, do centro.
-     */
     public static List<int[]> largadas(int quantos, int raio) {
-        List<int[]> pontos = new ArrayList<>();
-        if (quantos <= 0) {
-            return pontos;
-        }
-        if (quantos == 1) {
-            pontos.add(new int[]{0, 0});
-            return pontos;
-        }
-        int anel = Math.max(2, raio - 5);
-        for (int i = 0; i < quantos; i++) {
-            double angulo = 2 * Math.PI * i / quantos;
-            pontos.add(new int[]{
-                    (int) Math.round(Math.cos(angulo) * anel),
-                    (int) Math.round(Math.sin(angulo) * anel)});
-        }
-        return pontos;
+        return ArenaComum.largadas(quantos, raio);
     }
 
-    /**
-     * Se a rodada acabou.
-     *
-     * Sozinho o critério MUDA: um só de pé é o fim normal de uma partida de
-     * verdade, mas é o começo de uma rodada de treino. Sem este desvio o jogo
-     * seria impossível de testar — a rodada acabaria no mesmo tique em que
-     * começasse, com o único jogador declarado vencedor sem ter corrido.
-     */
     public static boolean rodadaAcabou(int vivos, int comecouCom, boolean treinoSozinho) {
-        if (comecouCom <= 1 && treinoSozinho) {
-            return vivos == 0;
-        }
-        return vivos <= 1;
+        return ArenaComum.rodadaAcabou(vivos, comecouCom, treinoSozinho);
     }
 
-    /**
-     * Em que segundos a contagem é anunciada.
-     *
-     * Todos os dez últimos, e de dez em dez antes disso — a convenção dos
-     * minigames de servidor, e ela existe por um motivo: avisar de cinco em
-     * cinco nos últimos segundos deixa o jogador sem saber se faltam três ou
-     * seis, que é justo quando ele decide se dá tempo de ir ver a placa.
-     */
     public static boolean anunciaContagem(int segundos) {
-        if (segundos < 1) {
-            return false;
-        }
-        return segundos <= 10 || segundos % 10 == 0;
+        return ArenaComum.anunciaContagem(segundos);
     }
 
-    /** "1:07" a partir de ticks, para o tempo de quem sobreviveu. */
     public static String tempo(long ticks) {
-        long total = Math.max(0, ticks) / 20;
-        return (total / 60) + ":" + (total % 60 < 10 ? "0" : "") + (total % 60);
+        return ArenaComum.tempo(ticks);
     }
+
 }

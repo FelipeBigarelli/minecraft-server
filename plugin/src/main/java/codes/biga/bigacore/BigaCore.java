@@ -50,6 +50,9 @@ public final class BigaCore extends JavaPlugin {
     private TntRunCatalog tntRunCatalog;
     private TntRunBuilder tntRunBuilder;
     private TntRun tntRun;
+    private SpleefCatalog spleefCatalog;
+    private SpleefBuilder spleefBuilder;
+    private Spleef spleef;
 
     @Override
     public void onEnable() {
@@ -126,6 +129,11 @@ public final class BigaCore extends JavaPlugin {
             saveResource("tnt-run.yml", false);
         }
 
+        File spleefFile = new File(getDataFolder(), "spleef.yml");
+        if (!spleefFile.exists()) {
+            saveResource("spleef.yml", false);
+        }
+
         this.economyCatalog = new EconomyCatalog(this);
         this.economyBridge = new VaultEconomyBridge();
         this.spawnShopBuilder = new SpawnShopBuilder(this);
@@ -181,6 +189,13 @@ public final class BigaCore extends JavaPlugin {
         // proposito: se a criacao falhar, o jogo fica parado avisando no log
         // em vez de o plugin inteiro nao subir.
         MundoDeJogo.garantir(this, tntRunCatalog.mundo());
+
+        this.spleefCatalog = new SpleefCatalog(this);
+        this.spleefBuilder = new SpleefBuilder(this);
+        this.spleef = new Spleef(this);
+        getServer().getPluginManager().registerEvents(spleef, this);
+        this.spleef.start();
+        MundoDeJogo.garantir(this, spleefCatalog.mundo());
 
         // As regras valem para o hub E para o lobby, então entram depois dos
         // dois: elas leem a configuração dos dois mundos para saber onde agir.
@@ -405,6 +420,9 @@ public final class BigaCore extends JavaPlugin {
         if (tntRun != null) {
             tntRun.parar();
         }
+        if (spleef != null) {
+            spleef.parar();
+        }
         if (regrasDoHub != null) {
             regrasDoHub.parar();
         }
@@ -532,6 +550,18 @@ public final class BigaCore extends JavaPlugin {
         return tntRun;
     }
 
+    public SpleefCatalog spleefCatalog() {
+        return spleefCatalog;
+    }
+
+    public SpleefBuilder spleefBuilder() {
+        return spleefBuilder;
+    }
+
+    public Spleef spleef() {
+        return spleef;
+    }
+
     public TagCatalog tagCatalog() {
         return tagCatalog;
     }
@@ -595,6 +625,7 @@ public final class BigaCore extends JavaPlugin {
         hubCatalog.reload();
         minigamesCatalog.reload();
         tntRunCatalog.reload();
+        spleefCatalog.reload();
 
         // A lista do TAB reinicia junto: trocar o intervalo no tags.yml sem
         // recriar a tarefa deixaria o numero novo no arquivo e o antigo

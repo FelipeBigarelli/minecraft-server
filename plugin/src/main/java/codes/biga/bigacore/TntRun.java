@@ -1041,10 +1041,7 @@ public final class TntRun implements Listener {
     }
 
     static float limite(float valor) {
-        if (Float.isNaN(valor)) {
-            return 0f;
-        }
-        return Math.max(0f, Math.min(1f, valor));
+        return ArenaComum.limite(valor);
     }
 
     private List<Player> naFila() {
@@ -1147,8 +1144,7 @@ public final class TntRun implements Listener {
     }
 
     static boolean mesmoBloco(Block bloco, int[] onde) {
-        return bloco.getX() == onde[0] && bloco.getY() == onde[1]
-                && bloco.getZ() == onde[2];
+        return ArenaComum.mesmoBloco(bloco, onde);
     }
 
     /** Dano nenhum: a mecânica do jogo é cair, e cair não pode doer. */

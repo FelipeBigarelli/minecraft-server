@@ -6,15 +6,6 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.Sign;
-import org.bukkit.block.data.Directional;
-import org.bukkit.block.sign.Side;
-import org.bukkit.block.sign.SignSide;
-import org.bukkit.entity.Display;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.TextDisplay;
-import org.bukkit.util.Transformation;
-import org.joml.Vector3f;
 
 import java.util.List;
 
@@ -437,27 +428,8 @@ public final class TntRunBuilder {
      */
     static void escreverPlaca(World mundo, TntRunCatalog planta, int[] onde,
                               List<Component> linhas) {
-        Block bloco = mundo.getBlockAt(onde[0], onde[1], onde[2]);
-        Material material = planta.materialDaPlaca();
-
-        if (bloco.getType() != material) {
-            bloco.setType(material, false);
-        }
-        if (bloco.getBlockData() instanceof Directional dados
-                && dados.getFaces().contains(FRENTE_DA_PLACA)
-                && dados.getFacing() != FRENTE_DA_PLACA) {
-            dados.setFacing(FRENTE_DA_PLACA);
-            bloco.setBlockData(dados, false);
-        }
-        if (!(bloco.getState() instanceof Sign placa)) {
-            return;
-        }
-        SignSide frente = placa.getSide(Side.FRONT);
-        for (int i = 0; i < 4; i++) {
-            frente.line(i, i < linhas.size() ? linhas.get(i) : Component.empty());
-        }
-        placa.setWaxed(true);
-        placa.update(true, false);
+        ArenaComum.escreverPlaca(mundo, onde, planta.materialDaPlaca(),
+                FRENTE_DA_PLACA, linhas);
     }
 
     /** Em que z o arco de volta fica. Dentro do disco, não na beira. */
@@ -479,7 +451,7 @@ public final class TntRunBuilder {
      * primeira reação de meia arena seria correr para fora dela.
      */
     static float yawParaOCentro(int x, int z) {
-        return (float) Math.toDegrees(Math.atan2(x, -z));
+        return ArenaComum.yawParaOCentro(x, z);
     }
 
     static int alturaDoArcoDeVolta() {
@@ -579,33 +551,11 @@ public final class TntRunBuilder {
 
     private void painel(World mundo, Location alvo, Component texto,
                         float escala, int fundoAlpha) {
-        alvo.setYaw(0f);
-        alvo.setPitch(0f);
-        mundo.spawn(alvo, TextDisplay.class, novo -> {
-            novo.text(texto);
-            novo.setBillboard(Display.Billboard.FIXED);
-            novo.setAlignment(TextDisplay.TextAlignment.CENTER);
-            novo.setBackgroundColor(org.bukkit.Color.fromARGB(fundoAlpha, 0, 0, 0));
-            novo.setShadowed(true);
-            novo.setBrightness(new Display.Brightness(15, 15));
-            novo.setLineWidth(220);
-            novo.setViewRange(1.4f);
-            novo.setPersistent(true);
-            novo.addScoreboardTag(TAG_PAINEL);
-
-            Transformation t = novo.getTransformation();
-            novo.setTransformation(new Transformation(
-                    t.getTranslation(), t.getLeftRotation(),
-                    new Vector3f(escala, escala, escala), t.getRightRotation()));
-        });
+        ArenaComum.painel(mundo, alvo, texto, escala, fundoAlpha, TAG_PAINEL);
     }
 
     private void limparPaineis(World mundo) {
-        for (Entity entidade : mundo.getEntities()) {
-            if (entidade.getScoreboardTags().contains(TAG_PAINEL)) {
-                entidade.remove();
-            }
-        }
+        ArenaComum.limparPaineis(mundo, TAG_PAINEL);
     }
 
     // ------------------------------------------------------------------
