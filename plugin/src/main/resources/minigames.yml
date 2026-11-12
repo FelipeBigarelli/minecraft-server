@@ -221,7 +221,7 @@ portais:
     titulo: "ARCO E FLECHA"
     descricao: "mire antes de ser mirado"
     detalhe: "flecha infinita"
-    mundo: ""
+    mundo: "arco"
     cor: "#66BB5A"
     moldura: GREEN_TERRACOTTA
     destaque: GREEN_CONCRETE

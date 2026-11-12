@@ -93,6 +93,9 @@ public final class BigaCore extends JavaPlugin {
     private EscondeCatalog escondeCatalog;
     private EscondeBuilder escondeBuilder;
     private Esconde esconde;
+    private ArcoCatalog arcoCatalog;
+    private ArcoBuilder arcoBuilder;
+    private Arco arco;
 
     /**
      * Os minigames registrados, por etiqueta.
@@ -234,6 +237,11 @@ public final class BigaCore extends JavaPlugin {
             saveResource("esconde.yml", false);
         }
 
+        File arcoFile = new File(getDataFolder(), "arco.yml");
+        if (!arcoFile.exists()) {
+            saveResource("arco.yml", false);
+        }
+
         File mineracaoFile = new File(getDataFolder(), "mineracao.yml");
         if (!mineracaoFile.exists()) {
             saveResource("mineracao.yml", false);
@@ -371,6 +379,11 @@ public final class BigaCore extends JavaPlugin {
         this.escondeBuilder = new EscondeBuilder(this);
         this.esconde = new Esconde(this);
         registrarJogo(escondeCatalog, escondeBuilder, esconde);
+
+        this.arcoCatalog = new ArcoCatalog(this);
+        this.arcoBuilder = new ArcoBuilder(this);
+        this.arco = new Arco(this);
+        registrarJogo(arcoCatalog, arcoBuilder, arco);
 
         // As regras valem para o hub E para o lobby, então entram depois dos
         // dois: elas leem a configuração dos dois mundos para saber onde agir.
@@ -909,6 +922,18 @@ public final class BigaCore extends JavaPlugin {
 
     public Esconde esconde() {
         return esconde;
+    }
+
+    public ArcoCatalog arcoCatalog() {
+        return arcoCatalog;
+    }
+
+    public ArcoBuilder arcoBuilder() {
+        return arcoBuilder;
+    }
+
+    public Arco arco() {
+        return arco;
     }
 
     /** Os minigames registrados, por etiqueta, na ordem em que entraram. */

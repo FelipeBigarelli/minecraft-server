@@ -1,0 +1,136 @@
+# -------------------------------------------------------------
+#  ARCO E FLECHA — mire antes de ser mirado
+#
+#  Um campo de tiro sobre o vazio, com muros baixos espalhados
+#  em três anéis. Flecha infinita, um acerto elimina.
+#
+#  AS TRÊS REGRAS QUE VÊM DO ARCO DO MINECRAFT
+#
+#  - SÓ VALE TIRO CHEIO. Com flecha infinita, o jogo natural do
+#    arco do Minecraft é soltar a corda sem puxar: uma flecha de
+#    força 0,1 machuca pouco mas, num jogo em que um acerto
+#    elimina, ela mata igual. Então a jogada certa seria encher o
+#    ar de flechas e não mirar em nada. Aqui o tiro com força
+#    abaixo de `forca-minima` é RECUSADO: a flecha não sai e a
+#    puxada se perde. Cada tiro custa um segundo de arco armado,
+#    e é isso que faz mirar ser a habilidade do jogo.
+#
+#    A força do arco não é o tempo: ela é (t² + 2t)/3, com t em
+#    segundos, limitada a 1. Em 18 tiques dá 0,87; em 19, 0,93;
+#    em 20, 1,00. A `forca-minima` é 0,9 e não 1,0 de propósito —
+#    o arco às vezes chega ao máximo um tique antes por diferença
+#    entre o cliente e o servidor, e exigir 1,0 exato faria o
+#    arco "às vezes não atirar" sem o jogador entender por quê.
+#
+#  - UM ACERTO ELIMINA. Não há vida, comida, armadura nem cura.
+#    Bow PvP de sobrevivência é decidido por quantos corações
+#    cada um tem, e não por quem mira melhor.
+#
+#  - A FLECHA COME A COBERTURA. Toda flecha que acerta um muro
+#    tira aquele bloco. Sem isso, um jogo de um acerto elimina é
+#    um jogo de dezesseis pessoas agachadas atrás de pedra. Com
+#    isso, ficar parado gasta o próprio abrigo, atirar no muro do
+#    outro é jogada, e o fim da partida é sempre em campo aberto.
+#
+#  Os primeiros segundos são de GRAÇA: a flecha atravessa sem
+#  eliminar, para ninguém ser morto por flecha perdida antes de
+#  chegar a um muro.
+# -------------------------------------------------------------
+
+mundo: arco
+
+arena:
+  y: 100
+
+  # O disco do campo. Fora dele é o vazio, mas há muro em volta.
+  raio: 34
+
+  # O muro de fora: segura as flechas perdidas e fecha o campo.
+  parede-altura: 5
+
+  # Os três anéis de cobertura: em que raio, quantos muros em
+  # cada anel, de que comprimento e de que altura.
+  aneis: [11, 20, 28]
+  muros-por-anel: [6, 9, 12]
+  muro-comprimento: 7
+  muro-altura: 3
+
+  saguao-altura: 20
+  saguao-raio: 9
+  saguao-parapeito: 4
+  marco-altura: 18
+  painel-altura: 8
+
+paleta:
+  placa: SPRUCE_WALL_SIGN
+
+  piso: MOSS_BLOCK
+  piso-xadrez: GRASS_BLOCK
+  beira: PACKED_MUD
+
+  parede: PACKED_MUD
+  parede-topo: MUD_BRICKS
+
+  # A cobertura, que é o que a flecha come.
+  cobertura: MUD_BRICKS
+  cobertura-topo: MUD_BRICK_WALL
+
+  # Os alvos de enfeite no muro de fora.
+  alvo: TARGET
+  alvo-moldura: HAY_BLOCK
+
+  estrutura: PACKED_MUD
+  escuro: MUD_BRICKS
+  borda: MOSSY_COBBLESTONE
+  metal: IRON_BLOCK
+  vidro: GREEN_STAINED_GLASS
+  luz: SHROOMLIGHT
+  luz-fria: END_ROD
+  nucleo: AMETHYST_BLOCK
+  poste: SPRUCE_FENCE
+  poste-luz: LANTERN
+  torre: PACKED_MUD
+  torre-luz: LANTERN
+  folhagem: FLOWERING_AZALEA_LEAVES
+
+regras:
+  minimo: 2
+  maximo: 16
+  contagem-segundos: 15
+  fim-segundos: 8
+  treino-sozinho: true
+
+  # A força mínima do tiro, de 0,1 a 1,0. Ver o cabeçalho: 0,9
+  # aceita 19 e 20 tiques de arco armado e recusa 18 para baixo.
+  forca-minima: 0.9
+
+  # Quantos segundos no começo em que a flecha não elimina.
+  graca-segundos: 5
+
+  # Quantos pontos por acerto, para o desempate no relógio.
+  pontos-por-acerto: 10
+
+  queda-abaixo: 6
+  tempo-limite: 300
+
+textos:
+  titulo: "ARCO E FLECHA"
+  cor: "#66BB5A"
+  subtitulo: "mire antes de ser mirado"
+  regras:
+    - "clique em [ENTRAR] para entrar na fila"
+    - "a flecha é infinita e um acerto elimina"
+    - "tiro sem puxar o arco é RECUSADO"
+    - "puxe o arco um segundo inteiro antes de soltar"
+    - "a flecha come o muro em que acerta"
+    - "os primeiros segundos a flecha não mata"
+  escala-titulo: 2.6
+  escala-placa: 1.6
+  fundo-alpha: 0
+
+  placa-entrar: "[ENTRAR]"
+  placa-sair: "[SAIR]"
+  placa-fila: "na fila"
+  placa-esperando: "esperando"
+  placa-jogando: "ATIRANDO"
+  placa-refazendo: "refazendo"
