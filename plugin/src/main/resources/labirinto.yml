@@ -106,7 +106,10 @@ paleta:
   vidro: CYAN_STAINED_GLASS
   luz: SEA_LANTERN
   luz-fria: END_ROD
-  nucleo: PRISMARINE_LAMP
+  # Não existe PRISMARINE_LAMP: o núcleo do saguão ficou um ano
+  # caindo no padrão de ametista sem ninguém ver. Agora é o conduíte,
+  # que é da mesma família do resto da paleta e brilha.
+  nucleo: CONDUIT
 
 regras:
   minimo: 2

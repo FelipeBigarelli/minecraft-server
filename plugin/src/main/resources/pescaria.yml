@@ -124,7 +124,9 @@ paleta:
   vidro: BLUE_STAINED_GLASS
   luz: SEA_LANTERN
   luz-fria: END_ROD
-  nucleo: PRISMARINE_LAMP
+  # Não existe PRISMARINE_LAMP: o núcleo caía no padrão de ametista
+  # sem ninguém ver. O conduíte é da mesma família e brilha.
+  nucleo: CONDUIT
 
 regras:
   minimo: 2
