@@ -156,6 +156,27 @@ class ReiTest {
                 "nenhuma linha diz para clicar na placa");
     }
 
+    /**
+     * O painel tem de dizer que o relógio NÃO ZERA.
+     *
+     * É a regra que o jogador não descobre jogando: ele é empurrado do topo,
+     * vê o relógio parar, e sem esta linha conclui que perdeu os quarenta
+     * segundos que somou — e desiste de subir de novo. A regra é o jogo
+     * inteiro e ela só existe se estiver escrita.
+     */
+    @Test
+    @DisplayName("o painel avisa que o relógio soma e não zera")
+    void oPainelAvisaQueORelogioSoma() {
+        List<String> regras = arena.getStringList("textos.regras");
+        assertTrue(regras.stream().anyMatch(
+                        linha -> linha.contains("não zera")),
+                "nenhuma linha do painel diz que o relógio não zera: "
+                        + regras);
+        assertTrue(regras.stream().anyMatch(linha -> linha.contains("some")
+                        || linha.contains("soma")),
+                "nenhuma linha do painel diz que o tempo SOMA: " + regras);
+    }
+
     // ------------------------------------------------------------------
     //  A montanha
     // ------------------------------------------------------------------

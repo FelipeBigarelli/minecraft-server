@@ -1,20 +1,22 @@
 # -------------------------------------------------------------
-#  REI DA MONTANHA — segure o topo
+#  REI DA MONTANHA — some um minuto no topo
 #
 #  Uma montanha em degraus sobre o vazio. Quem estiver SOZINHO no
-#  topo segura a coroa, e quem segurar um minuto inteiro ganha.
+#  topo segura a coroa, e ganha quem SOMAR um minuto lá em cima.
 #
 #  Três regras que vêm do gênero e que são o jogo inteiro:
 #
-#  - DISPUTA CONGELA. Dois no topo e o relógio para. Não zera:
-#    para. Zerar faria de cada encontro um reinício, e ninguém
-#    chegaria nunca a lugar nenhum.
-#  - EMPURRÃO NÃO É QUEDA. Quem sai do topo tem alguns tiques de
-#    tolerância para voltar antes de perder o que acumulou. Sem
-#    isso, um empurrão de sorte apaga cinquenta segundos.
-#  - SAIU DE VEZ, ZEROU. Passada a tolerância, o relógio volta a
-#    zero e a montanha fica livre. É o que faz derrubar o rei
-#    valer a pena.
+#  - O RELÓGIO DE CADA UM É INCREMENTAL. Ele anda enquanto você
+#    está sozinho no topo e PARA quando você sai. Não zera: a
+#    próxima subida continua de onde a anterior parou, e por isso
+#    toda subida bem feita é paga.
+#  - DISPUTA CONGELA. Dois no topo e nenhum dos dois relógios
+#    anda. É o que faz do topo um lugar para expulsar alguém, e
+#    não um lugar para dividir.
+#  - A TOLERÂNCIA É DO TÍTULO, NÃO DO RELÓGIO. Quem sai do topo
+#    fica com a coroa por alguns tiques. O relógio não precisa de
+#    proteção porque não zera; o título precisa, senão a coroa
+#    piscaria de dono a cada pulo do rei.
 #
 #  Ninguém é eliminado e ninguém toma dano: o que existe é um
 #  bastão que EMPURRA. Quem cai da montanha volta ao pé dela e
@@ -79,11 +81,14 @@ regras:
   fim-segundos: 8
   treino-sozinho: true
 
-  # Quantos segundos SEGUIDOS no topo ganham a partida.
+  # Quantos segundos SOMADOS no topo ganham a partida. O relógio
+  # de cada jogador para quando ele sai do topo e continua de onde
+  # parou quando ele volta.
   segundos-para-ganhar: 60
 
-  # Quantos tiques de tolerância quem sai do topo tem para voltar
-  # antes de o relógio dele zerar.
+  # Quantos tiques quem sai do topo continua com a COROA. O
+  # relógio não zera mais, então a tolerância só evita que um pulo
+  # do rei dê o título ao rival por dois tiques.
   tolerancia-tiques: 40
 
   # A força do bastão e quanto ele levanta.
@@ -101,19 +106,20 @@ regras:
   castigo-segundos: 3
 
   # O teto da partida. Se ninguém fechar o minuto, ganha quem
-  # tiver segurado o topo por mais tempo de uma vez só.
+  # tiver somado mais tempo no topo.
   tempo-limite: 420
 
 textos:
   titulo: "REI DA MONTANHA"
   cor: "#FFD700"
-  subtitulo: "segure o topo"
+  subtitulo: "some um minuto no topo"
   regras:
     - "clique em [ENTRAR] para entrar na fila"
     - "o bastão empurra, mas não machuca"
     - "só conta quem está SOZINHO no topo"
-    - "dois no topo e o relógio congela"
-    - "um minuto inteiro e a coroa é sua"
+    - "o seu relógio para quando você sai, mas não zera"
+    - "dois no topo e o relógio congela para os dois"
+    - "some um minuto lá em cima e a coroa é sua"
   escala-titulo: 2.6
   escala-placa: 1.6
   fundo-alpha: 0

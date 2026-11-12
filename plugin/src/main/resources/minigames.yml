@@ -315,8 +315,8 @@ portais:
     lado: OESTE
     vao: 0
     titulo: "REI DA MONTANHA"
-    descricao: "segure o topo"
-    detalhe: "um minuto inteiro"
+    descricao: "some um minuto no topo"
+    detalhe: "o relógio não zera"
     mundo: "rei"
     cor: "#FFD700"
     moldura: YELLOW_TERRACOTTA

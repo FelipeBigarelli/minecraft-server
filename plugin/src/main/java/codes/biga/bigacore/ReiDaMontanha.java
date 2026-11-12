@@ -25,49 +25,57 @@ import java.util.Random;
 import java.util.UUID;
 
 /**
- * O Rei da Montanha: segure o topo um minuto inteiro.
+ * O Rei da Montanha: some um minuto no topo.
  *
- * <h2>Um relógio só, e ele é de quem está em cima</h2>
+ * <h2>O relógio é de cada um, e ele é INCREMENTAL</h2>
  *
- * Não é tempo acumulado por jogador: é UM relógio, que anda enquanto houver
- * exatamente uma pessoa no topo e que zera quando o topo fica vazio. É a
- * diferença entre "você passou um minuto lá em cima ao longo da partida" e
- * "você segurou aquele lugar por um minuto" — e só a segunda faz o resto da
- * arena largar tudo e subir aos cinquenta segundos.
+ * Cada jogador tem o seu relógio, e ele anda enquanto o dono está SOZINHO no
+ * topo. Sair do topo PARA o relógio — não zera. Voltar continua de onde
+ * parou, e ganha quem primeiro somar o minuto.
  *
- * <h2>Disputa congela, e não zera</h2>
+ * <p>A primeira versão deste jogo pedia o minuto SEGUIDO, e o defeito dela
+ * aparecia no fim de toda partida: um empurrão de sorte aos cinquenta e nove
+ * segundos apagava a subida inteira, e a décima subida de alguém valia
+ * exatamente o mesmo que a primeira — nada. Com o relógio incremental cada
+ * subida bem feita é paga na hora, e a montanha é disputada do primeiro ao
+ * último segundo, porque ninguém está nunca "começando de novo".
  *
- * Dois no topo e o relógio para onde está. Zerar faria de cada encontro um
- * reinício, e numa arena de dezesseis ninguém chegaria nunca a lugar nenhum.
- * Congelado, o segundo que chega tem de EXPULSAR o primeiro para destravar, e
- * é aí que o bastão importa.
+ * <h2>Disputa congela</h2>
  *
- * <h2>Empurrão não é queda</h2>
+ * Dois no topo e nenhum dos dois relógios anda. É o que faz do topo um lugar
+ * para EXPULSAR alguém e não um lugar para dividir: com dois parados lá em
+ * cima a partida não avança para nenhum dos dois, e é aí que o bastão
+ * importa.
  *
- * Quem sai do topo tem dois segundos de tolerância para voltar antes de o
- * relógio zerar. Sem isso, um empurrão de sorte aos cinquenta e nove segundos
- * apaga a partida inteira de alguém — e o jogo passa a ser sobre o último
- * empurrão em vez de ser sobre segurar o topo.
+ * <h2>A tolerância protege o título, não o relógio</h2>
+ *
+ * Quem sai do topo continua com a coroa por dois segundos. O relógio não
+ * precisa mais de proteção, porque não zera; o que precisa é o TÍTULO — sem
+ * a tolerância, um pulo do rei daria o topo ao rival por dois tiques, e a
+ * arena veria a coroa piscando de dono a cada salto.
  *
  * <h2>Ninguém é eliminado</h2>
  *
  * Não há dano e não há eliminação: o que existe é um bastão que empurra e uma
  * montanha com vazio em volta. Quem cai volta ao pé dela e perde a subida, que
- * é castigo de sobra. A partida acaba no minuto fechado ou no relógio — e no
- * relógio ganha quem tiver segurado o topo por mais tempo de uma vez só.
+ * é castigo de sobra. A partida acaba no minuto somado ou no relógio — e no
+ * relógio ganha quem tiver somado mais tempo no topo.
  */
 public final class ReiDaMontanha extends JogoDeArena {
 
     /** Quanto acima do cume ainda conta como estar no topo. */
     private static final double TETO_DO_TOPO = 5.0;
 
-    private final Map<UUID, Integer> melhorDe = new HashMap<>();
+    /** Quantos tiques cada um já somou no topo. Nunca zera na partida. */
+    private final Map<UUID, Integer> somaDe = new HashMap<>();
     private final Map<UUID, Long> carenciaDoBastao = new HashMap<>();
     private final Map<UUID, Long> castigoAte = new HashMap<>();
     private final Random sorte = new Random();
 
     private UUID rei;
-    private int tiquesSegurando;
+
+    /** Há quantos tiques o rei de agora está no topo DESTA vez. */
+    private int tiquesNaVez;
     private int toleranciaRestante;
     private UUID campeao;
 
@@ -112,12 +120,12 @@ public final class ReiDaMontanha extends JogoDeArena {
 
     @Override
     protected void prepararArena(World mundo) {
-        melhorDe.clear();
+        somaDe.clear();
         carenciaDoBastao.clear();
         castigoAte.clear();
         rei = null;
         campeao = null;
-        tiquesSegurando = 0;
+        tiquesNaVez = 0;
         toleranciaRestante = 0;
     }
 
@@ -131,16 +139,18 @@ public final class ReiDaMontanha extends JogoDeArena {
                     pontos.get(k % pontos.size())));
             jogador.setFallDistance(0f);
             darOBastao(jogador);
-            melhorDe.put(jogador.getUniqueId(), 0);
+            somaDe.put(jogador.getUniqueId(), 0);
         }
     }
 
     @Override
     protected void aoComecarRodada(World mundo) {
         ReiCatalog planta = planta2();
-        anunciar("<gray>ganha quem segurar o topo por <white>"
-                + planta.segundosParaGanhar() + "s seguidos</white> — dois lá "
-                + "em cima e o relógio congela</gray>");
+        anunciar("<gray>ganha quem SOMAR <white>"
+                + planta.segundosParaGanhar() + "s</white> no topo. O seu "
+                + "relógio <white>não zera</white> quando você sai: ele para "
+                + "e continua na próxima subida — mas com dois lá em cima ele "
+                + "congela para os dois</gray>");
     }
 
     @Override
@@ -180,11 +190,11 @@ public final class ReiDaMontanha extends JogoDeArena {
             Player quem = Bukkit.getPlayer(campeao);
             return quem == null ? "alguém" : quem.getName();
         }
-        // No relógio: ganha o recorde, se houver UM recorde.
+        // No relógio: ganha quem somou mais, se houver UM que somou mais.
         UUID melhor = null;
         int maior = 0;
         boolean empate = false;
-        for (Map.Entry<UUID, Integer> marca : melhorDe.entrySet()) {
+        for (Map.Entry<UUID, Integer> marca : somaDe.entrySet()) {
             if (marca.getValue() > maior) {
                 maior = marca.getValue();
                 melhor = marca.getKey();
@@ -203,20 +213,32 @@ public final class ReiDaMontanha extends JogoDeArena {
     @Override
     protected String legendaDaVitoria() {
         if (campeao != null) {
-            return "segurou o topo " + planta2().segundosParaGanhar()
-                    + "s inteiros";
+            return "somou os " + planta2().segundosParaGanhar()
+                    + "s no topo";
         }
         int maior = 0;
-        for (int marca : melhorDe.values()) {
+        for (int marca : somaDe.values()) {
             maior = Math.max(maior, marca);
         }
-        return "o reinado mais longo: " + ArenaComum.tempo(maior);
+        return "somou mais tempo no topo: " + ArenaComum.tempo(maior);
     }
 
+    /**
+     * A barra mostra o MAIOR relógio da arena, e não o do rei de agora.
+     *
+     * É a única leitura honesta com relógio incremental: o rei de agora pode
+     * ter acabado de assumir com três segundos somados enquanto outro está a
+     * dois da coroa, e uma barra quase vazia nessa hora diria o contrário do
+     * que está acontecendo.
+     */
     @Override
     protected float progressoDaBarra() {
         int alvo = planta2().segundosParaGanhar() * 20;
-        return tiquesSegurando / (float) Math.max(1, alvo);
+        int maior = 0;
+        for (int marca : somaDe.values()) {
+            maior = Math.max(maior, marca);
+        }
+        return ArenaComum.limite(maior / (float) Math.max(1, alvo));
     }
 
     @Override
@@ -229,8 +251,8 @@ public final class ReiDaMontanha extends JogoDeArena {
         Player quem = Bukkit.getPlayer(rei);
         String nome = quem == null ? "alguém" : HubBuilder.escapar(quem.getName());
         boolean disputado = quantosNoTopo() > 1;
-        return "<white>" + nome + "</white> <gray>segura há <white>"
-                + (tiquesSegurando / 20) + "s</white> de "
+        return "<white>" + nome + "</white> <gray>somou <white>"
+                + (somaDe.getOrDefault(rei, 0) / 20) + "s</white> de "
                 + planta.segundosParaGanhar() + "s"
                 + (disputado ? " · <color:#FF8A8A>DISPUTADO</color>" : "")
                 + "</gray>";
@@ -284,10 +306,9 @@ public final class ReiDaMontanha extends JogoDeArena {
             if (continua) {
                 toleranciaRestante = planta.toleranciaTiques();
                 if (emCima.size() == 1) {
-                    tiquesSegurando++;
-                    melhorDe.put(rei, Math.max(melhorDe.getOrDefault(rei, 0),
-                            tiquesSegurando));
-                    if (tiquesSegurando >= planta.segundosParaGanhar() * 20) {
+                    tiquesNaVez++;
+                    int soma = somaDe.merge(rei, 1, Integer::sum);
+                    if (soma >= planta.segundosParaGanhar() * 20) {
                         coroar(mundo, quemEra);
                     }
                 }
@@ -344,25 +365,38 @@ public final class ReiDaMontanha extends JogoDeArena {
 
     private void assumir(Player jogador, ReiCatalog planta) {
         rei = jogador.getUniqueId();
-        tiquesSegurando = 0;
+        tiquesNaVez = 0;
         toleranciaRestante = planta.toleranciaTiques();
+        int soma = somaDe.getOrDefault(rei, 0);
         anunciar("<color:" + planta.corDoTexto() + ">"
                 + HubBuilder.escapar(jogador.getName())
-                + "</color> <gray>tomou o topo</gray>");
+                + "</color> <gray>tomou o topo"
+                + (soma >= 20 ? " — continua de <white>" + (soma / 20)
+                        + "s</white>" : "") + "</gray>");
         for (Player quem : jogadoresDaArena()) {
             quem.playSound(quem.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL,
                     0.6f, 1.2f);
         }
     }
 
+    /**
+     * Sai o rei, fica o que ele somou.
+     *
+     * Zerar {@link #tiquesNaVez} aqui é só para a próxima mensagem: a conta
+     * que vale, {@link #somaDe}, não é tocada nem aqui nem em
+     * {@link #assumir}, e é isso que faz o relógio ser incremental.
+     */
     private void perderACoroa(Player quemEra) {
-        if (quemEra != null && tiquesSegurando >= 20) {
+        if (quemEra != null && tiquesNaVez >= 20) {
+            UUID quem = quemEra.getUniqueId();
             anunciar("<gray>" + HubBuilder.escapar(quemEra.getName())
-                    + " perdeu o topo depois de <white>"
-                    + ArenaComum.tempo(tiquesSegurando) + "</white></gray>");
+                    + " saiu do topo depois de <white>"
+                    + ArenaComum.tempo(tiquesNaVez) + "</white> — somou "
+                    + "<white>" + (somaDe.getOrDefault(quem, 0) / 20)
+                    + "s</white></gray>");
         }
         rei = null;
-        tiquesSegurando = 0;
+        tiquesNaVez = 0;
         toleranciaRestante = 0;
     }
 
@@ -390,7 +424,8 @@ public final class ReiDaMontanha extends JogoDeArena {
             return;
         }
         ReiCatalog planta = planta2();
-        int faltam = planta.segundosParaGanhar() - tiquesSegurando / 20;
+        int faltam = planta.segundosParaGanhar()
+                - somaDe.getOrDefault(rei, 0) / 20;
         if (faltam > 0 && faltam <= 10) {
             for (Player jogador : jogadoresDaArena()) {
                 jogador.playSound(jogador.getLocation(),
@@ -492,12 +527,12 @@ public final class ReiDaMontanha extends JogoDeArena {
 
     @Override
     protected void aoSairDaArena(UUID id) {
-        melhorDe.remove(id);
+        somaDe.remove(id);
         carenciaDoBastao.remove(id);
         castigoAte.remove(id);
         if (id.equals(rei)) {
             rei = null;
-            tiquesSegurando = 0;
+            tiquesNaVez = 0;
             toleranciaRestante = 0;
         }
     }
@@ -506,9 +541,14 @@ public final class ReiDaMontanha extends JogoDeArena {
     //  Para quem pergunta de fora
     // ------------------------------------------------------------------
 
-    /** Há quantos tiques o rei de agora segura o topo. */
-    public int tiquesSegurando() {
-        return tiquesSegurando;
+    /** Há quantos tiques o rei de agora está no topo desta vez. */
+    public int tiquesNaVez() {
+        return tiquesNaVez;
+    }
+
+    /** Quantos tiques um jogador já somou no topo nesta partida. */
+    public int somaDe(UUID id) {
+        return somaDe.getOrDefault(id, 0);
     }
 
     /** Quem está com a coroa agora, ou null. */
