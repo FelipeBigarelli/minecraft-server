@@ -305,7 +305,7 @@ portais:
     titulo: "SORTE"
     descricao: "o dado escolhe por você"
     detalhe: "nem sempre a favor"
-    mundo: ""
+    mundo: "sorte"
     cor: "#E8A87C"
     moldura: WAXED_EXPOSED_CUT_COPPER
     destaque: WAXED_CUT_COPPER

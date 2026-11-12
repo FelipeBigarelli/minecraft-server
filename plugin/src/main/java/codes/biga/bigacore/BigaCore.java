@@ -87,6 +87,9 @@ public final class BigaCore extends JavaPlugin {
     private MusicaCatalog musicaCatalog;
     private MusicaBuilder musicaBuilder;
     private Musica musica;
+    private SorteCatalog sorteCatalog;
+    private SorteBuilder sorteBuilder;
+    private Sorte sorte;
 
     /**
      * Os minigames registrados, por etiqueta.
@@ -218,6 +221,11 @@ public final class BigaCore extends JavaPlugin {
             saveResource("musica.yml", false);
         }
 
+        File sorteFile = new File(getDataFolder(), "sorte.yml");
+        if (!sorteFile.exists()) {
+            saveResource("sorte.yml", false);
+        }
+
         File mineracaoFile = new File(getDataFolder(), "mineracao.yml");
         if (!mineracaoFile.exists()) {
             saveResource("mineracao.yml", false);
@@ -345,6 +353,11 @@ public final class BigaCore extends JavaPlugin {
         this.musicaBuilder = new MusicaBuilder(this);
         this.musica = new Musica(this);
         registrarJogo(musicaCatalog, musicaBuilder, musica);
+
+        this.sorteCatalog = new SorteCatalog(this);
+        this.sorteBuilder = new SorteBuilder(this);
+        this.sorte = new Sorte(this);
+        registrarJogo(sorteCatalog, sorteBuilder, sorte);
 
         // As regras valem para o hub E para o lobby, então entram depois dos
         // dois: elas leem a configuração dos dois mundos para saber onde agir.
@@ -859,6 +872,18 @@ public final class BigaCore extends JavaPlugin {
 
     public Musica musica() {
         return musica;
+    }
+
+    public SorteCatalog sorteCatalog() {
+        return sorteCatalog;
+    }
+
+    public SorteBuilder sorteBuilder() {
+        return sorteBuilder;
+    }
+
+    public Sorte sorte() {
+        return sorte;
     }
 
     /** Os minigames registrados, por etiqueta, na ordem em que entraram. */

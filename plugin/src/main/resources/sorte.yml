@@ -1,0 +1,140 @@
+# -------------------------------------------------------------
+#  SORTE — o dado escolhe por você
+#
+#  Um disco partido em seis fatias, uma por face do dado, com os
+#  pontos da face desenhados no chão dela. No meio, o BANCO.
+#
+#  A cada rodada você escolhe uma fatia e o dado rola. A fatia
+#  sorteada SOME, e quem estava nela perde tudo o que juntou. As
+#  outras cinco pagam o prêmio da rodada — e aqui está o jogo: o
+#  prêmio de uma fatia é dividido entre quem escolheu ela. Sozinho
+#  numa fatia você leva o prêmio inteiro; com mais cinco, um sexto.
+#
+#  A qualquer momento dá para pular no BANCO: o que você tem vira
+#  pontos guardados e você sai da rodada para assistir. Quem cai
+#  não guarda nada.
+#
+#  AS DUAS DECISÕES, E POR QUE ELAS EXISTEM
+#
+#  Um jogo de sorte puro não é jogo, é moeda ao ar. As duas
+#  decisões daqui são o que fazem a sorte ser só o material:
+#
+#  - QUAL FATIA. O dado é justo: toda face tem 1 em 6. O que muda
+#    é quanta gente escolheu a mesma — então a conta não é sobre o
+#    dado, é sobre onde os outros quinze vão pisar. É um jogo de
+#    adivinhar a multidão, e ele se resolve nos últimos segundos,
+#    com todo mundo se mexendo.
+#
+#  - QUANDO SAIR. Sobreviver a uma rodada é 5 em 6, e o prêmio
+#    sobe de duas em duas rodadas. Multiplicando, a melhor hora de
+#    pular no banco fica perto da rodada 8 de 10 — e a curva é tão
+#    chata ali que da rodada 7 à 10 dá quase no mesmo. Ou seja: a
+#    conta não decide por você, o placar dos outros decide.
+#
+#  A conferência da obra recusa a tabela de prêmios em que a melhor
+#  hora de sair é a primeira rodada (aí ninguém joga) ou a última
+#  (aí ninguém sai, e o banco é enfeite).
+# -------------------------------------------------------------
+
+mundo: sorte
+
+arena:
+  y: 100
+
+  # O disco: o banco no meio e a coroa das fatias em volta.
+  raio: 28
+  banco-raio: 7
+
+  # Uma fatia por face do dado.
+  setores: 6
+
+  # A fiada em que os pontos da face são desenhados, e de que
+  # tamanho é o ponto.
+  pingo-raio: 18
+  pingo-passo: 2
+
+  saguao-altura: 20
+  saguao-raio: 9
+  saguao-parapeito: 4
+  marco-altura: 16
+  painel-altura: 7
+
+paleta:
+  placa: ACACIA_WALL_SIGN
+
+  banco: WAXED_EXPOSED_CUT_COPPER
+  banco-beira: WAXED_CUT_COPPER
+  banco-nucleo: GOLD_BLOCK
+
+  fatia: SMOOTH_SANDSTONE
+  fatia-xadrez: SANDSTONE
+  risco: WAXED_EXPOSED_CUT_COPPER
+  pingo: POLISHED_BLACKSTONE
+  beira: WAXED_WEATHERED_CUT_COPPER
+
+  poste: ACACIA_FENCE
+  poste-luz: LANTERN
+
+  estrutura: WAXED_EXPOSED_CUT_COPPER
+  escuro: POLISHED_BLACKSTONE
+  borda: BLACKSTONE
+  metal: IRON_BLOCK
+  vidro: ORANGE_STAINED_GLASS
+  luz: SHROOMLIGHT
+  luz-fria: END_ROD
+  torre: WAXED_EXPOSED_CUT_COPPER
+  torre-luz: LANTERN
+
+regras:
+  minimo: 2
+  maximo: 16
+  contagem-segundos: 15
+  fim-segundos: 8
+  treino-sozinho: true
+
+  # Quantas rodadas a partida tem.
+  rodadas: 10
+
+  # Quantos segundos para escolher a fatia, e quantos a revelação
+  # fica na tela antes da rodada seguinte.
+  tempo-escolha: 8
+  tempo-revelacao: 5
+
+  # Quantos tiques entre a fatia sumir e quem estava nela ser tirado
+  # da rodada. É o tempo da queda, e a queda é o espetáculo.
+  queda-tiques: 30
+
+  # O prêmio da primeira rodada e quanto ele sobe por rodada. O
+  # prêmio é de cada FATIA, e é dividido entre quem escolheu ela.
+  premio-base: 8
+  premio-passo: 2
+
+  # Quantas fiadas acima do disco fica o piso do banco. Uma, para
+  # ninguém guardar os pontos por acidente ao andar de costas: tem
+  # de pular para entrar.
+  banco-degrau: 1
+
+  queda-abaixo: 6
+  tempo-limite: 300
+
+textos:
+  titulo: "SORTE"
+  cor: "#E8A87C"
+  subtitulo: "o dado escolhe por você"
+  regras:
+    - "clique em [ENTRAR] para entrar na fila"
+    - "escolha uma das seis fatias do dado"
+    - "a fatia sorteada some e quem está nela perde tudo"
+    - "o prêmio da fatia é dividido entre quem escolheu ela"
+    - "pule no BANCO para guardar o que tem e sair"
+    - "quem cai não guarda nada"
+  escala-titulo: 2.6
+  escala-placa: 1.6
+  fundo-alpha: 0
+
+  placa-entrar: "[ENTRAR]"
+  placa-sair: "[SAIR]"
+  placa-fila: "na fila"
+  placa-esperando: "esperando"
+  placa-jogando: "ROLANDO"
+  placa-refazendo: "refazendo"
