@@ -1,0 +1,346 @@
+# -------------------------------------------------------------
+#  QUIZ — quem sabe, responde
+#
+#  Um átrio no meio, quatro pontes e quatro tablados. A pergunta
+#  aparece no painel, a opção de cada tablado aparece na placa
+#  dele, e você tem nove segundos para sair do átrio e pisar na
+#  sua resposta. No fim do tempo os tablados errados SOMEM.
+#
+#  Quatro decisões, e as três primeiras existem por causa do
+#  defeito clássico do gênero, que é copiar o vizinho:
+#
+#  - NÃO RESPONDER É ERRAR. Sem isso o átrio seria o lugar seguro
+#    e dava para esperar a revelação parado no meio. Com isso, é
+#    obrigatório sair e comprometer-se.
+#  - A RESPOSTA TRANCA NO PRIMEIRO PISO. Pisou, respondeu. Sem
+#    isso, a disputa seria sobre quem pisa por último, e os quinze
+#    de trás ficariam olhando os pés do primeiro.
+#  - RAPIDEZ VALE PONTO. A eliminação decide quem fica; o ponto
+#    decide quem ganha quando mais de um chega ao fim. Quem espera
+#    para copiar sobrevive e perde no ponto, que é o preço certo.
+#  - A RODADA SOBE DE NÍVEL. As quatro primeiras perguntas são
+#    fáceis, as quatro do meio médias, as últimas difíceis. Sem
+#    isso, metade da arena cai numa pergunta difícil nos primeiros
+#    quinze segundos e passa três minutos assistindo.
+#
+#  E uma regra de salvação: se NINGUÉM acertar, a pergunta não
+#  vale e ninguém cai. Uma pergunta ruim não pode acabar com a
+#  partida inteira.
+#
+#  Para acrescentar pergunta: copie um bloco da lista, ponha o
+#  'nivel' (1 fácil, 2 média, 3 difícil), escreva as opções e diga
+#  em 'certa' qual delas é a resposta, contando de zero. A
+#  conferência recusa a obra se a resposta certa cair quase sempre
+#  na mesma posição — num quiz assim o jogador decora a posição em
+#  vez de saber a resposta.
+# -------------------------------------------------------------
+
+mundo: quiz
+
+arena:
+  # A fiada do piso do átrio e dos tablados.
+  y: 100
+
+  # O átrio do meio: é de onde todo mundo parte, e estar nele
+  # quando o tempo acaba conta como não ter respondido.
+  atrio-raio: 5
+
+  # Os tablados: quantos, de que raio e a que distância do meio.
+  tablados: 4
+  tablado-raio: 5
+  tablado-anel: 16
+
+  # A largura das pontes que ligam o átrio aos tablados.
+  ponte-largura: 3
+
+  saguao-altura: 20
+  saguao-raio: 9
+  saguao-parapeito: 4
+  marco-altura: 16
+
+  # A fiada do painel da pergunta, acima do átrio.
+  painel-altura: 7
+
+paleta:
+  placa: CRIMSON_WALL_SIGN
+
+  atrio: POLISHED_BLACKSTONE
+  atrio-beira: CHISELED_POLISHED_BLACKSTONE
+  ponte: POLISHED_BLACKSTONE_BRICKS
+  poste: CRIMSON_FENCE
+  poste-luz: SHROOMLIGHT
+  torre: POLISHED_BLACKSTONE_BRICKS
+  torre-luz: SHROOMLIGHT
+
+  # Um material por tablado, na ordem A, B, C, D.
+  tablado-a: RED_CONCRETE
+  tablado-b: LIGHT_BLUE_CONCRETE
+  tablado-c: YELLOW_CONCRETE
+  tablado-d: LIME_CONCRETE
+  tablado-beira: POLISHED_BLACKSTONE
+
+  estrutura: POLISHED_BLACKSTONE_BRICKS
+  escuro: POLISHED_BLACKSTONE
+  borda: BLACKSTONE
+  metal: IRON_BLOCK
+  vidro: MAGENTA_STAINED_GLASS
+  luz: SHROOMLIGHT
+  luz-fria: END_ROD
+  nucleo: AMETHYST_BLOCK
+
+regras:
+  minimo: 2
+  maximo: 16
+  contagem-segundos: 15
+  fim-segundos: 8
+  treino-sozinho: true
+
+  # Quantos segundos para sair do átrio e pisar na resposta.
+  tempo-resposta: 9
+
+  # Quantos segundos a revelação fica na tela antes da próxima.
+  tempo-revelacao: 4
+
+  # Quantos tiques entre o tablado sumir e quem errou ser tirado
+  # da rodada — é o tempo da queda, e ela é o espetáculo.
+  queda-tiques: 30
+
+  # Quantas perguntas a rodada tem, no máximo, e quantas de cada
+  # nível. A soma dos três tem de dar o total.
+  perguntas-por-rodada: 12
+  por-nivel: [4, 4, 4]
+
+  # Quantos pontos um acerto vale, e quanto a rapidez acrescenta
+  # no melhor caso. O ponto não elimina ninguém: ele é o desempate
+  # de quem chegar vivo ao fim.
+  pontos-acerto: 10
+  pontos-rapidez: 10
+
+  # Quantas fiadas abaixo do piso já conta como ter caído.
+  queda-abaixo: 6
+
+  tempo-limite: 300
+
+textos:
+  titulo: "QUIZ"
+  cor: "#E57FE5"
+  subtitulo: "quem sabe, responde"
+  regras:
+    - "clique em [ENTRAR] para entrar na fila"
+    - "a pergunta aparece no painel do átrio"
+    - "a opção de cada tablado está na placa dele"
+    - "pisou, respondeu — e não dá para trocar"
+    - "ficar no átrio conta como errar"
+  escala-titulo: 2.6
+  escala-placa: 1.6
+  fundo-alpha: 0
+
+  placa-entrar: "[ENTRAR]"
+  placa-sair: "[SAIR]"
+  placa-fila: "na fila"
+  placa-esperando: "esperando"
+  placa-jogando: "RESPONDENDO"
+  placa-refazendo: "refazendo"
+
+# -------------------------------------------------------------
+#  O banco de perguntas
+#
+#  'certa' conta de ZERO: 0 é a primeira opção, 1 a segunda, e
+#  assim por diante.
+# -------------------------------------------------------------
+perguntas:
+  # ---------------- nível 1 — fáceis ----------------
+  - nivel: 1
+    pergunta: "Qual destes blocos você quebra com a mão?"
+    opcoes: ["TERRA", "PEDRA", "FERRO", "OBSIDIANA"]
+    certa: 0
+  - nivel: 1
+    pergunta: "Que animal dá lã?"
+    opcoes: ["VACA", "OVELHA", "PORCO", "GALINHA"]
+    certa: 1
+  - nivel: 1
+    pergunta: "O que o Creeper faz quando chega perto?"
+    opcoes: ["ATIRA", "FOGE", "EXPLODE", "ROUBA"]
+    certa: 2
+  - nivel: 1
+    pergunta: "Qual ferramenta cava terra mais rápido?"
+    opcoes: ["PICARETA", "MACHADO", "ENXADA", "PÁ"]
+    certa: 3
+  - nivel: 1
+    pergunta: "Quantos lados tem um dado comum?"
+    opcoes: ["4", "6", "8", "12"]
+    certa: 1
+  - nivel: 1
+    pergunta: "Qual é a capital do Brasil?"
+    opcoes: ["SÃO PAULO", "RIO", "BRASÍLIA", "SALVADOR"]
+    certa: 2
+  - nivel: 1
+    pergunta: "Que cor tem a esmeralda?"
+    opcoes: ["AZUL", "VERMELHA", "ROXA", "VERDE"]
+    certa: 3
+  - nivel: 1
+    pergunta: "O que acontece com o zumbi no sol?"
+    opcoes: ["PEGA FOGO", "CORRE MAIS", "DORME", "NADA"]
+    certa: 0
+  - nivel: 1
+    pergunta: "Quantas patas tem uma aranha?"
+    opcoes: ["4", "6", "8", "10"]
+    certa: 2
+  - nivel: 1
+    pergunta: "O que o esqueleto atira?"
+    opcoes: ["PEDRA", "FOGO", "NEVE", "FLECHA"]
+    certa: 3
+  - nivel: 1
+    pergunta: "Em que bioma nasce o cacto?"
+    opcoes: ["DESERTO", "SELVA", "OCEANO", "TAIGA"]
+    certa: 0
+  - nivel: 1
+    pergunta: "Quanto é 7 x 8?"
+    opcoes: ["48", "56", "63", "64"]
+    certa: 1
+  - nivel: 1
+    pergunta: "Qual é o maior planeta do sistema solar?"
+    opcoes: ["TERRA", "MARTE", "SATURNO", "JÚPITER"]
+    certa: 3
+  - nivel: 1
+    pergunta: "Quantos minutos tem uma hora?"
+    opcoes: ["60", "90", "100", "120"]
+    certa: 0
+  - nivel: 1
+    pergunta: "Qual ferramenta corta madeira mais rápido?"
+    opcoes: ["PÁ", "MACHADO", "PICARETA", "ESPADA"]
+    certa: 1
+  - nivel: 1
+    pergunta: "Qual destes blocos é o mais duro?"
+    opcoes: ["AREIA", "TERRA", "OBSIDIANA", "LÃ"]
+    certa: 2
+  # ---------------- nível 2 — médias ----------------
+  - nivel: 2
+    pergunta: "Quantos minérios formam um bloco maciço?"
+    opcoes: ["4", "6", "8", "9"]
+    certa: 3
+  - nivel: 2
+    pergunta: "Qual mob se teleporta quando você olha para ele?"
+    opcoes: ["ENDERMAN", "ALDEÃO", "BRUXA", "GOLEM"]
+    certa: 0
+  - nivel: 2
+    pergunta: "O que a mesa de encantamentos precisa por perto?"
+    opcoes: ["TOCHAS", "ESTANTES", "BAÚS", "ÁGUA"]
+    certa: 1
+  - nivel: 2
+    pergunta: "Qual bloco não se quebra nem com diamante?"
+    opcoes: ["OBSIDIANA", "ÂNCORA", "BEDROCK", "FERRO"]
+    certa: 2
+  - nivel: 2
+    pergunta: "Como se chama o chefão do End?"
+    opcoes: ["WITHER", "GOLEM", "GUARDIÃO", "DRAGÃO"]
+    certa: 3
+  - nivel: 2
+    pergunta: "Quanto tempo dura um dia completo, em minutos?"
+    opcoes: ["10", "20", "30", "60"]
+    certa: 1
+  - nivel: 2
+    pergunta: "Qual mob vende coisas para o jogador?"
+    opcoes: ["ZUMBI", "LOBO", "ALDEÃO", "GATO"]
+    certa: 2
+  - nivel: 2
+    pergunta: "Com que item se doma um lobo?"
+    opcoes: ["CARNE", "TRIGO", "PEIXE", "OSSO"]
+    certa: 3
+  - nivel: 2
+    pergunta: "Quanto é 12 x 12?"
+    opcoes: ["144", "148", "156", "164"]
+    certa: 0
+  - nivel: 2
+    pergunta: "Em que estado fica Salvador?"
+    opcoes: ["SERGIPE", "BAHIA", "ALAGOAS", "CEARÁ"]
+    certa: 1
+  - nivel: 2
+    pergunta: "Quem pintou a Mona Lisa?"
+    opcoes: ["VAN GOGH", "PICASSO", "DA VINCI", "MONET"]
+    certa: 2
+  - nivel: 2
+    pergunta: "Qual é o símbolo químico do ouro?"
+    opcoes: ["AU", "AG", "GO", "OU"]
+    certa: 0
+  - nivel: 2
+    pergunta: "Quantos jogadores no máximo entram num jogo daqui?"
+    opcoes: ["4", "8", "12", "16"]
+    certa: 3
+  - nivel: 2
+    pergunta: "Qual poção deixa respirar debaixo d'água?"
+    opcoes: ["FORÇA", "RESPIRAÇÃO", "VELOCIDADE", "CURA"]
+    certa: 1
+  - nivel: 2
+    pergunta: "Quantos blocos de altura o jogador sobe num pulo?"
+    opcoes: ["1", "2", "3", "4"]
+    certa: 0
+  - nivel: 2
+    pergunta: "De que pó se faz a pedra luminosa?"
+    opcoes: ["REDSTONE", "AÇÚCAR", "PEDRA LUM.", "OSSO"]
+    certa: 2
+  # ---------------- nível 3 — difíceis ----------------
+  - nivel: 3
+    pergunta: "Quantas obsidianas fazem um portal sem os cantos?"
+    opcoes: ["8", "10", "12", "14"]
+    certa: 1
+  - nivel: 3
+    pergunta: "Qual é a fiada mais baixa do mundo hoje?"
+    opcoes: ["0", "-32", "-64", "-128"]
+    certa: 2
+  - nivel: 3
+    pergunta: "Quantos olhos de Ender fecham o portal do End?"
+    opcoes: ["6", "8", "10", "12"]
+    certa: 3
+  - nivel: 3
+    pergunta: "Quantos blocos de ouro vão na maçã encantada?"
+    opcoes: ["4", "6", "8", "9"]
+    certa: 2
+  - nivel: 3
+    pergunta: "Quanto é 15 x 15?"
+    opcoes: ["225", "235", "245", "255"]
+    certa: 0
+  - nivel: 3
+    pergunta: "Em que ano o Minecraft foi lançado oficialmente?"
+    opcoes: ["2009", "2011", "2013", "2014"]
+    certa: 1
+  - nivel: 3
+    pergunta: "Qual é o planeta mais próximo do Sol?"
+    opcoes: ["MERCÚRIO", "VÊNUS", "TERRA", "MARTE"]
+    certa: 0
+  - nivel: 3
+    pergunta: "Quem escreveu Dom Casmurro?"
+    opcoes: ["DRUMMOND", "CLARICE", "ALENCAR", "MACHADO"]
+    certa: 3
+  - nivel: 3
+    pergunta: "Qual é a raiz quadrada de 169?"
+    opcoes: ["11", "12", "13", "14"]
+    certa: 2
+  - nivel: 3
+    pergunta: "Quantos ossos tem o corpo humano adulto?"
+    opcoes: ["176", "186", "196", "206"]
+    certa: 3
+  - nivel: 3
+    pergunta: "Qual é o maior osso do corpo humano?"
+    opcoes: ["TÍBIA", "FÊMUR", "ÚMERO", "CRÂNIO"]
+    certa: 1
+  - nivel: 3
+    pergunta: "Qual é a montanha mais alta do mundo?"
+    opcoes: ["EVEREST", "K2", "ACONCÁGUA", "KILIMANJARO"]
+    certa: 0
+  - nivel: 3
+    pergunta: "Quantos blocos de altura tem o mundo inteiro?"
+    opcoes: ["128", "256", "320", "384"]
+    certa: 3
+  - nivel: 3
+    pergunta: "Quanto é 2 elevado a 10?"
+    opcoes: ["512", "1024", "2048", "4096"]
+    certa: 1
+  - nivel: 3
+    pergunta: "Que gás as plantas absorvem do ar?"
+    opcoes: ["OXIGÊNIO", "NITROGÊNIO", "GÁS CARB.", "HÉLIO"]
+    certa: 2
+  - nivel: 3
+    pergunta: "Qual encantamento conserta com experiência?"
+    opcoes: ["REMENDO", "FORTUNA", "EFICIÊNCIA", "AFIAÇÃO"]
+    certa: 0

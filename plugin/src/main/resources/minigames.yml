@@ -281,7 +281,7 @@ portais:
     titulo: "QUIZ"
     descricao: "quem sabe, responde"
     detalhe: "erro elimina"
-    mundo: ""
+    mundo: "quiz"
     cor: "#E57FE5"
     moldura: MAGENTA_TERRACOTTA
     destaque: MAGENTA_CONCRETE
