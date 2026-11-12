@@ -1,9 +1,17 @@
 #!/usr/bin/env bash
 # =============================================================
-#  start.sh — Sobe o servidor Minecraft com GC otimizado
+#  start.sh — Sobe o servidor Minecraft e o mantém de pé
 #
 #  Uso normal (Paper):
 #    bash scripts/start.sh
+#
+#  O script NÃO sai quando o servidor para: ele decide o que
+#  fazer pelo motivo da parada.
+#
+#    /restart no console  -> sobe de novo, no mesmo terminal
+#    /stop no console     -> encerra de vez
+#    Ctrl+C               -> encerra de vez
+#    queda / crash        -> sobe de novo (até 3 vezes em 10 min)
 #
 #  Rollback para Spigot, sem editar nada:
 #    SERVER_FLAVOR=spigot bash scripts/start.sh
@@ -11,6 +19,15 @@
 #  O setup grava defaults persistentes em scripts/server.env.
 #  Variáveis passadas na execução continuam tendo prioridade.
 # =============================================================
+# O Paper executa o restart-script com `sh scripts/start.sh`, e em
+# Ubuntu `sh` é o dash. Este arquivo usa array e BASH_SOURCE, que o
+# dash não tem: sem esta linha ele morre na primeira linha útil, e
+# como o Paper não lê a saída do processo filho, o erro não aparece
+# em lugar nenhum. O servidor simplesmente não voltava.
+if [ -z "${BASH_VERSION:-}" ]; then
+    exec bash "$0" "$@"
+fi
+
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -105,5 +122,91 @@ if [ -f "$SERVER_DIR/log4j2.xml" ]; then
     JAVA_FLAGS+=(-Dlog4j.configurationFile="$SERVER_DIR/log4j2.xml")
 fi
 
-echo "[start] Subindo $JAR com ${RAM} de RAM..."
-exec java "${JAVA_FLAGS[@]}" -jar "$JAR" nogui
+# -------------------------------------------------------------
+#  Laço de supervisão
+#
+#  Antes daqui havia um `exec java`: o script VIRAVA o servidor, e
+#  quando o Java saía não sobrava shell nenhum para subir de novo.
+#  Era por isso que /restart derrubava o servidor e deixava o
+#  terminal no prompt.
+#
+#  O Paper também não consegue fazer isso sozinho. O restart dele
+#  dispara o script de dentro de um shutdown hook, ou seja, com a
+#  JVM velha ainda viva — e o flock lá em cima, que existe para
+#  impedir duas instâncias, recusaria a nova na hora. Em vez de
+#  afrouxar essa trava, quem reinicia é este laço, que já é dono
+#  do lock e não disputa com ninguém.
+#
+#  COMO ELE SABE A DIFERENÇA entre /restart e /stop: os dois saem
+#  com código 0. Então o /restart passa a chamar
+#  scripts/pedir-restart.sh, que só encosta num arquivo de sinal.
+#  Sinal presente = reinicia. Sinal ausente = era /stop, e parar é
+#  o que o dono pediu.
+# -------------------------------------------------------------
+SINAL_RESTART="$SERVER_DIR/.reiniciar"
+rm -f "$SINAL_RESTART"
+
+# Pausas do laço, em segundos. Existem como variável porque o teste
+# de supervisão precisa rodar os três cenários em menos de um
+# segundo — e porque quem tem disco lento às vezes quer mais folga
+# entre a queda e a nova tentativa.
+ESPERA_RESTART="${ESPERA_RESTART:-3}"
+ESPERA_QUEDA="${ESPERA_QUEDA:-10}"
+
+# Ctrl+C precisa ENCERRAR, e não virar mais uma volta do laço. O
+# sinal chega ao Java e ao bash ao mesmo tempo; como o bash está
+# esperando o filho, a trap só roda depois que o servidor salvou e
+# saiu, que é exatamente a hora certa de decidir.
+PARAR=0
+trap 'PARAR=1' INT TERM
+
+QUEDAS=0
+JANELA=$(date +%s)
+
+while true; do
+    echo "[start] Subindo $JAR com ${RAM} de RAM..."
+
+    set +e
+    java "${JAVA_FLAGS[@]}" -jar "$JAR" nogui
+    CODIGO=$?
+    set -e
+
+    AGORA=$(date +%s)
+
+    if [ "$PARAR" -eq 1 ]; then
+        echo "[start] Interrompido no terminal. Servidor encerrado."
+        exit 0
+    fi
+
+    if [ -f "$SINAL_RESTART" ]; then
+        rm -f "$SINAL_RESTART"
+        echo "[start] Reinício pedido pelo console. Subindo de novo em 3s..."
+        sleep "$ESPERA_RESTART"
+        continue
+    fi
+
+    # 130 = Ctrl+C, 143 = kill padrão. Nenhum dos dois é queda.
+    if [ "$CODIGO" -eq 0 ] || [ "$CODIGO" -eq 130 ] || [ "$CODIGO" -eq 143 ]; then
+        echo "[start] Servidor desligado (código $CODIGO). Até a próxima."
+        exit 0
+    fi
+
+    # Daqui para baixo é queda. Subir de novo é o certo — mas subir
+    # para sempre esconde o problema e enche o disco de log. Três
+    # tentativas em dez minutos e o script para, deixando o erro na
+    # tela em vez de girar em silêncio.
+    if [ $((AGORA - JANELA)) -gt 600 ]; then
+        QUEDAS=0
+        JANELA=$AGORA
+    fi
+    QUEDAS=$((QUEDAS + 1))
+
+    if [ "$QUEDAS" -ge 3 ]; then
+        echo "[erro] O servidor caiu $QUEDAS vezes em menos de 10 minutos (código $CODIGO)." >&2
+        echo "       Não vou subir de novo. Veja logs/latest.log." >&2
+        exit "$CODIGO"
+    fi
+
+    echo "[start] Queda (código $CODIGO). Tentativa $QUEDAS de 3 — subindo em ${ESPERA_QUEDA}s, Ctrl+C cancela."
+    sleep "$ESPERA_QUEDA"
+done

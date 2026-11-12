@@ -21,7 +21,7 @@ settings:
   moved-too-quickly-multiplier: 10.0
   timeout-time: 300
   restart-on-crash: true
-  restart-script: ./scripts/start.sh
+  restart-script: ./scripts/pedir-restart.sh
   netty-threads: 4
   attribute:
     maxAbsorption:
