@@ -40,6 +40,9 @@ public final class BigaCore extends JavaPlugin {
     private TagCatalog tagCatalog;
     private TagStore tagStore;
     private ListaDeJogadores listaDeJogadores;
+    private HubCatalog hubCatalog;
+    private HubBuilder hubBuilder;
+    private HubPortais hubPortais;
 
     @Override
     public void onEnable() {
@@ -91,6 +94,13 @@ public final class BigaCore extends JavaPlugin {
             saveResource("tags.yml", false);
         }
 
+        // hub.yml: a planta da praça de portais. Mesmo motivo dos outros —
+        // é desenho, reescrito muito mais vezes que o comportamento.
+        File hubFile = new File(getDataFolder(), "hub.yml");
+        if (!hubFile.exists()) {
+            saveResource("hub.yml", false);
+        }
+
         this.economyCatalog = new EconomyCatalog(this);
         this.economyBridge = new VaultEconomyBridge();
         this.spawnShopBuilder = new SpawnShopBuilder(this);
@@ -125,6 +135,11 @@ public final class BigaCore extends JavaPlugin {
         this.listaDeJogadores = new ListaDeJogadores(this);
         getServer().getPluginManager().registerEvents(listaDeJogadores, this);
         this.listaDeJogadores.start();
+        this.hubCatalog = new HubCatalog(this);
+        this.hubBuilder = new HubBuilder(this);
+        this.hubPortais = new HubPortais(this);
+        getServer().getPluginManager().registerEvents(hubPortais, this);
+        this.hubPortais.start();
 
         // Precisa vir depois do ChestShop no softdepend, senão o plugin ainda
         // não está registrado e o hook do teto não encontra a classe do evento.
@@ -303,6 +318,19 @@ public final class BigaCore extends JavaPlugin {
                 + encomendaCatalog.limitePorJogador() + " por jogador.");
     }
 
+    /**
+     * Entrega o gerador de mundo vazio para quem pedir "-g BigaCore".
+     *
+     * O Bukkit quebra a string do gerador em plugin:id e chama este metodo. O
+     * id e ignorado de proposito: o BigaCore so tem um gerador, e recusar
+     * "BigaCore:qualquercoisa" faria /mv create falhar por um detalhe que
+     * ninguem lembra na hora.
+     */
+    @Override
+    public org.bukkit.generator.ChunkGenerator getDefaultWorldGenerator(String mundo, String id) {
+        return new VazioGenerator();
+    }
+
     @Override
     public void onDisable() {
         // Cancele tarefas agendadas, feche conexões de banco e salve
@@ -320,6 +348,9 @@ public final class BigaCore extends JavaPlugin {
         }
         if (listaDeJogadores != null) {
             listaDeJogadores.parar();
+        }
+        if (hubPortais != null) {
+            hubPortais.parar();
         }
         pedreiro = null;
         shopPreview = null;
@@ -405,6 +436,18 @@ public final class BigaCore extends JavaPlugin {
         return painelAjuda;
     }
 
+    public HubCatalog hubCatalog() {
+        return hubCatalog;
+    }
+
+    public HubBuilder hubBuilder() {
+        return hubBuilder;
+    }
+
+    public HubPortais hubPortais() {
+        return hubPortais;
+    }
+
     public TagCatalog tagCatalog() {
         return tagCatalog;
     }
@@ -465,6 +508,7 @@ public final class BigaCore extends JavaPlugin {
         encomendaCatalog.reload();
         encomendaLivro.reload();
         tagCatalog.reload();
+        hubCatalog.reload();
 
         // A lista do TAB reinicia junto: trocar o intervalo no tags.yml sem
         // recriar a tarefa deixaria o numero novo no arquivo e o antigo

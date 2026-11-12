@@ -27,10 +27,12 @@ import java.util.OptionalDouble;
 public final class BigaCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBCOMANDOS =
-            List.of("info", "eco", "loja", "painel", "reload", "voar");
+            List.of("info", "eco", "loja", "hub", "painel", "reload", "voar");
     private static final List<String> PAINEL_SUBCOMANDOS = List.of("construir", "limpar");
     private static final List<String> ECO_SUBCOMANDOS =
             List.of("status", "saldo", "preco", "vender", "regras");
+    private static final List<String> HUB_SUBCOMANDOS =
+            List.of("info", "construir", "desfazer", "ir");
     private static final List<String> LOJA_SUBCOMANDOS =
             List.of("local", "validar", "preview", "criar", "placas", "vitrine",
                     "proteger", "desproteger", "desfazer");
@@ -54,6 +56,7 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             case "info" -> mostrarInfo(sender);
             case "eco" -> economia(sender, label, args);
             case "loja" -> lojaSpawn(sender, label, args);
+            case "hub" -> hub(sender, label, args);
             case "painel" -> paredaoAjuda(sender, label, args);
             case "reload" -> recarregar(sender);
             case "voar" -> alternarVoo(sender);
@@ -292,6 +295,136 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             case "desfazer" -> desfazerLoja(jogador, label, args);
             default -> enviarAjudaLoja(sender, label);
         }
+    }
+
+    // ------------------------------------------------------------------
+    //  /biga hub
+    // ------------------------------------------------------------------
+
+    /**
+     * A praca de portais.
+     *
+     * Construir e desfazer pedem CONFIRMAR pelo mesmo motivo da loja: sao
+     * comandos de uma palavra que mexem em dezenas de milhares de blocos.
+     */
+    private void hub(CommandSender sender, String label, String[] args) {
+        if (!sender.hasPermission("bigacore.admin")) {
+            semPermissao(sender);
+            return;
+        }
+        if (args.length < 2) {
+            enviarAjudaHub(sender, label);
+            return;
+        }
+
+        switch (args[1].toLowerCase(Locale.ROOT)) {
+            case "info" -> hubInfo(sender);
+            case "construir" -> hubConstruir(sender, label, args);
+            case "desfazer" -> hubDesfazer(sender, label, args);
+            case "ir" -> hubIr(sender);
+            default -> enviarAjudaHub(sender, label);
+        }
+    }
+
+    private void enviarAjudaHub(CommandSender sender, String label) {
+        sender.sendMessage(Component.text("A praça de portais", NamedTextColor.GOLD));
+        sender.sendMessage(Component.text("Primeiro crie o mundo vazio, uma vez só:",
+                NamedTextColor.GRAY));
+        sender.sendMessage(Component.text("  /mv create hub normal -g BigaCore",
+                NamedTextColor.YELLOW));
+        sender.sendMessage(Component.text("/" + label + " hub info", NamedTextColor.YELLOW)
+                .append(Component.text(" — confere o terreno e o tamanho da obra",
+                        NamedTextColor.GRAY)));
+        sender.sendMessage(Component.text("/" + label + " hub construir CONFIRMAR",
+                NamedTextColor.YELLOW));
+        sender.sendMessage(Component.text("/" + label + " hub desfazer CONFIRMAR",
+                NamedTextColor.YELLOW));
+        sender.sendMessage(Component.text("/" + label + " hub ir", NamedTextColor.YELLOW)
+                .append(Component.text(" — leva você ao centro da praça", NamedTextColor.GRAY)));
+    }
+
+    /** O mundo em que o hub mora, pelo config.yml. */
+    private org.bukkit.World mundoDoHub(CommandSender sender) {
+        org.bukkit.World mundo = plugin.hubPortais().mundoDoHub();
+        if (mundo == null) {
+            String nome = plugin.getConfig().getString("hub.mundo", "hub");
+            sender.sendMessage(Component.text("O mundo \"" + nome
+                    + "\" não existe ou não está carregado.", NamedTextColor.RED));
+            sender.sendMessage(Component.text("Crie com: /mv create " + nome
+                    + " normal -g BigaCore", NamedTextColor.YELLOW));
+        }
+        return mundo;
+    }
+
+    private void hubInfo(CommandSender sender) {
+        org.bukkit.World mundo = mundoDoHub(sender);
+        if (mundo == null) {
+            return;
+        }
+        HubBuilder.Resultado conferido = plugin.hubBuilder().construir(mundo, false);
+        sender.sendMessage(Component.text(conferido.mensagem(),
+                conferido.ok() ? NamedTextColor.GRAY : NamedTextColor.RED));
+
+        for (HubCatalog.Portal portal : plugin.hubCatalog().portais()) {
+            String destino = portal.aberto() ? portal.mundo() : "em obra";
+            boolean existe = !portal.aberto() || org.bukkit.Bukkit.getWorld(portal.mundo()) != null;
+            sender.sendMessage(Component.text("  " + portal.face() + "  ", NamedTextColor.DARK_GRAY)
+                    .append(Component.text(portal.titulo() + " → " + destino,
+                            existe ? NamedTextColor.GRAY : NamedTextColor.RED)));
+        }
+    }
+
+    private void hubConstruir(CommandSender sender, String label, String[] args) {
+        org.bukkit.World mundo = mundoDoHub(sender);
+        if (mundo == null) {
+            return;
+        }
+        if (args.length < 3 || !args[2].equals("CONFIRMAR")) {
+            sender.sendMessage(Component.text(
+                    "Isto levanta a praça inteira no mundo " + mundo.getName() + ".",
+                    NamedTextColor.GRAY));
+            sender.sendMessage(Component.text("/" + label + " hub construir CONFIRMAR",
+                    NamedTextColor.YELLOW));
+            return;
+        }
+
+        HubBuilder.Resultado feito = plugin.hubBuilder().construir(mundo, true);
+        sender.sendMessage(Component.text(feito.mensagem(),
+                feito.ok() ? NamedTextColor.GREEN : NamedTextColor.RED));
+        if (feito.ok()) {
+            sender.sendMessage(Component.text("O spawn do mundo foi posto na praça. "
+                    + "Para o hub virar o spawn do servidor, rode também /mv setspawn aqui.",
+                    NamedTextColor.GRAY));
+        }
+    }
+
+    private void hubDesfazer(CommandSender sender, String label, String[] args) {
+        org.bukkit.World mundo = mundoDoHub(sender);
+        if (mundo == null) {
+            return;
+        }
+        if (args.length < 3 || !args[2].equals("CONFIRMAR")) {
+            sender.sendMessage(Component.text("Isto APAGA tudo na área do hub em "
+                    + mundo.getName() + ". Não há cópia para restaurar.", NamedTextColor.RED));
+            sender.sendMessage(Component.text("/" + label + " hub desfazer CONFIRMAR",
+                    NamedTextColor.YELLOW));
+            return;
+        }
+
+        HubBuilder.Resultado feito = plugin.hubBuilder().desfazer(mundo);
+        sender.sendMessage(Component.text(feito.mensagem(), NamedTextColor.GREEN));
+    }
+
+    private void hubIr(CommandSender sender) {
+        if (!(sender instanceof Player jogador)) {
+            sender.sendMessage(Component.text("Só dentro do jogo.", NamedTextColor.RED));
+            return;
+        }
+        org.bukkit.World mundo = mundoDoHub(sender);
+        if (mundo == null) {
+            return;
+        }
+        jogador.teleportAsync(HubBuilder.pontoDeSpawn(mundo, plugin.hubCatalog()));
     }
 
     private void mostrarLocalLoja(Player jogador) {
@@ -893,6 +1026,18 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
                 return filtrar(PAINEL_SUBCOMANDOS, args[1]);
             }
             if (args.length == 3 && args[1].equalsIgnoreCase("construir")) {
+                return filtrar(List.of("CONFIRMAR"), args[2]);
+            }
+            return List.of();
+        }
+
+        if (args[0].equalsIgnoreCase("hub")) {
+            if (args.length == 2) {
+                return filtrar(HUB_SUBCOMANDOS, args[1]);
+            }
+            boolean pedeConfirmacao = args[1].equalsIgnoreCase("construir")
+                    || args[1].equalsIgnoreCase("desfazer");
+            if (args.length == 3 && pedeConfirmacao) {
                 return filtrar(List.of("CONFIRMAR"), args[2]);
             }
             return List.of();

@@ -1,0 +1,192 @@
+# =============================================================
+#  hub.yml — a praça de portais do The Bigas
+#
+#  Construída com /biga hub construir CONFIRMAR, desfeita com
+#  /biga hub desfazer CONFIRMAR. Só funciona num mundo VAZIO:
+#
+#      /mv create hub normal -g BigaCore
+#      /mv tp hub
+#      /biga hub construir CONFIRMAR
+#
+#  O construtor se recusa a levantar o hub em cima de qualquer
+#  coisa que já exista ali. Num mundo de verdade isso apagaria
+#  terreno de alguém, e não há desfazer que traga de volta o
+#  que não foi copiado antes.
+# =============================================================
+version: 1
+
+praca:
+  # Altura do piso. 100 deixa espaço para o void embaixo (a queda
+  # é parte do visual) e para a torre central subir sem bater no
+  # teto de construção.
+  y: 100
+
+  # Raio da praça redonda do meio, em blocos.
+  raio: 17
+
+  # Comprimento e largura de cada passarela que sai do centro
+  # para um portal.
+  passarela-comprimento: 16
+  passarela-largura: 7
+
+  # Raio do terraço de cada portal, na ponta da passarela.
+  terraco-raio: 11
+
+  # Altura da torre central acima do piso.
+  torre-altura: 34
+
+paleta:
+  # Futurista no Minecraft é quase sempre a mesma receita: muita
+  # superfície clara e lisa, pouca cor, e a cor que existe é LUZ.
+  # Madeira e pedra bruta estragam o efeito na hora, então não
+  # aparecem em lugar nenhum daqui.
+  piso: SMOOTH_QUARTZ
+  piso-linha: LIGHT_BLUE_CONCRETE
+  piso-escuro: POLISHED_DEEPSLATE
+  borda: DEEPSLATE_TILES
+  parapeito: QUARTZ_SLAB
+  vidro: LIGHT_BLUE_STAINED_GLASS
+  vidro-escuro: TINTED_GLASS
+  estrutura: QUARTZ_BLOCK
+  estrutura-escura: BLACK_CONCRETE
+  metal: IRON_BLOCK
+  luz: SEA_LANTERN
+  luz-fria: END_ROD
+  nucleo: AMETHYST_BLOCK
+
+# -------------------------------------------------------------
+#  Os portais
+#
+#  Cada um vira: uma passarela saindo do centro, um terraço, um
+#  arco, a cortina de partículas na cor do destino, a escultura
+#  que diz para onde vai sem ninguém precisar ler, e o painel
+#  flutuante com nome e descrição.
+#
+#  mundo: nome do mundo Bukkit. Vazio = portal fechado, com
+#  aviso de "em breve" — é assim que o de minigames nasce.
+#
+#  face: para que lado do centro ele sai (NORTE, SUL, LESTE,
+#  OESTE). Dois portais na mesma face se sobrepõem, e o teste
+#  HubTest barra isso antes de virar obra.
+# -------------------------------------------------------------
+portais:
+  - id: survival
+    face: OESTE
+    titulo: "SURVIVAL"
+    descricao: "o mundo de ilhas flutuantes"
+    detalhe: "terreno, loja, encomenda"
+    mundo: "world"
+    cor: "#5BE37D"
+    particula: "#5BE37D"
+    moldura: WARPED_HYPHAE
+    destaque: LIME_CONCRETE
+    escultura: picareta
+
+  - id: lotes
+    face: LESTE
+    titulo: "BAIRRO DE LOTES"
+    descricao: "um lote plano só seu"
+    detalhe: "/plot auto para pegar o seu"
+    mundo: "plots"
+    cor: "#FFB84D"
+    particula: "#FFB84D"
+    moldura: WAXED_CUT_COPPER
+    destaque: ORANGE_CONCRETE
+    escultura: casa
+
+  - id: minigames
+    face: NORTE
+    titulo: "MINIGAMES"
+    descricao: "em breve"
+    detalhe: "ainda em obra"
+    mundo: ""
+    cor: "#C77DFF"
+    particula: "#C77DFF"
+    moldura: PURPUR_BLOCK
+    destaque: PURPLE_CONCRETE
+    escultura: trofeu
+
+# -------------------------------------------------------------
+#  Esculturas
+#
+#  Cada uma é um DESENHO, não código: linha de cima é o topo,
+#  e cada caractere é um bloco visto de frente. Ficam aqui para
+#  você poder redesenhar sem recompilar nada — mude, salve,
+#  /biga reload e /biga hub construir de novo.
+#
+#    '#'  bloco da moldura do portal
+#    'o'  bloco de destaque (a cor do mundo)
+#    '*'  luz
+#    ' '  ar
+#
+#  Todas as linhas de um desenho precisam ter o MESMO tamanho.
+#  O teste confere isso: uma linha curta não dá erro em jogo,
+#  ela só entorta a escultura de um jeito que ninguém entende.
+# -------------------------------------------------------------
+esculturas:
+  picareta:
+    - "    #######    "
+    - "  ##ooooooo##  "
+    - " #ooo     ooo# "
+    - "#oo    *    oo#"
+    - " #     #     # "
+    - "       #       "
+    - "       #       "
+    - "       #       "
+    - "       #       "
+    - "       #       "
+    - "       #       "
+    - "       #       "
+    - "      ###      "
+    - "      ###      "
+    - "       #       "
+
+  casa:
+    - "       #       "
+    - "      ###      "
+    - "     #####     "
+    - "    #######    "
+    - "   #########   "
+    - "  ###########  "
+    - " ############# "
+    - " #ooooooooooo# "
+    - " #o##ooooo##o# "
+    - " #o##ooooo##o# "
+    - " #ooooo*ooooo# "
+    - " #oooo###oooo# "
+    - " #oooo###oooo# "
+    - " #oooo###oooo# "
+    - " ############# "
+
+  trofeu:
+    - " ############# "
+    - " #ooooooooooo# "
+    - "##ooooooooooo##"
+    - "#*#ooooooooo#*#"
+    - "#*#ooo***ooo#*#"
+    - "##ooooooooooo##"
+    - " #ooooooooooo# "
+    - " ##ooooooooo## "
+    - "  ###ooooo###  "
+    - "    #######    "
+    - "      ###      "
+    - "      ###      "
+    - "      ###      "
+    - "   #########   "
+    - " ############# "
+
+# -------------------------------------------------------------
+#  Comportamento
+# -------------------------------------------------------------
+regras:
+  # Quem entra no servidor pela primeira vez cai no hub.
+  spawn-de-entrada: true
+
+  # Abaixo desta altura, quem está no mundo do hub volta para o
+  # centro em vez de morrer no void. Vale para quem pulou da
+  # beirada de propósito e para quem caiu sem querer.
+  resgate-y: 60
+
+  # Segundos entre um teleporte e o seguinte, por jogador.
+  # Impede o pinga-ponga de quem chega em cima do portal de volta.
+  espera-segundos: 3

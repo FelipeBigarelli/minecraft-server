@@ -130,3 +130,16 @@ loja-spawn:
   #  A madeira derrubada não vira drop. É terraplanagem.
   # -----------------------------------------------------------
   limpar-arvores: false
+
+# -----------------------------------------------------------
+#  hub — a praça de portais
+#
+#  Só o NOME do mundo mora aqui; o desenho inteiro está em
+#  hub.yml. Crie o mundo uma vez com:
+#
+#      /mv create hub normal -g BigaCore
+#
+#  e levante a praça com /biga hub construir CONFIRMAR.
+# -----------------------------------------------------------
+hub:
+  mundo: hub
