@@ -5,6 +5,11 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.Sign;
+import org.bukkit.block.data.Directional;
+import org.bukkit.block.sign.Side;
+import org.bukkit.block.sign.SignSide;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.TextDisplay;
@@ -330,6 +335,37 @@ public final class TntRunBuilder {
         }
 
         voltaDoSaguao(mundo, planta, estrutura, metal, nucleo, luz);
+        fachadaDasPlacas(mundo, planta, estrutura, metal, escuro);
+    }
+
+    /**
+     * O muro das duas placas, nos dois lados do arco de volta.
+     *
+     * Junto com o arco ele forma uma fachada de onze com uma porta de três no
+     * meio: quem nasce no saguão olhando para o norte vê, numa só vista, o
+     * nome do jogo, as regras, a placa de ENTRAR, a de SAIR e a saída. É o
+     * contrário do desenho anterior, em que a rodada começava sozinha e o
+     * jogador descobria isso caindo.
+     */
+    private void fachadaDasPlacas(World mundo, TntRunCatalog planta,
+                                  Material estrutura, Material metal, Material escuro) {
+        int y = planta.saguaoY();
+        int z = zDoArcoDeVolta(planta.saguaoRaio());
+
+        for (int x = -LARGURA_DA_FACHADA; x <= LARGURA_DA_FACHADA; x++) {
+            if (Math.abs(x) <= 2) {
+                continue;                                // o vão do arco
+            }
+            for (int alto = 1; alto <= alturaDoArcoDeVolta(); alto++) {
+                por(mundo, x, y + alto, z,
+                        alto == alturaDoArcoDeVolta() ? metal : estrutura);
+            }
+            por(mundo, x, y + alturaDoArcoDeVolta() + 1, z, escuro);
+        }
+
+        escreverPlaca(mundo, planta, pontoDaPlacaEntrar(planta), List.of());
+        escreverPlaca(mundo, planta, pontoDaPlacaSair(planta), List.of());
+        contador += 2;
     }
 
     /**
@@ -360,6 +396,68 @@ public final class TntRunBuilder {
         }
         por(mundo, -2, y + altura + 2, z, luz);
         por(mundo, 2, y + altura + 2, z, luz);
+    }
+
+    /** Meia largura da fachada de placas, contando o vão do arco no meio. */
+    static final int LARGURA_DA_FACHADA = 5;
+
+    /** A fiada em que as duas placas ficam: altura de olho de quem anda. */
+    static final int FIADA_DA_PLACA = 2;
+
+    /**
+     * Onde fica a placa de ENTRAR.
+     *
+     * Um bloco À FRENTE do muro, porque placa de parede mora no ar e encosta
+     * no bloco de trás. Fora da caixa do arco de propósito: parada na frente
+     * da placa, a pessoa não pode estar sendo mandada para o lobby.
+     */
+    static int[] pontoDaPlacaEntrar(TntRunCatalog planta) {
+        return new int[]{-4, planta.saguaoY() + FIADA_DA_PLACA,
+                zDoArcoDeVolta(planta.saguaoRaio()) + 1};
+    }
+
+    static int[] pontoDaPlacaSair(TntRunCatalog planta) {
+        return new int[]{4, planta.saguaoY() + FIADA_DA_PLACA,
+                zDoArcoDeVolta(planta.saguaoRaio()) + 1};
+    }
+
+    /** As placas ficam no muro ao norte e se leem de dentro do saguão. */
+    static final BlockFace FRENTE_DA_PLACA = BlockFace.SOUTH;
+
+    /**
+     * Escreve (e coloca, se preciso) uma das placas.
+     *
+     * Coloca se preciso porque isto é chamado tanto pela obra quanto pelo jogo
+     * a cada segundo: se a placa sumir por qualquer motivo, ela volta no
+     * segundo seguinte em vez de o jogo virar um saguão sem como entrar.
+     *
+     * <p>A placa nasce ENCERADA. Não é enfeite: placa não encerada abre a tela
+     * de edição no clique direito, e aí clicar nela não entra na fila — edita
+     * o texto dela.
+     */
+    static void escreverPlaca(World mundo, TntRunCatalog planta, int[] onde,
+                              List<Component> linhas) {
+        Block bloco = mundo.getBlockAt(onde[0], onde[1], onde[2]);
+        Material material = planta.materialDaPlaca();
+
+        if (bloco.getType() != material) {
+            bloco.setType(material, false);
+        }
+        if (bloco.getBlockData() instanceof Directional dados
+                && dados.getFaces().contains(FRENTE_DA_PLACA)
+                && dados.getFacing() != FRENTE_DA_PLACA) {
+            dados.setFacing(FRENTE_DA_PLACA);
+            bloco.setBlockData(dados, false);
+        }
+        if (!(bloco.getState() instanceof Sign placa)) {
+            return;
+        }
+        SignSide frente = placa.getSide(Side.FRONT);
+        for (int i = 0; i < 4; i++) {
+            frente.line(i, i < linhas.size() ? linhas.get(i) : Component.empty());
+        }
+        placa.setWaxed(true);
+        placa.update(true, false);
     }
 
     /** Em que z o arco de volta fica. Dentro do disco, não na beira. */
@@ -459,18 +557,21 @@ public final class TntRunBuilder {
             regras.append("\n<gray>").append(HubBuilder.escapar(linha));
         }
 
-        painel(mundo, new Location(mundo, 0.5, y + alturaDoArcoDeVolta() + 4.0, z + 0.5),
+        // Empilhados acima da fachada, com folga entre eles: um letreiro de
+        // cinco linhas cresce para os dois lados do ponto em que nasce, e
+        // apertados eles se atravessam — defeito que só se vê em jogo.
+        painel(mundo, new Location(mundo, 0.5, y + 11.0, z + 0.8),
                 plugin.mini().deserialize("<color:" + cor + "><bold>"
                         + HubBuilder.escapar(planta.titulo()) + "</bold></color>"),
                 (float) planta.escalaTitulo(), planta.fundoDoTexto());
 
-        painel(mundo, new Location(mundo, 0.5, y + alturaDoArcoDeVolta() + 2.6, z + 0.5),
+        painel(mundo, new Location(mundo, 0.5, y + 9.4, z + 0.8),
                 plugin.mini().deserialize("<gray>"
                         + HubBuilder.escapar(planta.subtitulo())),
                 (float) planta.escalaPlaca(), planta.fundoDoTexto());
 
         if (!planta.regrasEscritas().isEmpty()) {
-            painel(mundo, new Location(mundo, 0.5, y + 1.4, z + 2.5),
+            painel(mundo, new Location(mundo, 0.5, y + 7.0, z + 0.8),
                     plugin.mini().deserialize(regras.toString()),
                     (float) planta.escalaPlaca(), planta.fundoDoTexto());
         }

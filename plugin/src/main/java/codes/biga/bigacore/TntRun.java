@@ -17,6 +17,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.block.Sign;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
@@ -27,8 +29,10 @@ import org.bukkit.event.entity.ExplosionPrimeEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
@@ -38,6 +42,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.UUID;
 
 /**
@@ -101,6 +106,17 @@ public final class TntRun implements Listener {
 
     private Estado estado = Estado.ESPERANDO;
     private final Set<UUID> naArena = new LinkedHashSet<>();
+
+    /**
+     * A FILA: quem clicou na placa de entrar.
+     *
+     * Estar no saguão não é estar na rodada. O desenho anterior contava quem
+     * estivesse no mundo, e isso tinha dois defeitos de uma vez: quem passava
+     * para olhar era largado numa partida sem ter pedido, e não havia como
+     * ver quantos faltavam para começar. A fila separa visitar de jogar, e a
+     * placa é a única porta entre as duas.
+     */
+    private final Set<UUID> fila = new LinkedHashSet<>();
     private final Set<UUID> vivos = new LinkedHashSet<>();
     private final Map<UUID, GameMode> modoAnterior = new HashMap<>();
     private final Map<UUID, Long> ultimaVolta = new HashMap<>();
@@ -111,6 +127,7 @@ public final class TntRun implements Listener {
     private long inicioDaRodada;
     private long pulso;
     private boolean mundoAjustado;
+    private String ultimoTextoDaPlaca = "";
     private BossBar barra;
 
     public TntRun(BigaCore plugin) {
@@ -144,6 +161,7 @@ public final class TntRun implements Listener {
             }
         }
         naArena.clear();
+        fila.clear();
         vivos.clear();
         derretendo.clear();
         estado = Estado.ESPERANDO;
@@ -158,7 +176,7 @@ public final class TntRun implements Listener {
     }
 
     public int quantosProntos() {
-        return participantes().size();
+        return fila.size();
     }
 
     public int quantosVivos() {
@@ -216,6 +234,9 @@ public final class TntRun implements Listener {
         }
         if (pulso % 20 == 0 && (!naArena.isEmpty() || estado != Estado.ESPERANDO)) {
             cicloDeSegundo(planta);
+            if (arenaConstruida(mundo, planta)) {
+                atualizarPlacas(mundo, planta);
+            }
         }
     }
 
@@ -305,6 +326,7 @@ public final class TntRun implements Listener {
 
     private void saiu(UUID id) {
         naArena.remove(id);
+        fila.remove(id);
         vivos.remove(id);
         ultimaVolta.remove(id);
         Player jogador = Bukkit.getPlayer(id);
@@ -368,22 +390,26 @@ public final class TntRun implements Listener {
      * Os blocos que seguram o jogador.
      *
      * O do meio, normalmente. Se o meio for ar, é porque ele está equilibrado
-     * na beira de um bloco vizinho — e aí os vizinhos que o seguram é que
-     * derretem. Sem este desvio, parar com o corpo pela metade para fora de
-     * um bloco seria um lugar seguro para sempre.
+     * na beira de um bloco vizinho — e aí derrete o primeiro vizinho que o
+     * segura. Sem este desvio, parar com o corpo pela metade para fora de um
+     * bloco seria um lugar seguro para sempre.
+     *
+     * <p>UM bloco por vez, nunca os quatro cantos de uma vez. É a convenção
+     * do jogo clássico e não é detalhe de gosto: derretendo todo o apoio de
+     * uma vez, correr em linha reta abriria uma trilha de dois de largura e o
+     * chão acabaria no dobro da velocidade. Quem fica na quina perde os
+     * apoios um por tique de qualquer jeito.
      *
      * <p>Só chame para jogador em pé: a fiada é {@code floor(y) - 1}, que para
      * quem está caindo aponta para o meio de um piso qualquer.
      */
     static List<int[]> blocosDoPe(double x, double y, double z, Solidez teste) {
-        List<int[]> saida = new ArrayList<>();
         int fiada = (int) Math.floor(y) - 1;
 
         int mx = (int) Math.floor(x);
         int mz = (int) Math.floor(z);
         if (teste.solido(mx, fiada, mz)) {
-            saida.add(new int[]{mx, fiada, mz});
-            return saida;
+            return List.of(new int[]{mx, fiada, mz});
         }
 
         // Meia largura do jogador: 0,3. São os quatro cantos da caixa dele.
@@ -391,22 +417,12 @@ public final class TntRun implements Listener {
             for (double oz : new double[]{-0.3, 0.3}) {
                 int nx = (int) Math.floor(x + ox);
                 int nz = (int) Math.floor(z + oz);
-                if (!teste.solido(nx, fiada, nz)) {
-                    continue;
-                }
-                boolean repetido = false;
-                for (int[] achado : saida) {
-                    if (achado[0] == nx && achado[2] == nz) {
-                        repetido = true;
-                        break;
-                    }
-                }
-                if (!repetido) {
-                    saida.add(new int[]{nx, fiada, nz});
+                if (teste.solido(nx, fiada, nz)) {
+                    return List.of(new int[]{nx, fiada, nz});
                 }
             }
         }
-        return saida;
+        return List.of();
     }
 
     private void pisarEDerreter(World mundo, TntRunCatalog planta) {
@@ -503,7 +519,7 @@ public final class TntRun implements Listener {
         switch (estado) {
             case ESPERANDO -> {
                 destravarEspectadores(planta);
-                if (participantes().size() >= planta.minimo()) {
+                if (fila.size() >= planta.minimo()) {
                     estado = Estado.CONTAGEM;
                     contagem = planta.contagemSegundos();
                     anunciar("<gray>a rodada começa em <white>" + contagem
@@ -511,9 +527,9 @@ public final class TntRun implements Listener {
                 }
             }
             case CONTAGEM -> {
-                if (participantes().size() < planta.minimo()) {
+                if (fila.size() < planta.minimo()) {
                     estado = Estado.ESPERANDO;
-                    anunciar("<gray>faltou gente — a contagem parou</gray>");
+                    anunciar("<gray>a fila esvaziou — a contagem parou</gray>");
                     return;
                 }
                 contagem--;
@@ -570,6 +586,131 @@ public final class TntRun implements Listener {
         }
     }
 
+    // ------------------------------------------------------------------
+    //  As placas
+    // ------------------------------------------------------------------
+
+    /**
+     * Entra na fila. É o clique na placa de ENTRAR, e é a única porta.
+     *
+     * Recusa com motivo em vez de em silêncio: uma placa que não responde é
+     * indistinguível de uma placa quebrada, e o jogador conclui que o jogo
+     * não funciona em vez de que a rodada já começou.
+     */
+    private void entrarNaFila(Player jogador) {
+        TntRunCatalog planta = plugin.tntRunCatalog();
+        if (!naArena.contains(jogador.getUniqueId())) {
+            entrou(jogador);
+        }
+        if (!arenaConstruida(jogador.getWorld(), planta)) {
+            aviso(jogador, "<gray>a arena ainda não foi construída</gray>",
+                    Sound.BLOCK_NOTE_BLOCK_BASS, 0.7f);
+            return;
+        }
+        if (estado == Estado.JOGANDO || estado == Estado.FIM) {
+            aviso(jogador, "<gray>a rodada já começou — entre na próxima</gray>",
+                    Sound.BLOCK_NOTE_BLOCK_BASS, 0.7f);
+            return;
+        }
+        if (fila.contains(jogador.getUniqueId())) {
+            aviso(jogador, "<gray>você já está na fila <white>(" + fila.size() + "/"
+                    + planta.maximo() + ")</white></gray>",
+                    Sound.BLOCK_NOTE_BLOCK_HAT, 1.2f);
+            return;
+        }
+        if (fila.size() >= planta.maximo()) {
+            aviso(jogador, "<gray>a fila está cheia <white>(" + planta.maximo()
+                    + ")</white></gray>", Sound.BLOCK_NOTE_BLOCK_BASS, 0.7f);
+            return;
+        }
+
+        fila.add(jogador.getUniqueId());
+        if (jogador.getGameMode() == GameMode.SPECTATOR) {
+            jogador.setGameMode(GameMode.ADVENTURE);
+            jogador.teleport(TntRunBuilder.pontoDoSaguao(jogador.getWorld(), planta));
+        }
+        jogador.playSound(jogador.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 0.6f, 1.4f);
+        anunciar("<color:" + planta.corDoTexto() + ">"
+                + HubBuilder.escapar(jogador.getName()) + "</color> <gray>entrou na fila "
+                + "<white>" + fila.size() + "/" + planta.maximo() + "</white>"
+                + (fila.size() < planta.minimo()
+                        ? " — faltam <white>" + (planta.minimo() - fila.size())
+                                + "</white> para começar"
+                        : "") + "</gray>");
+        atualizarPlacas(jogador.getWorld(), planta);
+    }
+
+    /**
+     * Sai da fila — e, para quem não estava nela, sai da arena.
+     *
+     * Dois passos na mesma placa de propósito: quem clicou em ENTRAR por
+     * engano desfaz o engano, e quem só visitou tem um jeito óbvio de voltar
+     * ao lobby sem precisar achar o arco.
+     */
+    private void sairDaFila(Player jogador) {
+        TntRunCatalog planta = plugin.tntRunCatalog();
+        if (fila.remove(jogador.getUniqueId())) {
+            if (estado == Estado.JOGANDO && vivos.contains(jogador.getUniqueId())) {
+                eliminar(jogador, planta);
+            }
+            aviso(jogador, "<gray>você saiu da fila</gray>",
+                    Sound.BLOCK_NOTE_BLOCK_HAT, 0.8f);
+            atualizarPlacas(jogador.getWorld(), planta);
+            return;
+        }
+        voltarAoLobby(jogador);
+    }
+
+    private void aviso(Player jogador, String mini, Sound som, float tom) {
+        jogador.sendActionBar(plugin.mini().deserialize(mini));
+        jogador.playSound(jogador.getLocation(), som, 0.6f, tom);
+    }
+
+    /**
+     * Reescreve as duas placas, e só quando o texto muda.
+     *
+     * Escrever placa manda pacote de bloco para quem está perto. De segundo em
+     * segundo, com texto igual, seria pacote para nada o tempo todo — e a
+     * comparação é uma linha.
+     */
+    private void atualizarPlacas(World mundo, TntRunCatalog planta) {
+        String estadoEscrito = switch (estado) {
+            case ESPERANDO -> planta.placa("esperando", "esperando");
+            case CONTAGEM -> "em " + contagem + "s";
+            case JOGANDO -> planta.placa("jogando", "JOGANDO");
+            case FIM -> planta.placa("refazendo", "refazendo");
+        };
+        String contagemEscrita = (estado == Estado.JOGANDO ? vivos.size() : fila.size())
+                + "/" + planta.maximo();
+        String assinatura = estadoEscrito + "|" + contagemEscrita;
+        if (assinatura.equals(ultimoTextoDaPlaca)) {
+            return;
+        }
+        ultimoTextoDaPlaca = assinatura;
+
+        String cor = planta.corDoTexto();
+        boolean aberta = estado == Estado.ESPERANDO || estado == Estado.CONTAGEM;
+        Supplier<Component> titulo = () -> plugin.mini().deserialize("<color:" + cor
+                + "><bold>" + HubBuilder.escapar(planta.titulo()) + "</bold></color>");
+
+        TntRunBuilder.escreverPlaca(mundo, planta,
+                TntRunBuilder.pontoDaPlacaEntrar(planta), List.of(
+                        titulo.get(),
+                        plugin.mini().deserialize((aberta ? "<green>" : "<dark_gray>")
+                                + HubBuilder.escapar(planta.placa("entrar", "[ENTRAR]"))),
+                        plugin.mini().deserialize("<gray>" + estadoEscrito),
+                        plugin.mini().deserialize((aberta ? "<white>" : "<red>")
+                                + contagemEscrita)));
+
+        TntRunBuilder.escreverPlaca(mundo, planta,
+                TntRunBuilder.pontoDaPlacaSair(planta), List.of(
+                        titulo.get(),
+                        plugin.mini().deserialize("<red>"
+                                + HubBuilder.escapar(planta.placa("sair", "[SAIR]"))),
+                        plugin.mini().deserialize("<gray>sai da fila"),
+                        plugin.mini().deserialize("<dark_gray>ou volta ao lobby")));
+    }
+
     /** Começa a rodada na hora. É o {@code /biga tntrun comecar}. */
     public String comecarAgora() {
         World mundo = mundoDaArena();
@@ -579,14 +720,25 @@ public final class TntRun implements Listener {
         if (estado == Estado.JOGANDO) {
             return "A rodada já está rolando.";
         }
-        if (participantes().isEmpty()) {
-            return "Não há ninguém no saguão em modo de jogo. "
-                    + "Quem está em criativo não entra na rodada.";
-        }
-        if (!arenaConstruida(mundo, plugin.tntRunCatalog())) {
+        TntRunCatalog planta = plugin.tntRunCatalog();
+        if (!arenaConstruida(mundo, planta)) {
             return "A arena ainda não foi construída.";
         }
-        comecar(plugin.tntRunCatalog());
+        // Com a fila vazia, inscreve quem está no saguão em modo de jogo. É o
+        // que deixa testar sozinho sem ir clicar na placa primeiro.
+        if (fila.isEmpty()) {
+            for (Player jogador : jogadoresDaArena()) {
+                if (jogador.getGameMode() == GameMode.ADVENTURE
+                        || jogador.getGameMode() == GameMode.SURVIVAL) {
+                    fila.add(jogador.getUniqueId());
+                }
+            }
+        }
+        if (fila.isEmpty()) {
+            return "Não há ninguém no saguão em modo de jogo. "
+                    + "Quem está em criativo não é inscrito automaticamente.";
+        }
+        comecar(planta);
         return "Rodada começada com " + comecouCom + " jogador(es).";
     }
 
@@ -600,7 +752,7 @@ public final class TntRun implements Listener {
         vivos.clear();
 
         List<Player> entram = new ArrayList<>();
-        for (Player jogador : participantes()) {
+        for (Player jogador : naFila()) {
             if (entram.size() < planta.maximo()) {
                 entram.add(jogador);
             } else {
@@ -703,6 +855,10 @@ public final class TntRun implements Listener {
         plugin.tntRunBuilder().refazerPisos(mundo);
         derretendo.clear();
         vivos.clear();
+        // A fila esvazia: a rodada seguinte também começa pela placa. Manter
+        // todos inscritos faria a próxima largada pegar quem já tinha ido
+        // embora de vontade, e tiraria da placa o papel de ser a porta.
+        fila.clear();
         estado = Estado.ESPERANDO;
 
         Location saguao = TntRunBuilder.pontoDoSaguao(mundo, planta);
@@ -715,6 +871,10 @@ public final class TntRun implements Listener {
             jogador.setGameMode(GameMode.ADVENTURE);
             jogador.setFallDistance(0f);
             jogador.teleport(saguao);
+            jogador.sendActionBar(plugin.mini().deserialize(
+                    "<gray>clique em <green>" + HubBuilder.escapar(
+                            planta.placa("entrar", "[ENTRAR]"))
+                            + "</green> para jogar de novo</gray>"));
         }
     }
 
@@ -851,7 +1011,7 @@ public final class TntRun implements Listener {
         String cor = planta.corDoTexto();
         switch (estado) {
             case ESPERANDO -> {
-                int prontos = participantes().size();
+                int prontos = fila.size();
                 barra.name(plugin.mini().deserialize("<color:" + cor + ">"
                         + HubBuilder.escapar(planta.titulo())
                         + "</color> <gray>esperando <white>" + prontos + "/"
@@ -887,20 +1047,11 @@ public final class TntRun implements Listener {
         return Math.max(0f, Math.min(1f, valor));
     }
 
-    /**
-     * Quem conta como jogador da rodada.
-     *
-     * Quem está em CRIATIVO não conta, e é por isso que o mínimo pode ser um.
-     * Sem esta regra, qualquer administrador voando pela arena para conferir
-     * um bloco seria arrastado para uma largada vinte segundos depois, em
-     * modo aventura, no meio da obra que ele estava olhando. Espectador
-     * também não conta: ou é eliminado, ou chegou com a rodada em curso.
-     */
-    private List<Player> participantes() {
+    private List<Player> naFila() {
         List<Player> saida = new ArrayList<>();
-        for (Player jogador : jogadoresDaArena()) {
-            if (jogador.getGameMode() == GameMode.ADVENTURE
-                    || jogador.getGameMode() == GameMode.SURVIVAL) {
+        for (UUID id : fila) {
+            Player jogador = Bukkit.getPlayer(id);
+            if (jogador != null) {
                 saida.add(jogador);
             }
         }
@@ -959,9 +1110,45 @@ public final class TntRun implements Listener {
     public void aoDeslogar(PlayerQuitEvent evento) {
         UUID id = evento.getPlayer().getUniqueId();
         naArena.remove(id);
+        fila.remove(id);
         vivos.remove(id);
         ultimaVolta.remove(id);
         modoAnterior.remove(id);
+    }
+
+    /**
+     * O clique na placa.
+     *
+     * Compara COORDENADA, e não o texto da placa. Ler o texto para decidir o
+     * que fazer é o jeito do plugin de referência — ele precisa, porque lá as
+     * placas são postas à mão em qualquer lugar. Aqui as duas nascem da planta
+     * e o jogo sabe onde elas estão, então comparar posição é imune a
+     * tradução, a cor e a alguém reescrever a placa.
+     */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void aoClicarNaPlaca(PlayerInteractEvent evento) {
+        if (evento.getAction() != Action.RIGHT_CLICK_BLOCK
+                || evento.getHand() != EquipmentSlot.HAND
+                || evento.getClickedBlock() == null) {
+            return;
+        }
+        Block bloco = evento.getClickedBlock();
+        if (!nesteMundo(bloco.getWorld()) || !(bloco.getState() instanceof Sign)) {
+            return;
+        }
+        TntRunCatalog planta = plugin.tntRunCatalog();
+        if (mesmoBloco(bloco, TntRunBuilder.pontoDaPlacaEntrar(planta))) {
+            evento.setCancelled(true);
+            entrarNaFila(evento.getPlayer());
+        } else if (mesmoBloco(bloco, TntRunBuilder.pontoDaPlacaSair(planta))) {
+            evento.setCancelled(true);
+            sairDaFila(evento.getPlayer());
+        }
+    }
+
+    static boolean mesmoBloco(Block bloco, int[] onde) {
+        return bloco.getX() == onde[0] && bloco.getY() == onde[1]
+                && bloco.getZ() == onde[2];
     }
 
     /** Dano nenhum: a mecânica do jogo é cair, e cair não pode doer. */

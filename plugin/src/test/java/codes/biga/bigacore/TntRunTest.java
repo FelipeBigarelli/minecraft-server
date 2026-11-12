@@ -48,7 +48,7 @@ class TntRunTest {
     private static final int SAGUAO_RAIO = 9;
     private static final int SAGUAO_PARAPEITO = 4;
     private static final int MARCO_RECUO = 8;
-    private static final int MINIMO = 1;
+    private static final int MINIMO = 2;
     private static final int MAXIMO = 16;
     private static final int DERRETE = 8;
     private static final int QUEDA_ABAIXO = 8;
@@ -393,16 +393,30 @@ class TntRunTest {
         assertEquals(5, achados.get(0)[0]);
         assertEquals(0, achados.get(0)[2]);
 
-        // Na quina de quatro, com dois sólidos, derretem os dois.
-        List<int[]> quina = TntRun.blocosDoPe(6.0, 101.0, 6.0,
-                (x, y, z) -> y == 100 && x == 5);
-        assertEquals(2, quina.size(), "faltou um dos vizinhos da quina: " + quina.size());
-        for (int[] p : quina) {
-            assertEquals(5, p[0]);
-        }
-
         assertTrue(TntRun.blocosDoPe(0.5, 101.0, 0.5, (x, y, z) -> false).isEmpty(),
                 "sem nada sólido por baixo não há o que derreter");
+    }
+
+    /**
+     * Um bloco por vez, nunca os quatro apoios de uma vez.
+     *
+     * Não é gosto: derretendo todo o apoio junto, correr em linha reta abre
+     * trilha de DOIS de largura e o chão da arena acaba no dobro da
+     * velocidade — a partida inteira fica com metade da duração desenhada.
+     * Quem para na quina perde os apoios um por vez de qualquer jeito.
+     */
+    @Test
+    @DisplayName("derrete um bloco por vez, mesmo com quatro apoios sob o jogador")
+    void umBlocoPorVez() {
+        // Tudo sólido na fiada de baixo: os quatro cantos seguram.
+        List<int[]> tudo = TntRun.blocosDoPe(6.0, 101.0, 6.0, (x, y, z) -> y == 100);
+        assertEquals(1, tudo.size(), "derreteu " + tudo.size() + " blocos de uma vez");
+
+        // Em cima da quina, com dois cantos sólidos: ainda um só.
+        List<int[]> quina = TntRun.blocosDoPe(6.0, 101.0, 6.0,
+                (x, y, z) -> y == 100 && x == 5);
+        assertEquals(1, quina.size(), "derreteu " + quina.size() + " na quina");
+        assertEquals(5, quina.get(0)[0], "escolheu um canto que não segura ninguém");
     }
 
     @Test
@@ -446,12 +460,16 @@ class TntRunTest {
     }
 
     @Test
-    @DisplayName("a contagem é anunciada nos segundos que importam")
+    @DisplayName("a contagem anuncia os dez últimos segundos, e de dez em dez antes")
     void contagemAnuncia() {
-        for (int s : new int[]{30, 20, 15, 10, 5, 4, 3, 2, 1}) {
+        for (int s = 1; s <= 10; s++) {
+            assertTrue(TntRunCatalog.anunciaContagem(s),
+                    "faltou anunciar um dos dez últimos: " + s);
+        }
+        for (int s : new int[]{20, 30, 60}) {
             assertTrue(TntRunCatalog.anunciaContagem(s), "faltou anunciar " + s);
         }
-        for (int s : new int[]{19, 18, 14, 9, 7, 6, 0, -1}) {
+        for (int s : new int[]{19, 18, 15, 14, 11, 0, -1}) {
             assertFalse(TntRunCatalog.anunciaContagem(s), "anunciou demais em " + s);
         }
     }
@@ -555,5 +573,90 @@ class TntRunTest {
         assertEquals(mundoDaArena, apontados.get(0),
                 "o portal vermelho do lobby não aponta para o mundo da arena: "
                         + "o jogo existiria sem como entrar nele");
+    }
+
+    // ------------------------------------------------------------------
+    //  As placas: a única porta de entrada do jogo
+    // ------------------------------------------------------------------
+
+    @Test
+    @DisplayName("as duas placas têm texto, e ele cabe numa placa")
+    void placasTemTexto() {
+        for (String chave : List.of("entrar", "sair", "fila", "esperando", "jogando",
+                "refazendo")) {
+            String valor = arena.getString("textos.placa-" + chave);
+            assertNotNull(valor, "falta textos.placa-" + chave);
+            assertFalse(valor.isBlank(), "textos.placa-" + chave + " está vazio");
+            assertTrue(valor.length() <= 15, "textos.placa-" + chave + " tem "
+                    + valor.length() + " caracteres e não cabe numa linha de placa");
+        }
+        assertEquals(2, arena.getInt("regras.minimo"),
+                "ele pediu mínimo de dois jogadores");
+    }
+
+    /**
+     * Placa de parede, e não de chão: ela fica pendurada no muro da fachada.
+     * A conferência é pelo nome porque {@code org.bukkit.Tag} só existe com
+     * servidor de pé — o jogo confere pela tag de verdade, em
+     * {@code TntRunCatalog.materialDaPlaca()}.
+     */
+    @Test
+    @DisplayName("o material da placa é placa DE PAREDE")
+    void placaEhDeParede() {
+        String nome = arena.getString("paleta.placa");
+        assertNotNull(nome, "falta paleta.placa");
+        Material material = Material.matchMaterial(nome.toUpperCase(Locale.ROOT));
+        assertNotNull(material, "paleta.placa não é um material: " + nome);
+        assertTrue(material.name().endsWith("_WALL_SIGN"),
+                material + " não é placa de parede: não tem como encostar no muro");
+    }
+
+    /**
+     * As três coisas que fazem a placa funcionar, e que erradas a deixam
+     * decorativa: estar no chão do saguão, ter muro atrás (placa de parede
+     * precisa de bloco de apoio) e ficar FORA da caixa do arco de volta —
+     * parado na frente dela, o jogador não pode estar sendo mandado ao lobby.
+     */
+    @Test
+    @DisplayName("as placas ficam no muro, dentro do saguão e fora do arco de volta")
+    void placasFicamNoLugar() {
+        int zMuro = TntRunBuilder.zDoArcoDeVolta(SAGUAO_RAIO);
+        int fiada = saguaoY() + TntRunBuilder.FIADA_DA_PLACA;
+        int[][] placas = {{-4, fiada, zMuro + 1}, {4, fiada, zMuro + 1}};
+
+        for (int[] placa : placas) {
+            assertEquals(zMuro + 1, placa[2], "a placa não está colada no muro");
+            assertTrue(TntRunCatalog.noDisco(placa[0], placa[2], SAGUAO_RAIO),
+                    "a placa em x=" + placa[0] + " está fora do chão do saguão");
+            assertTrue(TntRunCatalog.noDisco(placa[0], zMuro, SAGUAO_RAIO),
+                    "não há muro atrás da placa em x=" + placa[0]);
+            assertTrue(Math.abs(placa[0]) > 2
+                            && Math.abs(placa[0]) <= TntRunBuilder.LARGURA_DA_FACHADA,
+                    "a placa em x=" + placa[0] + " caiu no vão do arco ou fora do muro");
+            assertTrue(placa[1] > saguaoY()
+                            && placa[1] < saguaoY() + TntRunBuilder.alturaDoArcoDeVolta(),
+                    "a placa em x=" + placa[0] + " está dentro do chão ou acima do muro");
+
+            // Quem para na frente dela não pode ser teleportado para o lobby.
+            double px = placa[0] + 0.5;
+            for (double dz = 1; dz <= 2; dz++) {
+                assertFalse(TntRunBuilder.dentroDaVolta(px, saguaoY() + 1,
+                                zMuro + dz + 0.5, saguaoY(), zMuro),
+                        "parado na frente da placa em x=" + placa[0]
+                                + " o jogador é mandado de volta ao lobby");
+            }
+        }
+        assertNotEquals(placas[0][0], placas[1][0], "as duas placas no mesmo bloco");
+    }
+
+    @Test
+    @DisplayName("o jogo é entrado pela placa, e o texto escrito diz isso")
+    void asRegrasMandamClicarNaPlaca() {
+        List<String> regras = arena.getStringList("textos.regras");
+        assertFalse(regras.isEmpty(), "o letreiro de regras ficou vazio");
+        String entrar = arena.getString("textos.placa-entrar");
+        assertTrue(regras.stream().anyMatch(l -> l.contains(entrar)),
+                "nenhuma linha das regras manda clicar em " + entrar
+                        + ": quem chega no saguão não descobre como entrar");
     }
 }

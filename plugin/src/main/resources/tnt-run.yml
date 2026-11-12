@@ -83,6 +83,9 @@ arena:
 #  impede um defeito no derretimento de comer o saguão.
 # -------------------------------------------------------------
 paleta:
+  # A placa de entrar e a de sair. Tem de ser uma placa de PAREDE —
+  # se não for, o construtor avisa e usa a de carvalho.
+  placa: CRIMSON_WALL_SIGN
   piso: TNT
   piso-base: SAND
   beira: POLISHED_BLACKSTONE
@@ -100,16 +103,15 @@ paleta:
 #  Regras
 # -------------------------------------------------------------
 regras:
-  # Quantos precisam estar no saguão para a contagem começar.
+  # Quantos têm de estar NA FILA para a contagem começar.
   #
-  # UM de propósito, e não dois. Num servidor com pouca gente online,
-  # exigir dois é um jogo que nunca roda — e com 'treino-sozinho'
-  # ligado a rodada de um só é uma corrida contra o relógio, que vale
-  # a pena jogar. Quem está em CRIATIVO não conta, então ninguém é
-  # arrastado para uma largada no meio de uma vistoria da obra.
+  # Fila, e não "quem está no saguão": entra-se clicando na placa
+  # [ENTRAR]. Quem chegou pelo portal e não clicou está visitando, e
+  # ninguém é arrastado para uma largada sem ter pedido.
   #
-  # Ponha 2 quando houver gente o bastante para a partida de verdade.
-  minimo: 1
+  # Para jogar sozinho (treino contra o relógio) use
+  # /biga tntrun comecar, que inscreve e larga na hora.
+  minimo: 2
 
   # Teto de jogadores na rodada. Quem chega depois disso (ou com
   # a rodada já rolando) espera a próxima como espectador.
@@ -143,9 +145,19 @@ textos:
   cor: "#FF5555"
   subtitulo: "o chão some atrás de você"
   regras:
+    - "clique em [ENTRAR] para entrar na fila"
     - "o bloco em que você pisa some"
     - "três pisos, três chances"
     - "último de pé ganha"
   escala-titulo: 2.6
   escala-placa: 1.6
   fundo-alpha: 0
+
+  # O que vai escrito nas duas placas do saguão. A linha de baixo de
+  # cada uma é o estado, e quem escreve é o jogo.
+  placa-entrar: "[ENTRAR]"
+  placa-sair: "[SAIR]"
+  placa-fila: "na fila"
+  placa-esperando: "esperando"
+  placa-jogando: "JOGANDO"
+  placa-refazendo: "refazendo"

@@ -208,6 +208,17 @@ public final class TntRunCatalog {
         return Math.max(1, config.getInt("regras.minimo", 2));
     }
 
+    /** O material das placas. Tem de ser placa de PAREDE para encostar no muro. */
+    public Material materialDaPlaca() {
+        Material achado = cor("placa", Material.CRIMSON_WALL_SIGN);
+        if (!org.bukkit.Tag.WALL_SIGNS.isTagged(achado)) {
+            plugin.getLogger().warning("[tntrun] paleta.placa (" + achado
+                    + ") não é uma placa de parede — usando OAK_WALL_SIGN.");
+            return Material.OAK_WALL_SIGN;
+        }
+        return achado;
+    }
+
     public int maximo() {
         return Math.max(minimo(), config.getInt("regras.maximo", 16));
     }
@@ -258,6 +269,11 @@ public final class TntRunCatalog {
 
     public int fundoDoTexto() {
         return Math.max(0, Math.min(255, config.getInt("textos.fundo-alpha", 0)));
+    }
+
+    public String placa(String chave, String padrao) {
+        String valor = config.getString("textos.placa-" + chave);
+        return valor == null || valor.isBlank() ? padrao : valor;
     }
 
     // ------------------------------------------------------------------
@@ -324,10 +340,19 @@ public final class TntRunCatalog {
         return vivos <= 1;
     }
 
-    /** Em que segundos a contagem é anunciada. Nem todos: só os que importam. */
+    /**
+     * Em que segundos a contagem é anunciada.
+     *
+     * Todos os dez últimos, e de dez em dez antes disso — a convenção dos
+     * minigames de servidor, e ela existe por um motivo: avisar de cinco em
+     * cinco nos últimos segundos deixa o jogador sem saber se faltam três ou
+     * seis, que é justo quando ele decide se dá tempo de ir ver a placa.
+     */
     public static boolean anunciaContagem(int segundos) {
-        return segundos == 60 || segundos == 30 || segundos == 20 || segundos == 15
-                || segundos == 10 || (segundos >= 1 && segundos <= 5);
+        if (segundos < 1) {
+            return false;
+        }
+        return segundos <= 10 || segundos % 10 == 0;
     }
 
     /** "1:07" a partir de ticks, para o tempo de quem sobreviveu. */
