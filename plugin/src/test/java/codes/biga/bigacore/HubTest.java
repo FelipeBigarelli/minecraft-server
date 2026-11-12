@@ -277,6 +277,40 @@ class HubTest {
     }
 
     @Test
+    @DisplayName("Speed 3 no hub.yml vira amplificador 2 no jogo")
+    void velocidadeViraAmplificador() {
+        // Trocar nivel por amplificador deixaria o hub um nivel mais lento do
+        // que o arquivo diz, calado. Ninguem abre a doc do Bukkit por causa
+        // de "ta meio devagar".
+        assertEquals(2, RegrasDoHub.amplificador(3));
+        assertEquals(0, RegrasDoHub.amplificador(1));
+        assertEquals(0, RegrasDoHub.amplificador(0), "nivel invalido nao pode virar negativo");
+        assertEquals(9, RegrasDoHub.amplificador(99), "amplificador tem teto");
+
+        assertTrue(RegrasDoHub.velocidadeLigada(hub.getInt("regras.velocidade", 3)));
+        assertFalse(RegrasDoHub.velocidadeLigada(0), "zero tem de desligar a regra");
+    }
+
+    @Test
+    @DisplayName("o que o admin poe a mao continua nascendo no hub")
+    void spawnDeAdminPassa() {
+        // Barrar TODO spawn apagaria o que o proprio servidor coloca de
+        // proposito — e o sintoma seria um ovo que "nao funciona", sem erro.
+        for (org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason motivo : List.of(
+                org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.CUSTOM,
+                org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.COMMAND,
+                org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER_EGG)) {
+            assertTrue(RegrasDoHub.nascimentoEhDeAdmin(motivo), motivo + " deveria passar");
+        }
+        assertFalse(RegrasDoHub.nascimentoEhDeAdmin(
+                        org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL),
+                "bicho que nasce sozinho tem de ser barrado");
+        assertFalse(RegrasDoHub.nascimentoEhDeAdmin(
+                        org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER),
+                "spawner tambem nasce sozinho");
+    }
+
+    @Test
     @DisplayName("o resgate do void acontece acima do fundo do mundo")
     void resgateAconteceAntesDaMorte() {
         int resgate = hub.getInt("regras.resgate-y", 60);

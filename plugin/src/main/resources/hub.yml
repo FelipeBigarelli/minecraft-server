@@ -220,6 +220,22 @@ esculturas:
 #  Comportamento
 # -------------------------------------------------------------
 regras:
+  # Velocidade de quem está no hub, escrita como no jogo:
+  # 3 = Speed III. Zero desliga. O efeito SAI quando o jogador
+  # troca de mundo — Speed III vazando para o survival seria
+  # vantagem permanente de graça, e ninguém reclamaria disso.
+  velocidade: 3
+
+  # O hub é área de passagem, não de sobrevivência.
+  sem-fome: true
+  sem-dano: true
+  sem-pvp: true
+  sem-mobs: true
+
+  # Meio-dia travado e sem chuva. O hub foi desenhado para ser
+  # visto; de noite ele some.
+  sempre-dia: true
+
   # Quem entra no servidor pela primeira vez cai no hub.
   spawn-de-entrada: true
 

@@ -43,6 +43,7 @@ public final class BigaCore extends JavaPlugin {
     private HubCatalog hubCatalog;
     private HubBuilder hubBuilder;
     private HubPortais hubPortais;
+    private RegrasDoHub regrasDoHub;
 
     @Override
     public void onEnable() {
@@ -140,6 +141,9 @@ public final class BigaCore extends JavaPlugin {
         this.hubPortais = new HubPortais(this);
         getServer().getPluginManager().registerEvents(hubPortais, this);
         this.hubPortais.start();
+        this.regrasDoHub = new RegrasDoHub(this);
+        getServer().getPluginManager().registerEvents(regrasDoHub, this);
+        this.regrasDoHub.start();
 
         // Precisa vir depois do ChestShop no softdepend, senão o plugin ainda
         // não está registrado e o hook do teto não encontra a classe do evento.
@@ -352,6 +356,9 @@ public final class BigaCore extends JavaPlugin {
         if (hubPortais != null) {
             hubPortais.parar();
         }
+        if (regrasDoHub != null) {
+            regrasDoHub.parar();
+        }
         pedreiro = null;
         shopPreview = null;
         shopSnapshot = null;
@@ -446,6 +453,10 @@ public final class BigaCore extends JavaPlugin {
 
     public HubPortais hubPortais() {
         return hubPortais;
+    }
+
+    public RegrasDoHub regrasDoHub() {
+        return regrasDoHub;
     }
 
     public TagCatalog tagCatalog() {

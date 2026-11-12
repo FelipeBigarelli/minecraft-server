@@ -288,6 +288,35 @@ public final class HubCatalog {
     //  Regras
     // ------------------------------------------------------------------
 
+    /**
+     * Nível da poção de velocidade no hub, como gente escreve: 3 é Speed III.
+     * Zero desliga.
+     */
+    public int velocidade() {
+        return config.getInt("regras.velocidade", 3);
+    }
+
+    public boolean semFome() {
+        return config.getBoolean("regras.sem-fome", true);
+    }
+
+    public boolean semDano() {
+        return config.getBoolean("regras.sem-dano", true);
+    }
+
+    public boolean semPvp() {
+        return config.getBoolean("regras.sem-pvp", true);
+    }
+
+    public boolean semMobs() {
+        return config.getBoolean("regras.sem-mobs", true);
+    }
+
+    /** Meio-dia travado e sem chuva: o hub foi desenhado para ser visto. */
+    public boolean sempreDia() {
+        return config.getBoolean("regras.sempre-dia", true);
+    }
+
     public boolean spawnDeEntrada() {
         return config.getBoolean("regras.spawn-de-entrada", true);
     }

@@ -136,6 +136,7 @@ public final class HubBuilder {
                 Material.LIGHT_BLUE_CONCRETE), piso);
         terracoDaChegada(mundo, planta, chegada, piso);
         pousoDoJogador(mundo, planta, piso);
+        RegrasDoHub.ajustarMundo(mundo, planta);
 
         int blocos = contador;
         String ajuda = paredeDeAjuda(mundo, planta);
