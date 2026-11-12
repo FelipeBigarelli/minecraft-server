@@ -47,6 +47,9 @@ public final class BigaCore extends JavaPlugin {
     private MinigamesCatalog minigamesCatalog;
     private LobbyBuilder lobbyBuilder;
     private LobbyPortais lobbyPortais;
+    private TntRunCatalog tntRunCatalog;
+    private TntRunBuilder tntRunBuilder;
+    private TntRun tntRun;
 
     @Override
     public void onEnable() {
@@ -114,6 +117,15 @@ public final class BigaCore extends JavaPlugin {
             saveResource("minigames.yml", false);
         }
 
+        // tnt-run.yml: a arena e as regras do primeiro jogo. Um arquivo por
+        // jogo, e nao um arquivo so com vinte secoes: cada jogo tem geometria
+        // e regras proprias, e um arquivo de duas mil linhas seria mexido as
+        // cegas pelo medo de encostar no jogo do vizinho.
+        File tntRunFile = new File(getDataFolder(), "tnt-run.yml");
+        if (!tntRunFile.exists()) {
+            saveResource("tnt-run.yml", false);
+        }
+
         this.economyCatalog = new EconomyCatalog(this);
         this.economyBridge = new VaultEconomyBridge();
         this.spawnShopBuilder = new SpawnShopBuilder(this);
@@ -158,6 +170,17 @@ public final class BigaCore extends JavaPlugin {
         this.lobbyPortais = new LobbyPortais(this);
         getServer().getPluginManager().registerEvents(lobbyPortais, this);
         this.lobbyPortais.start();
+
+        this.tntRunCatalog = new TntRunCatalog(this);
+        this.tntRunBuilder = new TntRunBuilder(this);
+        this.tntRun = new TntRun(this);
+        getServer().getPluginManager().registerEvents(tntRun, this);
+        this.tntRun.start();
+
+        // O mundo da arena nasce aqui se nao existir. Depois do start() de
+        // proposito: se a criacao falhar, o jogo fica parado avisando no log
+        // em vez de o plugin inteiro nao subir.
+        MundoDeJogo.garantir(this, tntRunCatalog.mundo());
 
         // As regras valem para o hub E para o lobby, então entram depois dos
         // dois: elas leem a configuração dos dois mundos para saber onde agir.
@@ -379,6 +402,9 @@ public final class BigaCore extends JavaPlugin {
         if (lobbyPortais != null) {
             lobbyPortais.parar();
         }
+        if (tntRun != null) {
+            tntRun.parar();
+        }
         if (regrasDoHub != null) {
             regrasDoHub.parar();
         }
@@ -494,6 +520,18 @@ public final class BigaCore extends JavaPlugin {
         return lobbyPortais;
     }
 
+    public TntRunCatalog tntRunCatalog() {
+        return tntRunCatalog;
+    }
+
+    public TntRunBuilder tntRunBuilder() {
+        return tntRunBuilder;
+    }
+
+    public TntRun tntRun() {
+        return tntRun;
+    }
+
     public TagCatalog tagCatalog() {
         return tagCatalog;
     }
@@ -556,6 +594,7 @@ public final class BigaCore extends JavaPlugin {
         tagCatalog.reload();
         hubCatalog.reload();
         minigamesCatalog.reload();
+        tntRunCatalog.reload();
 
         // A lista do TAB reinicia junto: trocar o intervalo no tags.yml sem
         // recriar a tarefa deixaria o numero novo no arquivo e o antigo

@@ -113,7 +113,7 @@ portais:
     titulo: "TNT RUN"
     descricao: "o chão some atrás de você"
     detalhe: "último de pé ganha"
-    mundo: ""
+    mundo: "tnt_run"
     cor: "#FF5555"
     moldura: RED_TERRACOTTA
     destaque: RED_CONCRETE

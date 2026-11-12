@@ -1,0 +1,151 @@
+# =============================================================
+#  TNT RUN — a arena e as regras
+#
+#  A arena é gerada por código:
+#    /biga tntrun info                 confere o terreno
+#    /biga tntrun construir CONFIRMAR  levanta tudo
+#    /biga tntrun desfazer CONFIRMAR   apaga tudo
+#
+#  Os pisos são refeitos sozinhos no começo de cada rodada, então
+#  não há nada para limpar à mão entre partidas.
+# =============================================================
+
+# O mundo da arena. Se ele não existir, o BigaCore cria um mundo
+# VAZIO com esse nome na subida — não precisa de /mv create.
+#
+# Para o Multiverse também passar a conhecê-lo (e valer /mvtp),
+# rode uma vez: /mv import tnt_run normal -g BigaCore
+mundo: tnt_run
+
+# -------------------------------------------------------------
+#  A arena
+#
+#  Um disco, não um quadrado. Em quadrado as quinas são armadilha:
+#  quem é encurralado numa delas não tem para onde correr, e quem
+#  corre pela diagonal cobre 1,41 de chão por bloco de piso gasto.
+#  No disco todo mundo tem a mesma beira e a mesma saída.
+# -------------------------------------------------------------
+arena:
+  # Altura do piso de cima. Os de baixo descem daqui.
+  y: 100
+
+  # Raio do disco. 24 dá 49 de ponta a ponta — tamanho de arena
+  # para até uns doze. Mexer aqui reajusta tudo o que depende
+  # dele (marcos, saguão, posições de largada) sozinho.
+  #
+  # Arena GRANDE com pouca gente dá rodada longa: ninguém perde por
+  # falta de chão, só por erro próprio. Com duas ou três pessoas,
+  # 16 (33 de ponta a ponta) deixa a partida em poucos minutos.
+  # Depois de mudar, rode /biga tntrun desfazer e construir de novo.
+  raio: 24
+
+  # Quantos pisos. Três é o clássico: dois tombos de margem antes
+  # de cair de verdade, e o jogador aprende a geometria do jogo
+  # na primeira queda em vez de na eliminação.
+  pisos: 3
+
+  # Espessura de cada piso, em blocos. Dois: a capa de cima é o
+  # TNT que se vê e a de baixo é a areia que o sustenta. As duas
+  # somem juntas, senão o jogador fica em pé numa casca de areia.
+  espessura: 2
+
+  # Ar entre um piso e o de baixo. TRÊS é o número que importa:
+  # com três não se pula de volta para o piso de cima (o pulo
+  # sobe 1,25 e precisaria de quatro), com dois se pula e o jogo
+  # inteiro deixa de funcionar.
+  vao: 3
+
+  # Quantos anéis da beira ficam em cor escura. É o aviso de
+  # "aqui acaba": o olho não mede raio, mede contraste. Eles
+  # derretem igual ao resto — beira que não derrete é lugar de
+  # acampar, e acampar é o que mata este jogo.
+  beira-aneis: 2
+
+  # Altura do saguão acima do piso de cima.
+  saguao-altura: 18
+  saguao-raio: 9
+
+  # Altura do parapeito de vidro do saguão. Três já basta — o
+  # pulo sobe 1,25 —, mas quatro deixa a caixa parecendo caixa.
+  saguao-parapeito: 4
+
+  # Os quatro marcos, nos pontos cardeais. Ficam a raio+8 do
+  # centro de propósito: perto o bastante para emoldurar, longe
+  # o bastante para nenhum pulo da beira alcançar.
+  marco-recuo: 8
+  marco-altura: 30
+
+# -------------------------------------------------------------
+#  Paleta
+#
+#  piso e piso-base DERRETEM. beira e beira-base também. O que
+#  não está nessas quatro chaves o jogo nunca apaga — é o que
+#  impede um defeito no derretimento de comer o saguão.
+# -------------------------------------------------------------
+paleta:
+  piso: TNT
+  piso-base: SAND
+  beira: POLISHED_BLACKSTONE
+  beira-base: BLACKSTONE
+  estrutura: QUARTZ_BLOCK
+  escuro: POLISHED_DEEPSLATE
+  borda: DEEPSLATE_TILES
+  metal: IRON_BLOCK
+  vidro: LIGHT_BLUE_STAINED_GLASS
+  luz: SEA_LANTERN
+  luz-fria: END_ROD
+  nucleo: AMETHYST_BLOCK
+
+# -------------------------------------------------------------
+#  Regras
+# -------------------------------------------------------------
+regras:
+  # Quantos precisam estar no saguão para a contagem começar.
+  #
+  # UM de propósito, e não dois. Num servidor com pouca gente online,
+  # exigir dois é um jogo que nunca roda — e com 'treino-sozinho'
+  # ligado a rodada de um só é uma corrida contra o relógio, que vale
+  # a pena jogar. Quem está em CRIATIVO não conta, então ninguém é
+  # arrastado para uma largada no meio de uma vistoria da obra.
+  #
+  # Ponha 2 quando houver gente o bastante para a partida de verdade.
+  minimo: 1
+
+  # Teto de jogadores na rodada. Quem chega depois disso (ou com
+  # a rodada já rolando) espera a próxima como espectador.
+  maximo: 16
+
+  # Segundos de contagem depois de o mínimo estar reunido.
+  contagem-segundos: 20
+
+  # Quantos ticks o bloco aguenta depois de alguém pisar nele.
+  # Oito é 0,4 segundo: dá para passar correndo e não dá para
+  # ficar parado. Abaixo de uns cinco o jogo vira sorte, acima
+  # de uns quinze ninguém cai.
+  derrete-ticks: 8
+
+  # Quantos blocos abaixo do piso mais baixo elimina.
+  queda-abaixo: 8
+
+  # Segundos de comemoração antes de todos voltarem ao saguão.
+  fim-segundos: 6
+
+  # Rodada sozinho: vira corrida contra o relógio em vez de
+  # acabar na hora por "só tem um de pé". É o que deixa o jogo
+  # testável e treinável sem precisar de uma segunda pessoa.
+  treino-sozinho: true
+
+# -------------------------------------------------------------
+#  Textos
+# -------------------------------------------------------------
+textos:
+  titulo: "TNT RUN"
+  cor: "#FF5555"
+  subtitulo: "o chão some atrás de você"
+  regras:
+    - "o bloco em que você pisa some"
+    - "três pisos, três chances"
+    - "último de pé ganha"
+  escala-titulo: 2.6
+  escala-placa: 1.6
+  fundo-alpha: 0
