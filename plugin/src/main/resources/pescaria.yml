@@ -1,0 +1,175 @@
+# -------------------------------------------------------------
+#  PESCARIA — paciência vira prêmio
+#
+#  Seis poços numa plataforma redonda, cada um com o seu leito, a
+#  sua espera e a sua tabela de peixe. O do meio é o fundo; em
+#  volta dele, cinco. Onde você lança é a decisão da partida.
+#
+#  Quatro decisões, e cada uma é o contrário do que os plugins de
+#  pescaria fazem:
+#
+#  - A ESPERA É DO POÇO. Os plugins de pescaria mexem no que o
+#    jogador PEGA e nunca no tempo que ele espera; a pesca
+#    continua um sorteio de 5 a 30 segundos em que não há nada
+#    para decidir. Aqui a espera sai do poço em que o anzol
+#    pousou, e aí "paciência vira prêmio" passa a ser uma escolha
+#    em vez de uma descrição.
+#  - TODO POÇO PAGA O MESMO POR SEGUNDO. O que muda é o RITMO: a
+#    corredeira dá 1,4 ponto a cada três segundos, o poço fundo dá
+#    7 a cada treze. Se um poço pagasse mais por segundo, os
+#    outros cinco seriam enfeite e os dezesseis ficariam no mesmo
+#    lugar. O teste confere isto poço por poço.
+#  - POÇO CANSA. Cada peixe tirado acrescenta espera àquele poço, e
+#    o alívio por segundo é menor do que três pescadores juntos
+#    gastam. Sem isso, acampar no melhor poço seria estritamente
+#    ótimo e a plataforma inteira existiria de enfeite.
+#  - A VARA É A MESMA. Nenhum encantamento entra na conta, nem na
+#    tabela nem na espera: numa competição, prêmio que escala com o
+#    equipamento decide a partida antes do primeiro lance.
+#
+#  E O GRANDE sempre vem: de tanto em tanto ele abre em UM poço,
+#  anunciado para todos, por uma janela curta. É o que faz os
+#  dezesseis largarem o que estão fazendo e correrem para o mesmo
+#  lugar quatro vezes por partida.
+# -------------------------------------------------------------
+
+mundo: pescaria
+
+arena:
+  # A fiada do deque — e a fiada da superfície da água, que fica
+  # rente ao piso de propósito: poço com beirada alta esconde a
+  # água de quem está chegando.
+  y: 100
+
+  # O disco da plataforma. Fora dele é o vazio.
+  raio: 34
+  beira-aneis: 2
+
+  # O poço do meio e os cinco em volta.
+  poco-raio-meio: 8
+  poco-raio: 6
+  poco-anel: 22
+
+  saguao-altura: 20
+  saguao-raio: 9
+  saguao-parapeito: 4
+  marco-altura: 16
+
+# Quanto vale cada peixe. A ordem é do mais barato ao mais caro e a
+# conferência exige que seja: é ela que diz qual é "o melhor peixe"
+# de um poço na placa dele.
+peixes:
+  - nome: lambari
+    pontos: 1
+  - nome: tilápia
+    pontos: 3
+  - nome: dourado
+    pontos: 8
+  - nome: pirarucu
+    pontos: 20
+
+# Os poços. O PRIMEIRO da lista fica no meio da plataforma; os
+# outros se espalham pelo anel, em ordem, começando ao norte.
+#
+# 'espera' é em tiques (20 por segundo) e 'pesos' são os pesos de
+# sorteio na ordem da tabela de peixes acima.
+pocos:
+  - nome: "POÇO FUNDO"
+    fundo: 7
+    leito: BLUE_ICE
+    espera: [160, 320]
+    pesos: [10, 35, 43, 12]
+  - nome: "ÁGUA FRIA"
+    fundo: 4
+    leito: PACKED_ICE
+    espera: [100, 190]
+    pesos: [25, 45, 27, 3]
+  - nome: "PEDRAL"
+    fundo: 5
+    leito: GRAVEL
+    espera: [120, 230]
+    pesos: [20, 45, 30, 5]
+  - nome: "BARRO"
+    fundo: 3
+    leito: CLAY
+    espera: [60, 130]
+    pesos: [35, 50, 15, 0]
+  - nome: "RASO DAS RÉGIAS"
+    fundo: 2
+    leito: SAND
+    espera: [30, 70]
+    pesos: [65, 32, 3, 0]
+  - nome: "CORREDEIRA"
+    fundo: 2
+    leito: PRISMARINE
+    espera: [20, 50]
+    pesos: [80, 20, 0, 0]
+
+paleta:
+  placa: SPRUCE_WALL_SIGN
+
+  deque: SMOOTH_STONE
+  deque-xadrez: POLISHED_DIORITE
+  beira: DEEPSLATE_TILES
+  parede-do-poco: STONE_BRICKS
+  poste: SPRUCE_FENCE
+  poste-luz: LANTERN
+  torre: PRISMARINE_BRICKS
+  torre-luz: SEA_LANTERN
+
+  estrutura: PRISMARINE_BRICKS
+  escuro: DARK_PRISMARINE
+  borda: DEEPSLATE_TILES
+  metal: IRON_BLOCK
+  vidro: BLUE_STAINED_GLASS
+  luz: SEA_LANTERN
+  luz-fria: END_ROD
+  nucleo: PRISMARINE_LAMP
+
+regras:
+  minimo: 2
+  maximo: 16
+  contagem-segundos: 15
+  fim-segundos: 8
+  treino-sozinho: true
+
+  # O cansaço do poço, em tiques de espera.
+  cansaco-por-peixe: 25
+  cansaco-alivio: 4
+  cansaco-maximo: 240
+
+  # O GRANDE: quanto vale, de quanto em quanto tempo ele abre, por
+  # quanto tempo fica aberto e com que peso ele entra na tabela do
+  # poço em que abriu.
+  grande-nome: "O GRANDE"
+  grande-pontos: 60
+  grande-intervalo: 50
+  grande-janela: 25
+  grande-peso: 30
+
+  # Quantas fiadas abaixo do deque já conta como ter caído fora.
+  queda-abaixo: 6
+
+  # A rodada acaba no relógio, sempre.
+  tempo-limite: 240
+
+textos:
+  titulo: "PESCARIA"
+  cor: "#5B8DEF"
+  subtitulo: "paciência vira prêmio"
+  regras:
+    - "clique em [ENTRAR] para entrar na fila"
+    - "cada poço tem a espera e o peixe dele"
+    - "todo poço paga o mesmo por segundo"
+    - "o que muda é o RITMO — e o poço cansa"
+    - "O GRANDE sempre vem; fique de olho no aviso"
+  escala-titulo: 2.6
+  escala-placa: 1.6
+  fundo-alpha: 0
+
+  placa-entrar: "[ENTRAR]"
+  placa-sair: "[SAIR]"
+  placa-fila: "na fila"
+  placa-esperando: "esperando"
+  placa-jogando: "PESCANDO"
+  placa-refazendo: "refazendo"

@@ -269,7 +269,7 @@ portais:
     titulo: "PESCARIA"
     descricao: "paciência vira prêmio"
     detalhe: "o grande sempre vem"
-    mundo: ""
+    mundo: "pescaria"
     cor: "#5B8DEF"
     moldura: BLUE_TERRACOTTA
     destaque: BLUE_CONCRETE

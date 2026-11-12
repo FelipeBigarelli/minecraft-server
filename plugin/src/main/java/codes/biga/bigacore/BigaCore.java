@@ -78,6 +78,9 @@ public final class BigaCore extends JavaPlugin {
     private MineracaoCatalog mineracaoCatalog;
     private MineracaoBuilder mineracaoBuilder;
     private Mineracao mineracao;
+    private PescariaCatalog pescariaCatalog;
+    private PescariaBuilder pescariaBuilder;
+    private Pescaria pescaria;
 
     /**
      * Os minigames registrados, por etiqueta.
@@ -194,6 +197,11 @@ public final class BigaCore extends JavaPlugin {
             saveResource("pega-pega.yml", false);
         }
 
+        File pescariaFile = new File(getDataFolder(), "pescaria.yml");
+        if (!pescariaFile.exists()) {
+            saveResource("pescaria.yml", false);
+        }
+
         File mineracaoFile = new File(getDataFolder(), "mineracao.yml");
         if (!mineracaoFile.exists()) {
             saveResource("mineracao.yml", false);
@@ -306,6 +314,11 @@ public final class BigaCore extends JavaPlugin {
         this.mineracaoBuilder = new MineracaoBuilder(this);
         this.mineracao = new Mineracao(this);
         registrarJogo(mineracaoCatalog, mineracaoBuilder, mineracao);
+
+        this.pescariaCatalog = new PescariaCatalog(this);
+        this.pescariaBuilder = new PescariaBuilder(this);
+        this.pescaria = new Pescaria(this);
+        registrarJogo(pescariaCatalog, pescariaBuilder, pescaria);
 
         // As regras valem para o hub E para o lobby, então entram depois dos
         // dois: elas leem a configuração dos dois mundos para saber onde agir.
@@ -784,6 +797,18 @@ public final class BigaCore extends JavaPlugin {
 
     public Mineracao mineracao() {
         return mineracao;
+    }
+
+    public PescariaCatalog pescariaCatalog() {
+        return pescariaCatalog;
+    }
+
+    public PescariaBuilder pescariaBuilder() {
+        return pescariaBuilder;
+    }
+
+    public Pescaria pescaria() {
+        return pescaria;
     }
 
     /** Os minigames registrados, por etiqueta, na ordem em que entraram. */
