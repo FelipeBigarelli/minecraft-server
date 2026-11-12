@@ -78,6 +78,20 @@ tag:
 
   cor-padrao: gold
 
+  # Cores que NÃO estão à venda: só saem por /tag definir, da
+  # administração. Se "dono" é palavra barrada para todo mundo,
+  # deixar o vermelho-escuro no balcão permitiria montar algo
+  # parecido o bastante para enganar.
+  cores-especiais:
+    - dark_red
+    - dark_purple
+    - dark_aqua
+    - dark_green
+    - dark_blue
+    - dark_gray
+    - gray
+    - black
+
   # -----------------------------------------------------------
   #  Moderação
   #

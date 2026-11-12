@@ -85,12 +85,39 @@ public final class TagCatalog {
         return config.getString("tag.cor-padrao", "gold");
     }
 
+    /**
+     * Cores que só a administração entrega.
+     *
+     * Existem para a tag de dono não poder ser imitada na cor, já que o
+     * texto também não pode: se "dono" é palavra barrada, um vermelho-escuro
+     * à venda deixaria qualquer um montar algo parecido o bastante.
+     */
+    public List<String> coresEspeciais() {
+        return config.getStringList("tag.cores-especiais");
+    }
+
+    /** Cor que o jogador pode COMPRAR. É esta que o /tag cor aceita. */
+    public boolean corDeVenda(String cor) {
+        return contem(cores(), cor);
+    }
+
+    /**
+     * Cor que o jogo pode MOSTRAR — de venda ou especial.
+     *
+     * Separada da de venda de propósito: a lista de exibição precisa aceitar
+     * o que a administração deu à mão, senão a tag de dono sairia pintada na
+     * cor padrão e ninguém entenderia por quê.
+     */
     public boolean corPermitida(String cor) {
+        return corDeVenda(cor) || contem(coresEspeciais(), cor);
+    }
+
+    private static boolean contem(List<String> lista, String cor) {
         if (cor == null) {
             return false;
         }
         String alvo = cor.toLowerCase(Locale.ROOT);
-        for (String permitida : cores()) {
+        for (String permitida : lista) {
             if (permitida.toLowerCase(Locale.ROOT).equals(alvo)) {
                 return true;
             }

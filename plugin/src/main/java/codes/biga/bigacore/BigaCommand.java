@@ -32,7 +32,7 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
     private static final List<String> ECO_SUBCOMANDOS =
             List.of("status", "saldo", "preco", "vender", "regras");
     private static final List<String> HUB_SUBCOMANDOS =
-            List.of("info", "construir", "desfazer", "ir");
+            List.of("info", "construir", "desfazer", "textos", "ir");
     private static final List<String> LOJA_SUBCOMANDOS =
             List.of("local", "validar", "preview", "criar", "placas", "vitrine",
                     "proteger", "desproteger", "desfazer");
@@ -322,6 +322,7 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             case "construir" -> hubConstruir(sender, label, args);
             case "desfazer" -> hubDesfazer(sender, label, args);
             case "ir" -> hubIr(sender);
+            case "textos" -> hubTextos(sender);
             default -> enviarAjudaHub(sender, label);
         }
     }
@@ -339,6 +340,9 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
                 NamedTextColor.YELLOW));
         sender.sendMessage(Component.text("/" + label + " hub desfazer CONFIRMAR",
                 NamedTextColor.YELLOW));
+        sender.sendMessage(Component.text("/" + label + " hub textos", NamedTextColor.YELLOW)
+                .append(Component.text(" — refaz só os letreiros flutuantes, sem tocar em bloco",
+                        NamedTextColor.GRAY)));
         sender.sendMessage(Component.text("/" + label + " hub ir", NamedTextColor.YELLOW)
                 .append(Component.text(" — leva você ao centro da praça", NamedTextColor.GRAY)));
     }
@@ -413,6 +417,23 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
 
         HubBuilder.Resultado feito = plugin.hubBuilder().desfazer(mundo);
         sender.sendMessage(Component.text(feito.mensagem(), NamedTextColor.GREEN));
+    }
+
+    /**
+     * Refaz os letreiros sem obra.
+     *
+     * Sem confirmação de propósito: não apaga bloco nenhum e o pior caso é
+     * ver o mesmo texto de novo. Pedir CONFIRMAR aqui só atrapalharia quem
+     * está ajustando cor e tamanho, que é justamente para quem isto existe.
+     */
+    private void hubTextos(CommandSender sender) {
+        org.bukkit.World mundo = mundoDoHub(sender);
+        if (mundo == null) {
+            return;
+        }
+        HubBuilder.Resultado feito = plugin.hubBuilder().textos(mundo);
+        sender.sendMessage(Component.text(feito.mensagem(),
+                feito.ok() ? NamedTextColor.GREEN : NamedTextColor.RED));
     }
 
     private void hubIr(CommandSender sender) {

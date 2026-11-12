@@ -460,28 +460,25 @@ public final class HubBuilder {
         }
         por(mundo, 0, 0, piso + altura + 1, Material.BEACON);
 
-        letreiroDoMonumento(mundo, planta, piso + altura + 3);
+        letreiroDoMonumento(mundo, planta, piso + altura + 4);
     }
 
     /**
-     * O nome do servidor no alto do monumento, nos quatro lados.
+     * O nome do servidor no alto do monumento.
      *
-     * O texto de um TextDisplay FIXED só se lê de frente, e um hub tem gente
-     * chegando dos quatro lados.
+     * Uma cópia só, girando no eixo vertical. A versão anterior carimbava
+     * quatro textos FIXED, um por lado, porque texto fixo só se lê de
+     * frente — e quem chegasse na diagonal via os quatro de esguelha ao
+     * mesmo tempo, que é o que faz aquele borrão no meio da praça.
      */
     private void letreiroDoMonumento(World mundo, HubCatalog planta, int y) {
         Component texto = plugin.mini().deserialize(
-                "<gradient:#FF6A00:#FFD700><bold>THE BIGAS</bold></gradient>"
-                        + "<newline><color:#8FD3FF>escolha um caminho</color>");
+                "<gradient:#FFC46B:#FFD700:#FFC46B><bold>THE BIGAS</bold></gradient>"
+                        + "<newline><color:#9FD8FF>escolha um caminho</color>");
 
-        int fora = monumentoMeiaLargura(planta) - 4;
-        for (HubCatalog.Face face : HubCatalog.Face.values()) {
-            Location alvo = new Location(mundo, face.du() * fora + 0.5, y,
-                    face.dv() * fora + 0.5);
-            alvo.setYaw(face.yawParaOCentro() + 180f);
-            alvo.setPitch(0f);
-            painel(mundo, alvo, texto, 2.4f);
-        }
+        Location alvo = new Location(mundo, 0.5, y, 0.5);
+        alvo.setPitch(0f);
+        painel(mundo, alvo, texto, TITULO);
     }
 
     /**
@@ -837,29 +834,38 @@ public final class HubBuilder {
     }
 
     /**
-     * O painel flutuante do portal.
+     * A placa do portal, sobre a verga do portão.
      *
-     * Olha para o CENTRO, porque é de lá que o jogador vem. Virado para fora
-     * ele só seria legível por quem já atravessou — ou seja, por ninguém.
+     * Lugar de placa é em cima da porta. Na altura dos olhos, ao lado do
+     * caminho, ela competia com a escultura e com o próprio portão — e de
+     * longe, que é de onde a pessoa escolhe para onde ir, virava um
+     * borrãozinho colorido na beira da tela. Daqui ela é lida da passarela
+     * inteira, e quem chega perto já não precisa dela: tem a escultura.
+     *
+     * Olha para o CENTRO, porque é de lá que o jogador vem. Virada para fora
+     * ela só seria legível por quem já atravessou — ou seja, por ninguém.
      */
     private void painelDoPortal(World mundo, HubCatalog planta, HubCatalog.Portal portal,
                                 int piso) {
         HubCatalog.Face face = portal.face();
-        int centro = planta.distanciaDoTerraco() - planta.terracoRaio() + 2;
+        int centro = planta.distanciaDoPortal();
 
-        String aviso = portal.aberto() ? ""
-                : "<newline><color:#FF6A6A>em obra, ainda não abre</color>";
+        String aviso = portal.aberto()
+                ? "<newline><dark_gray>" + escapar(portal.detalhe()) + "</dark_gray>"
+                : "<newline><color:#FF8A8A>em obra · ainda não abre</color>";
+
         Component texto = plugin.mini().deserialize(
-                "<color:" + portal.cor() + "><bold>" + escapar(portal.titulo()) + "</bold></color>"
+                "<color:" + portal.cor() + "><bold>" + escapar(portal.titulo())
+                        + "</bold></color>"
                         + "<newline><gray>" + escapar(portal.descricao()) + "</gray>"
-                        + "<newline><dark_gray>" + escapar(portal.detalhe()) + "</dark_gray>"
                         + aviso);
 
         Location alvo = new Location(mundo,
-                face.du() * centro + 0.5, piso + 6.5, face.dv() * centro + 0.5);
+                face.du() * centro + 0.5, piso + planta.portaoAltura() + 3.5,
+                face.dv() * centro + 0.5);
         alvo.setYaw(face.yawParaOCentro());
         alvo.setPitch(0f);
-        painel(mundo, alvo, texto, 1.8f);
+        painel(mundo, alvo, texto, PLACA);
     }
 
     /**
@@ -929,19 +935,62 @@ public final class HubBuilder {
             }
         }
 
+        boasVindas(mundo, planta, face, piso);
+    }
+
+    /**
+     * O primeiro texto que o jogador lê no servidor.
+     *
+     * Em pé, não deitado: a versão larga de três cores numa linha só virava
+     * uma faixa cinza atravessada no céu, e o olho não achava onde começar.
+     * Uma direção por linha, com a cor do mundo à esquerda, lê na ordem em
+     * que as faixas do chão aparecem.
+     */
+    private void boasVindas(World mundo, HubCatalog planta, HubCatalog.Face face, int piso) {
         Component texto = plugin.mini().deserialize(
-                "<gradient:#8FD3FF:#FFFFFF><bold>BEM-VINDO AO THE BIGAS</bold></gradient>"
-                        + "<newline><gray>siga em frente: a parede branca explica tudo</gray>"
-                        + "<newline><color:#5BE37D>oeste survival</color>  "
-                        + "<color:#FFB84D>leste lotes</color>  "
-                        + "<color:#C77DFF>norte minigames</color>");
+                "<gradient:#AEE4FF:#FFFFFF:#AEE4FF><bold>BEM-VINDO</bold></gradient>"
+                        + "<newline><white><bold>THE BIGAS</bold></white>"
+                        + "<newline>"
+                        + "<newline><color:#5BE37D>oeste</color> <gray>survival</gray>"
+                        + "<newline><color:#FFB84D>leste</color> <gray>lotes</gray>"
+                        + "<newline><color:#C77DFF>norte</color> <gray>minigames</gray>"
+                        + "<newline>"
+                        + "<newline><dark_gray>siga a faixa colorida do seu caminho</dark_gray>");
 
         Location alvo = new Location(mundo,
-                face.du() * (planta.distanciaDoTerraco() - 12) + 0.5, piso + 7.5,
-                face.dv() * (planta.distanciaDoTerraco() - 12) + 0.5);
+                face.du() * (planta.distanciaDoTerraco() - 13) + 0.5, piso + 8.0,
+                face.dv() * (planta.distanciaDoTerraco() - 13) + 0.5);
         alvo.setYaw(face.yawParaOCentro() + 180f);
         alvo.setPitch(0f);
-        painel(mundo, alvo, texto, 1.9f);
+        painel(mundo, alvo, texto, CHEGADA);
+    }
+
+    /**
+     * Refaz só os textos flutuantes, sem encostar num bloco.
+     *
+     * Estilo de texto se acerta olhando, e olhar custa entrar no jogo, sair,
+     * recompilar e voltar. Desfazer e refazer o hub inteiro para mudar uma
+     * cor são dezenas de milhares de blocos reescritos por causa de uma
+     * linha — e cada ida dessas é um servidor travado por segundos.
+     */
+    public Resultado textos(World mundo) {
+        HubCatalog planta = plugin.hubCatalog();
+        List<HubCatalog.Portal> portais = planta.portais();
+        if (portais.isEmpty()) {
+            return new Resultado(false, "O hub.yml não tem nenhum portal em 'portais'.", 0);
+        }
+
+        int piso = planta.pisoY();
+        limparPaineis(mundo);
+
+        letreiroDoMonumento(mundo, planta, piso + monumentoAltura(planta) + 4);
+        for (HubCatalog.Portal portal : portais) {
+            painelDoPortal(mundo, planta, portal, piso);
+        }
+        boasVindas(mundo, planta, HubCatalog.faceLivre(portais), piso);
+
+        return new Resultado(true, "Textos do hub refeitos: "
+                + (portais.size() + 2) + " letreiros.", portais.size() + 2);
     }
 
     /** Onde o jogador nasce: no estrado do terraço de chegada. */
@@ -986,23 +1035,61 @@ public final class HubBuilder {
         contador++;
     }
 
-    private void painel(World mundo, Location alvo, Component texto, float escala) {
+    /**
+     * O jeito de um texto do hub aparecer.
+     *
+     * Existe como tipo, e não como parâmetros soltos, porque o defeito que
+     * ele conserta foi exatamente a falta disso: título, placa de portal e
+     * letreiro de chegada nasceram com o MESMO tamanho, a mesma caixa e a
+     * mesma largura de linha. Sem hierarquia, a tela fica com três avisos
+     * brigando pela mesma atenção — e num hub branco a caixa cinza larga
+     * vira o elemento mais pesado da composição.
+     *
+     * @param fundoAlpha    0 a 255. Baixo deixa o quartzo aparecer por trás;
+     *                      alto vira placa de trânsito.
+     * @param larguraLinha  onde o cliente quebra a linha, em pixels. Larga
+     *                      demais faz a caixa sobrar dos dois lados do texto.
+     */
+    private record Estilo(float escala, int fundoAlpha, Display.Billboard giro,
+                          int larguraLinha, float alcance) {
+    }
+
+    /**
+     * O nome do servidor sobre o monumento.
+     *
+     * Gira no eixo vertical: fica sempre de frente para quem olha, de
+     * qualquer ponto da praça, e por isso é UM texto em vez das quatro
+     * cópias que a versão FIXED precisava — uma por lado.
+     */
+    private static final Estilo TITULO =
+            new Estilo(3.0f, 70, Display.Billboard.VERTICAL, 300, 3.0f);
+
+    /** A placa sobre o portão. Lida da passarela inteira. */
+    private static final Estilo PLACA =
+            new Estilo(2.2f, 60, Display.Billboard.FIXED, 240, 2.5f);
+
+    /** O letreiro de chegada: o primeiro texto que o jogador lê no servidor. */
+    private static final Estilo CHEGADA =
+            new Estilo(1.9f, 60, Display.Billboard.FIXED, 260, 2.5f);
+
+    private void painel(World mundo, Location alvo, Component texto, Estilo estilo) {
         mundo.spawn(alvo, TextDisplay.class, novo -> {
             novo.text(texto);
-            novo.setBillboard(Display.Billboard.FIXED);
+            novo.setBillboard(estilo.giro());
             novo.setAlignment(TextDisplay.TextAlignment.CENTER);
-            novo.setBackgroundColor(org.bukkit.Color.fromARGB(90, 0, 0, 0));
+            novo.setBackgroundColor(org.bukkit.Color.fromARGB(estilo.fundoAlpha(), 0, 0, 0));
             novo.setShadowed(true);
             novo.setBrightness(new Display.Brightness(15, 15));
-            novo.setLineWidth(380);
-            novo.setViewRange(2.0f);
+            novo.setLineWidth(estilo.larguraLinha());
+            novo.setViewRange(estilo.alcance());
             novo.setPersistent(true);
             novo.addScoreboardTag(TAG_PAINEL);
 
+            float e = estilo.escala();
             Transformation t = novo.getTransformation();
             novo.setTransformation(new Transformation(
                     t.getTranslation(), t.getLeftRotation(),
-                    new Vector3f(escala, escala, escala), t.getRightRotation()));
+                    new Vector3f(e, e, e), t.getRightRotation()));
         });
     }
 

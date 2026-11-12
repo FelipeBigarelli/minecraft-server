@@ -13,6 +13,7 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -34,7 +35,19 @@ public final class TagCommand implements CommandExecutor, TabCompleter {
     static final String PERM_ADMIN = "bigacore.tag.admin";
 
     private static final List<String> SUBCOMANDOS =
-            List.of("comprar", "cor", "cores", "remover", "lista", "ver", "limpar");
+            List.of("comprar", "cor", "cores", "remover", "lista", "ver");
+
+    /** Só aparecem no TAB de quem pode usar. */
+    private static final List<String> SUBCOMANDOS_ADMIN = List.of("limpar", "definir");
+
+    /**
+     * Teto do texto numa tag dada pela administração.
+     *
+     * Mais frouxo que o do jogador (o dono às vezes quer "DONO DO SERVIDOR"),
+     * mas não ilimitado: a lista do TAB tem largura, e uma tag gigante
+     * empurra nome e ping para fora da tela de todo mundo.
+     */
+    private static final int MAXIMO_ADMIN = 24;
 
     private static final TextColor COMANDO = NamedTextColor.YELLOW;
     private static final TextColor TEXTO = NamedTextColor.GRAY;
@@ -67,6 +80,7 @@ public final class TagCommand implements CommandExecutor, TabCompleter {
             case "lista" -> lista(quem);
             case "ver" -> ver(quem, args);
             case "limpar" -> limpar(quem, args);
+            case "definir" -> definir(quem, args);
             default -> status(quem);
         }
         return true;
@@ -193,7 +207,7 @@ public final class TagCommand implements CommandExecutor, TabCompleter {
         }
 
         String escolhida = args[1].toLowerCase(Locale.ROOT);
-        if (!regras.corPermitida(escolhida)) {
+        if (!regras.corDeVenda(escolhida)) {
             jogador.sendMessage(Component.text("Essa cor não está liberada. Veja /tag cores.",
                     ALERTA));
             return;
@@ -317,19 +331,98 @@ public final class TagCommand implements CommandExecutor, TabCompleter {
         plugin.getLogger().info("[tag] " + quem.getName() + " limpou a tag de " + args[1] + ".");
     }
 
+    /**
+     * A tag que a administração dá à mão.
+     *
+     * Existe por causa de um conflito real: "dono", "admin" e "staff" estão
+     * na lista de palavras barradas, e é bom que estejam — elas existem para
+     * ninguém se passar pela equipe. Mas o dono É a equipe, e sem este
+     * caminho a única saída seria tirar a palavra da lista, que é
+     * exatamente o que não se quer.
+     *
+     * Então aqui não passa pelo conferidor de texto, não cobra e aceita cor
+     * especial. O que ele NÃO faz é passar por cima do limite de largura:
+     * tag comprida empurra nome e ping para fora da lista de todo mundo, e
+     * isso vale para o dono também.
+     */
+    private void definir(CommandSender quem, String[] args) {
+        if (!quem.hasPermission(PERM_ADMIN)) {
+            quem.sendMessage(Component.text("Só a administração.", ALERTA));
+            return;
+        }
+        if (args.length < 4) {
+            quem.sendMessage(Component.text("/tag definir <jogador> <cor> <texto>", COMANDO));
+            quem.sendMessage(Component.text("Cores: " + String.join(", ", todasAsCores()), TEXTO));
+            return;
+        }
+
+        OfflinePlayer alvo = Bukkit.getOfflinePlayerIfCached(args[1]);
+        if (alvo == null) {
+            quem.sendMessage(Component.text("Não conheço esse jogador.", ALERTA));
+            return;
+        }
+
+        String cor = args[2].toLowerCase(Locale.ROOT);
+        if (!plugin.tagCatalog().corPermitida(cor)) {
+            quem.sendMessage(Component.text("Cor desconhecida: " + cor, ALERTA));
+            quem.sendMessage(Component.text("Cores: " + String.join(", ", todasAsCores()), TEXTO));
+            return;
+        }
+
+        String texto = String.join(" ", Arrays.copyOfRange(args, 3, args.length)).trim();
+        if (texto.isEmpty() || texto.length() > MAXIMO_ADMIN) {
+            quem.sendMessage(Component.text("O texto tem de ter de 1 a "
+                    + MAXIMO_ADMIN + " caracteres.", ALERTA));
+            return;
+        }
+
+        // comprouCor = true: tag dada é presente inteiro, e trocar a cor
+        // dela depois não volta a cobrar.
+        plugin.tagStore().guardar(alvo.getUniqueId(),
+                new TagStore.Tag(texto, cor, true, System.currentTimeMillis()));
+
+        Player online = alvo.getPlayer();
+        if (online != null) {
+            plugin.listaDeJogadores().atualizar(online);
+            online.sendMessage(Component.text("A administração te deu a tag ", FEITO)
+                    .append(Component.text("[" + texto + "]", VALOR)));
+        }
+
+        quem.sendMessage(Component.text("Tag de " + args[1] + " definida: ", FEITO)
+                .append(Component.text("[" + texto + "]", VALOR))
+                .append(Component.text(" em " + cor, TEXTO)));
+        plugin.getLogger().info("[tag] " + quem.getName() + " definiu a tag de "
+                + args[1] + " como '" + texto + "' (" + cor + ").");
+    }
+
+    private List<String> todasAsCores() {
+        List<String> todas = new ArrayList<>(plugin.tagCatalog().cores());
+        todas.addAll(plugin.tagCatalog().coresEspeciais());
+        return todas;
+    }
+
     // ------------------------------------------------------------------
 
     @Override
     public List<String> onTabComplete(CommandSender quem, Command comando,
                                       String rotulo, String[] args) {
         if (args.length == 1) {
-            return filtrar(SUBCOMANDOS, args[0]);
+            List<String> tudo = new ArrayList<>(SUBCOMANDOS);
+            if (quem.hasPermission(PERM_ADMIN)) {
+                tudo.addAll(SUBCOMANDOS_ADMIN);
+            }
+            return filtrar(tudo, args[0]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("cor")) {
             return filtrar(plugin.tagCatalog().cores(), args[1]);
         }
+        if (args.length == 3 && args[0].equalsIgnoreCase("definir")
+                && quem.hasPermission(PERM_ADMIN)) {
+            return filtrar(todasAsCores(), args[2]);
+        }
         if (args.length == 2 && (args[0].equalsIgnoreCase("ver")
-                || args[0].equalsIgnoreCase("limpar"))) {
+                || args[0].equalsIgnoreCase("limpar")
+                || args[0].equalsIgnoreCase("definir"))) {
             List<String> nomes = new ArrayList<>();
             for (Player jogador : Bukkit.getOnlinePlayers()) {
                 nomes.add(jogador.getName());
