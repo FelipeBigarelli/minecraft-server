@@ -5,7 +5,11 @@ import org.bukkit.Material;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * A planta do SKY WARS.
@@ -67,13 +71,58 @@ public final class SkyWarsCatalog extends CatalogoDeArena {
     //  gerada inteira, do jeito que ela era.
     // ------------------------------------------------------------------
 
-    private MapaDaArena mapa;
-    private boolean jaProcurou;
+    /** Cada mapa já lido, pelo nome: o rodízio volta a eles. */
+    private final Map<String, MapaDaArena> lidos = new HashMap<>();
+
+    /** Os nomes que não abriram: não se tenta de novo a cada rodada. */
+    private final Set<String> ruins = new HashSet<>();
+
+    /** O mapa desta rodada, quando o rodízio já escolheu um. */
+    private String escolhido;
+
+    /**
+     * O arquivo que lembra o mapa da última rodada.
+     *
+     * <p>Sem ele, um reinício faria o jogo achar que a arena está no mapa do
+     * YML quando na verdade está no que o rodízio sorteou por último. A
+     * troca seguinte apagaria as casas do mapa errado e o mapa certo ficaria
+     * de pé, por cima do novo: duas arenas no mesmo lugar. Uma linha de
+     * texto num arquivo escondido resolve, e perdê-lo custa, no máximo, uma
+     * rodada com sobra de bloco.
+     */
+    private static final String CADERNO = ".sky-wars-mapa";
 
     @Override
     protected void aoRecarregar() {
-        mapa = null;
-        jaProcurou = false;
+        lidos.clear();
+        ruins.clear();
+        escolhido = lerOAnotado();
+    }
+
+    private String lerOAnotado() {
+        File marca = new File(plugin.getDataFolder(), CADERNO);
+        if (!marca.isFile()) {
+            return null;
+        }
+        try {
+            String nome = java.nio.file.Files.readString(marca.toPath(),
+                    java.nio.charset.StandardCharsets.UTF_8).trim();
+            return nome.isEmpty() ? null : nome;
+        } catch (IOException falhou) {
+            return null;
+        }
+    }
+
+    private void anotarOEscolhido(String nome) {
+        try {
+            java.nio.file.Files.writeString(
+                    new File(plugin.getDataFolder(), CADERNO).toPath(), nome,
+                    java.nio.charset.StandardCharsets.UTF_8);
+        } catch (IOException falhou) {
+            plugin.getLogger().warning("[sky] não deu para anotar o mapa da "
+                    + "rodada (" + falhou.getMessage() + "): depois de um "
+                    + "reinício a troca pode deixar bloco do mapa velho.");
+        }
     }
 
     public boolean querMapaPronto() {
@@ -102,16 +151,110 @@ public final class SkyWarsCatalog extends CatalogoDeArena {
      * dono apagou a pasta de mapas sem desligar a chave.
      */
     public MapaDaArena mapa() {
-        if (jaProcurou) {
-            return mapa;
+        MapaDaArena achado = abrir(nomeDaRodada());
+        if (achado == null && escolhido != null) {
+            // O nome anotado saiu da lista ou parou de abrir: volta ao do
+            // YML em vez de deixar o jogo sem mapa nenhum.
+            escolhido = null;
+            achado = abrir(nomeDoMapa());
         }
-        jaProcurou = true;
-        if (!querMapaPronto()) {
+        return achado;
+    }
+
+    /** O nome do mapa desta rodada: o do rodízio, ou o do YML. */
+    public String nomeDaRodada() {
+        return escolhido != null ? escolhido : nomeDoMapa();
+    }
+
+    /** Se o jogo troca de mapa a cada rodada. */
+    public boolean rodizio() {
+        return config.getBoolean("mapa-pronto.rodizio", false);
+    }
+
+    /**
+     * Os mapas do rodízio, na ordem do YML e sem repetido.
+     *
+     * <p>Lista vazia não é erro: quem não escreveu nada quer o mapa único de
+     * {@code mapa-pronto.mapa}, e o rodízio de um mapa só é o jogo de
+     * sempre.
+     */
+    public List<String> mapasDoRodizio() {
+        java.util.LinkedHashSet<String> limpos = new java.util.LinkedHashSet<>();
+        for (String nome : config.getStringList("mapa-pronto.mapas")) {
+            if (nome != null && !nome.isBlank()) {
+                limpos.add(nome.trim());
+            }
+        }
+        if (limpos.isEmpty()) {
+            limpos.add(nomeDoMapa());
+        }
+        return List.copyOf(limpos);
+    }
+
+    /**
+     * Sorteia o mapa da rodada e devolve o que SAI, para ser apagado.
+     *
+     * <p>Devolver o mapa velho em vez de apagá-lo aqui é de propósito: o
+     * catálogo não toca no mundo. Quem apaga é a obra, e ela precisa do
+     * objeto antigo porque é ele — e só ele — que sabe quais casas do mundo
+     * aquele mapa ocupou. Varrer a área inteira custaria oitocentos mil
+     * blocos; apagar pelo mapa custa doze mil.
+     *
+     * <p>Nulo quer dizer "não trocou": sem rodízio, com um mapa só, ou
+     * quando o sorteado não abriu — e aí a rodada segue no mapa que já
+     * estava, que é melhor do que uma arena vazia.
+     */
+    public MapaDaArena trocarDeMapa(java.util.Random sorteio) {
+        if (!querMapaPronto() || !rodizio()) {
             return null;
+        }
+        MapaDaArena velho = mapa();
+        List<String> candidatos = new ArrayList<>(mapasDoRodizio());
+        candidatos.removeAll(ruins);
+        String escolha = proximoMapa(candidatos, nomeDaRodada(), sorteio);
+        if (escolha == null) {
+            return null;
+        }
+        MapaDaArena novo = abrir(escolha);
+        if (novo == null) {
+            return null;
+        }
+        escolhido = escolha;
+        anotarOEscolhido(escolha);
+        return novo == velho ? null : velho;
+    }
+
+    /**
+     * Qual mapa vem agora: um dos outros, nunca o que acabou de rodar.
+     *
+     * <p>Repetir o mapa anterior é o defeito clássico do sorteio ingênuo —
+     * com três mapas, um terço das trocas não troca nada, e o jogador conta
+     * isso como "o rodízio não funciona". Tirar o atual da urna antes de
+     * sortear custa uma linha e acaba com a reclamação.
+     *
+     * @return nulo quando não há para onde ir
+     */
+    static String proximoMapa(List<String> candidatos, String atual,
+                              java.util.Random sorteio) {
+        List<String> urna = new ArrayList<>(candidatos);
+        urna.remove(atual);
+        if (urna.isEmpty()) {
+            return null;
+        }
+        return urna.get(sorteio.nextInt(urna.size()));
+    }
+
+    /** Lê um mapa pelo nome, uma vez só, e guarda o que deu certo. */
+    private MapaDaArena abrir(String nome) {
+        if (!querMapaPronto() || nome == null || ruins.contains(nome)) {
+            return null;
+        }
+        if (lidos.containsKey(nome)) {
+            return lidos.get(nome);
         }
         File pasta = new File(plugin.getDataFolder(), pastaDoMapa());
         try {
-            MapaDaArena lido = MapaDaArena.abrir(pasta, nomeDoMapa(),
+            MapaDaArena lido = MapaDaArena.abrir(pasta, nome,
                     Math.max(1, config.getInt("mapa-pronto.grade", 3)),
                     Math.max(1, config.getInt("mapa-pronto.passo", 47)),
                     config.getInt("mapa-pronto.y-da-jaula", yDoYml() + 1),
@@ -121,23 +264,26 @@ public final class SkyWarsCatalog extends CatalogoDeArena {
                     etiquetas("mapa-pronto.etiquetas-bau-do-meio",
                             List.of("middleChest", "centralChest")));
             if (!lido.serve()) {
-                plugin.getLogger().warning("[sky] o mapa '" + nomeDoMapa()
+                ruins.add(nome);
+                plugin.getLogger().warning("[sky] o mapa '" + nome
                         + "' abriu com " + lido.ilhas() + " jaula(s) e "
                         + lido.quantosBlocos() + " bloco(s): não dá arena. A "
                         + "arena gerada vai no lugar.");
                 return null;
             }
-            mapa = lido;
-            plugin.getLogger().info("[sky] mapa '" + nomeDoMapa() + "': "
+            lidos.put(nome, lido);
+            plugin.getLogger().info("[sky] mapa '" + nome + "': "
                     + lido.ilhas() + " ilhas, anel " + lido.anel()
                     + ", raio " + lido.raioDaIlha() + ", "
                     + lido.quantosBlocos() + " blocos.");
+            return lido;
         } catch (IOException falhou) {
-            plugin.getLogger().warning("[sky] o mapa '" + nomeDoMapa()
+            ruins.add(nome);
+            plugin.getLogger().warning("[sky] o mapa '" + nome
                     + "' não abriu (" + falhou.getMessage() + "). A arena "
                     + "gerada vai no lugar.");
         }
-        return mapa;
+        return null;
     }
 
     private List<String> etiquetas(String chave, List<String> padrao) {

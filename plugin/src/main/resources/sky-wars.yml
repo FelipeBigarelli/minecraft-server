@@ -176,6 +176,46 @@ mapa-pronto:
   etiquetas-bau-da-ilha: [normalChest]
   etiquetas-bau-do-meio: [middleChest, centralChest]
 
+  # -----------------------------------------------------------
+  #  O RODÍZIO
+  #
+  #  Com 'rodizio: true' a arena troca de mapa a cada rodada,
+  #  sorteando um da lista abaixo — nunca o que acabou de rodar,
+  #  para que trocar signifique trocar de verdade.
+  #
+  #  A troca é barata porque o jogo guarda, de cada mapa, as
+  #  casas exatas que ele ocupou: sai o mapa velho pelos doze mil
+  #  blocos dele, entra o novo pelos doze mil dele. A área toda
+  #  tem quase um milhão, e varrê-la a cada rodada travaria o
+  #  servidor.
+  #
+  #  O saguão NÃO muda: a rua da vila se pendura em 'y-da-jaula',
+  #  que é a mesma para todos os mapas. O que muda é a ilha, o
+  #  anel, o alcance — e, com eles, as quatro torres de canto.
+  #
+  #  Cada mapa tem um desenho próprio: o anel vai de 23 a 51 e o
+  #  raio da ilha de 4 a 17. Tirar um nome da lista é o jeito de
+  #  aposentar um mapa de que você não gostou; deixar a lista
+  #  vazia ou com um nome só volta ao mapa fixo de 'mapa:'.
+  # -----------------------------------------------------------
+  rodizio: true
+  mapas:
+    - map1
+    - map2
+    - map3
+    - map4
+    - map5
+    - map6
+    - map7
+    - map8
+    - map9
+    - map10
+    - map1101
+    - map1102
+    - map1103
+    - map1104
+    - map1105
+
 paleta:
   placa: PALE_OAK_WALL_SIGN
 

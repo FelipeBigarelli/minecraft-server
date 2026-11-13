@@ -206,8 +206,17 @@ public final class SkyWars extends JogoDeArena {
         apagarAsPontes(mundo);
         secarAsPocas(mundo);
         limparOChao(mundo);
-        for (int k = 0; k < planta.ilhas(); k++) {
-            obra.refazerIlha(mundo, planta, k);
+
+        // O rodízio ANTES de levantar as ilhas: o mapa que sai é apagado
+        // pelas casas que ele mesmo ocupou, e a geometria da rodada (anel,
+        // raio, alcance, altura das ilhas) passa a ser a do que entra.
+        MapaDaArena saiu = planta.trocarDeMapa(sorteio);
+        if (saiu != null) {
+            obra.trocarDeMapa(mundo, planta, saiu);
+        } else {
+            for (int k = 0; k < planta.ilhas(); k++) {
+                obra.refazerIlha(mundo, planta, k);
+            }
         }
         obra.fecharOMeio(mundo, planta);
 
@@ -295,6 +304,14 @@ public final class SkyWars extends JogoDeArena {
                 + nomeBonito(planta.espadaDoNivel(nivelDoMeio))
                 + "</white> e a armadura, em <white>"
                 + planta.segundosParaOMeio() + "s</white></gray>");
+        if (planta.rodizio() && planta.mapa() != null) {
+            // O nome do mapa só vale a pena quando ele muda. Num jogo de
+            // mapa fixo, anunciá-lo toda rodada é ruído.
+            anunciar("<gray>mapa desta rodada: <white>"
+                    + HubBuilder.escapar(planta.mapa().nome())
+                    + "</white> — " + planta.ilhas() + " ilhas no anel "
+                    + planta.ilhaAnel() + "</gray>");
+        }
         mostrarOPainel(mundo, planta);
     }
 

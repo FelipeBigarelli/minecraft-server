@@ -838,30 +838,82 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
     }
 
     private void torres(World mundo, SkyWarsCatalog planta) {
+        torresNoRaio(mundo, planta,
+                raioDasTorres(planta.ilhaAnel(), planta.mapa()), false);
+    }
+
+    /**
+     * O raio das quatro torres de canto.
+     *
+     * <p>Num mapa pronto o anel é medido pelas JAULAS, e a ilha da diagonal
+     * se estende para fora dele: uma torre a anel+7 nasceria dentro da ilha.
+     * Por isso a medida vira o alcance do mapa inteiro.
+     *
+     * <p>É estática e recebe o mapa de fora porque o rodízio precisa dela
+     * DUAS vezes com respostas diferentes na mesma troca: o raio do mapa que
+     * sai, para apagar as torres velhas, e o do que entra, para levantar as
+     * novas. Mapa de 23 de anel e mapa de 51 não têm torre no mesmo lugar, e
+     * sem apagar pelo raio antigo ficariam oito torres na arena.
+     */
+    static int raioDasTorres(int ilhaAnel, MapaDaArena pronto) {
+        return pronto != null
+                ? Math.max(ilhaAnel + 7, pronto.alcance() + 8)
+                : ilhaAnel + 7;
+    }
+
+    /** As quatro torres num raio dado — ou o ar no lugar delas. */
+    private void torresNoRaio(World mundo, SkyWarsCatalog planta, int raio,
+                              boolean apagar) {
         Material torre = planta.cor("torre", Material.SMOOTH_QUARTZ);
         Material luz = planta.cor("torre-luz", Material.SEA_LANTERN);
         Material rod = planta.cor("luz-fria", Material.END_ROD);
         int y = planta.topoY();
-        // Num mapa pronto o anel é medido pelas JAULAS, e a ilha da diagonal
-        // se estende para fora dele: uma torre a anel+7 nasceria dentro da
-        // ilha. Por isso a medida aqui é o alcance do mapa inteiro.
-        MapaDaArena pronto = planta.mapa();
-        int raio = pronto != null
-                ? Math.max(planta.ilhaAnel() + 7, pronto.alcance() + 8)
-                : planta.ilhaAnel() + 7;
 
         for (int k = 0; k < 4; k++) {
             double angulo = Math.PI / 4 + k * Math.PI / 2;
             int x = (int) Math.round(Math.cos(angulo) * raio);
             int z = (int) Math.round(Math.sin(angulo) * raio);
             for (int alto = 0; alto <= planta.marcoAltura(); alto++) {
-                por(mundo, x, y + alto, z,
-                        alto % 4 == 0 && alto > 0 ? luz : torre);
+                por(mundo, x, y + alto, z, apagar ? Material.AIR
+                        : (alto % 4 == 0 && alto > 0 ? luz : torre));
             }
             for (int alto = 1; alto <= 3; alto++) {
-                por(mundo, x, y + planta.marcoAltura() + alto, z, rod);
+                por(mundo, x, y + planta.marcoAltura() + alto, z,
+                        apagar ? Material.AIR : rod);
             }
         }
+    }
+
+    /**
+     * Troca o mapa da arena: o velho sai inteiro, o novo entra inteiro.
+     *
+     * <p>O saguão não é tocado de propósito. A rua da vila fica em
+     * {@code topoY() + saguao-altura}, e o topo vem da fiada da jaula, que é
+     * a mesma para todos os mapas do rodízio: trocar de mapa não move o
+     * saguão, e refazê-lo custaria milhares de blocos por rodada para
+     * desenhar exatamente a mesma rua.
+     *
+     * @param saiu o mapa que estava na arena — é ele que sabe quais casas do
+     *             mundo apagar, e é por isso que a troca custa doze mil
+     *             blocos em vez dos oitocentos mil da área toda
+     */
+    public int trocarDeMapa(World mundo, SkyWarsCatalog planta,
+                            MapaDaArena saiu) {
+        contador = 0;
+        if (saiu != null) {
+            contador += saiu.apagarTudo(mundo);
+            torresNoRaio(mundo, planta,
+                    raioDasTorres(saiu.anel(), saiu), true);
+        }
+        MapaDaArena entra = planta.mapa();
+        if (entra == null) {
+            return contador;
+        }
+        contador += entra.colar(mundo, plugin.getLogger());
+        bausDoMapa(mundo, planta);
+        torres(mundo, planta);
+        placasDoMeio(mundo, planta);
+        return contador;
     }
 
     /** O painel do ar, no alto do meio. */

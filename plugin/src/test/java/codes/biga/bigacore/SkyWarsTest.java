@@ -17,6 +17,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -1303,5 +1304,74 @@ class SkyWarsTest {
         assertTrue(queda >= 20, "a queda conta a partir de " + queda
                 + " blocos abaixo: perto demais e um pulo na beira da ilha "
                 + "viraria morte");
+    }
+
+
+    // ------------------------------------------------------------------
+    //  O rodízio de mapas
+    // ------------------------------------------------------------------
+
+    @Test
+    @DisplayName("o rodízio nunca repete o mapa que acabou de rodar")
+    void oRodizioNaoRepete() {
+        // O defeito clássico do sorteio ingênuo: com três mapas, um terço
+        // das trocas devolve o mesmo mapa, e o jogador conta isso como "o
+        // rodízio não funciona". Tirar o atual da urna acaba com a conversa.
+        List<String> mapas = List.of("map1", "map2", "map3");
+        Random dado = new Random(7);
+        String atual = "map1";
+        Set<String> vistos = new HashSet<>();
+        for (int volta = 0; volta < 60; volta++) {
+            String proximo = SkyWarsCatalog.proximoMapa(mapas, atual, dado);
+            assertNotNull(proximo, "a urna de três nunca fica vazia");
+            assertNotEquals(atual, proximo, "repetiu o mapa da rodada");
+            assertTrue(mapas.contains(proximo), "inventou o mapa " + proximo);
+            vistos.add(proximo);
+            atual = proximo;
+        }
+        assertEquals(Set.copyOf(mapas), vistos,
+                "em sessenta voltas os três tinham de aparecer");
+    }
+
+    @Test
+    @DisplayName("com um mapa só, o rodízio não troca nada")
+    void oRodizioDeUmMapaSo() {
+        // E tem de devolver nulo, não o mesmo nome: nulo é o que faz a
+        // rodada seguir sem apagar e recolar a arena inteira à toa.
+        Random dado = new Random(1);
+        assertNull(SkyWarsCatalog.proximoMapa(List.of("map1"), "map1", dado));
+        assertNull(SkyWarsCatalog.proximoMapa(List.of(), "map1", dado));
+        assertEquals("map2", SkyWarsCatalog.proximoMapa(
+                List.of("map1", "map2"), "map1", dado));
+
+        // Mapa atual que nem está na lista — alguém tirou o nome do yml
+        // entre uma rodada e outra: a urna continua inteira.
+        assertEquals("map1", SkyWarsCatalog.proximoMapa(
+                List.of("map1"), "map9", dado));
+    }
+
+    @Test
+    @DisplayName("o yml lista mapas de verdade para o rodízio")
+    void oYmlDoRodizio() {
+        assertTrue(arena.getBoolean("mapa-pronto.rodizio"),
+                "o rodízio desligado deixa o jogo numa arena só para sempre");
+        List<String> mapas = arena.getStringList("mapa-pronto.mapas");
+        assertTrue(mapas.size() >= 2, "rodízio com " + mapas.size()
+                + " mapa(s) não é rodízio");
+        assertEquals(mapas.size(), Set.copyOf(mapas).size(),
+                "nome repetido na lista do rodízio");
+        assertTrue(mapas.contains(arena.getString("mapa-pronto.mapa")),
+                "o mapa fixo do yml tinha de estar na lista do rodízio");
+    }
+
+    @Test
+    @DisplayName("as torres mudam de raio junto com o mapa")
+    void asTorresSeguemOMapa() {
+        // O que isto pega: trocar de mapa sem apagar as torres velhas
+        // deixaria OITO torres na arena, quatro delas dentro de uma ilha.
+        // Por isso o raio é uma conta estática, chamável com o mapa que sai
+        // e com o que entra na mesma troca.
+        assertEquals(ANEL + 7, SkyWarsBuilder.raioDasTorres(ANEL, null),
+                "sem mapa pronto, a torre se pendura no anel gerado");
     }
 }
