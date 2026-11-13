@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -221,6 +222,34 @@ class CorridaMapaTest {
         assertTrue(CorridaBuilder.ladoDaFila(0) < 0
                         && CorridaBuilder.ladoDaFila(1) > 0,
                 "os dois da mesma fila largam no mesmo lado da pista");
+    }
+
+    @Test
+    @DisplayName("nenhum portão fica atrás da grade")
+    void osPortoesComecamDepoisDaLinha() {
+        // O defeito que isto pega é o pior de todos os desta classe, porque
+        // não quebra nada: a corrida simplesmente nunca termina. A grade não
+        // nasce no ponto 0 — num dos cinco trechos do Akina ela só cabe no
+        // ponto 45 de 397 — e com os portões espalhados pelo eixo inteiro o
+        // primeiro deles ficava ATRÁS do pelotão. Todo mundo descia a
+        // montanha marcando "portão 1 de 10" até o tempo acabar.
+        int n = 397;
+        int base = 45;
+        double passo = 2.0;
+        int linha = CorridaBuilder.indiceDaLinha(base, passo);
+        int[] ps = PistaAberta.portoes(10, n, linha);
+
+        assertEquals(10, ps.length);
+        assertTrue(ps[0] > linha, "o portão 1 está em " + ps[0]
+                + ", atrás da linha em " + linha);
+        for (int k = 1; k < ps.length; k++) {
+            assertTrue(ps[k] > ps[k - 1], "o portão " + (k + 1)
+                    + " não anda para a frente");
+        }
+        assertTrue(ps[ps.length - 1] < n, "a chegada caiu fora do traçado");
+        assertArrayEquals(PistaAberta.portoes(10, n),
+                PistaAberta.portoes(10, n, 0),
+                "sem largada sondada, a conta tem de ser a de antes");
     }
 
     @Test

@@ -662,6 +662,11 @@ public final class CorridaBuilder implements ConstrutorDeArena {
         int antes = contador;
 
         int base = baseDaGrade(mundo, planta, curso);
+        // Os portões passam a ser contados a partir da linha: a grade pode
+        // ter ficado a dezenas de pontos do começo do traçado, e portão
+        // atrás da largada é corrida que nunca sai do lugar.
+        curso = planta.ancorarNaLargada(curso,
+                indiceDaLinha(base, planta.passoDoEixo()));
         desenharAGrade(mundo, planta, curso, caderno, base);
         desenharLinha(mundo, planta, curso, caderno,
                 indiceDaLinha(base, planta.passoDoEixo()), true);

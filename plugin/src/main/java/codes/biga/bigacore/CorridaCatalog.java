@@ -489,6 +489,41 @@ public final class CorridaCatalog extends CatalogoDeArena {
         return abrir(arquivo);
     }
 
+    /**
+     * Reespalha os portões do percurso entre a largada e a chegada.
+     *
+     * <p>Quem chama é o construtor, porque só ele sabe onde a grade coube: a
+     * largada é sondada no mundo, procurando o primeiro pedaço de estrada
+     * largo o bastante para dezesseis barcos. Sem isto o primeiro portão fica
+     * atrás da grade e a corrida nunca sai do lugar — o pelotão larga já
+     * passado dele e desce a montanha inteira marcando 1 de 10.
+     *
+     * <p>É idempotente de propósito: a conta só depende de quantos portões,
+     * de quantos pontos e de onde é a linha, e chamar duas vezes com a mesma
+     * linha devolve o mesmo percurso sem refazer nada.
+     *
+     * @return o percurso reancorado, que passa a ser o da rodada
+     */
+    public Percurso ancorarNaLargada(Percurso curso, int linha) {
+        if (curso == null) {
+            return null;
+        }
+        int[] ps = PistaAberta.portoes(portoesDoMapa(), curso.eixo().size(),
+                linha);
+        if (java.util.Arrays.equals(ps, curso.portoes())) {
+            return curso;
+        }
+        Percurso novo = new Percurso(curso.nome(), curso.arquivo(),
+                curso.eixo(), ps, PistaAberta.alturas(curso.eixo(), ps),
+                PistaAberta.planos(curso.eixo(), ps, meiaLarguraDoMapa(),
+                        janelaDaTangente()));
+        lidos.put(curso.arquivo(), novo);
+        if (atual != null && atual.arquivo().equals(curso.arquivo())) {
+            atual = novo;
+        }
+        return novo;
+    }
+
     /** Lê um percurso do disco, uma vez só, e guarda o que deu certo. */
     private Percurso abrir(String arquivo) {
         if (arquivo == null || ruins.contains(arquivo)) {

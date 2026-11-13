@@ -264,12 +264,35 @@ public final class PistaAberta {
      * pista para a bandeirada cair e para o barco frear depois dela.
      */
     public static int[] portoes(int quantos, int n) {
+        return portoes(quantos, n, 0);
+    }
+
+    /**
+     * Os mesmos portões, começando DEPOIS de um ponto do eixo.
+     *
+     * <h3>Por que a largada manda nos portões</h3>
+     *
+     * <p>A grade não nasce no começo do traçado: ela é posta no primeiro
+     * pedaço de estrada largo o bastante para duas colunas de barco, e num
+     * dos cinco trechos do Akina isso é só no ponto 45 de 397. Com os portões
+     * espalhados pelo eixo inteiro, o primeiro deles caía ATRÁS da grade: o
+     * pelotão largava já passado dele, nunca o cruzava, e a corrida ficava
+     * parada no portão 1 de 10 com todo mundo descendo a montanha.
+     *
+     * <p>Então os portões passam a ser espalhados entre a linha de largada e
+     * a chegada, que é onde a corrida realmente acontece.
+     *
+     * @param de o índice da linha de largada; 0 para o eixo inteiro
+     */
+    public static int[] portoes(int quantos, int n, int de) {
         int usados = Math.max(1, quantos);
         int fim = Math.max(1, n - 1);
         int ultimo = Math.max(1, fim - Math.min(4, fim / 4));
+        int comeco = Math.max(0, Math.min(ultimo - usados, de));
         int[] saida = new int[usados];
         for (int k = 0; k < usados; k++) {
-            saida[k] = (int) Math.round((k + 1.0) * ultimo / usados);
+            saida[k] = comeco + (int) Math.round(
+                    (k + 1.0) * (ultimo - comeco) / usados);
             if (k > 0 && saida[k] <= saida[k - 1]) {
                 saida[k] = Math.min(ultimo, saida[k - 1] + 1);
             }
