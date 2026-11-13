@@ -208,8 +208,8 @@ portais:
     vao: 1
     titulo: "ARENA PVP"
     descricao: "só você e a espada"
-    detalhe: "sem kit, sem desculpa"
-    mundo: ""
+    detalhe: "espere a espada carregar"
+    mundo: "arena_pvp"
     cor: "#C9CCD1"
     moldura: IRON_BLOCK
     destaque: GRAY_CONCRETE

@@ -1,0 +1,184 @@
+# -------------------------------------------------------------
+#  ARENA PVP — só você e a espada
+#
+#  Um disco sobre o vazio, com um palanque no meio, quatro
+#  pilares e uma beira de parapeito rasgada por quatro vãos.
+#  Todos recebem a MESMA espada e nada mais: sem armadura, sem
+#  comida, sem poção, sem kit. O que sobra para decidir a luta é
+#  onde você está e QUANDO você bate.
+#
+#  AS TRÊS REGRAS QUE VÊM DA ESPADA DO MINECRAFT
+#
+#  - O GOLPE VALE PELA PRONTIDÃO. A espada do Minecraft tem um
+#    tempo de recarga, e o dano do golpe é 0,2 + p²·0,8, com p
+#    indo de 0 (acabou de bater) a 1 (recarregada). Quem martela
+#    o botão bate com p perto de zero e faz um quinto do dano.
+#    Aqui essa conta é a conta DO JOGO — e não um detalhe do
+#    Minecraft que o plugin apaga.
+#
+#    Pensei em RECUSAR o golpe fraco, como o ARCO recusa o tiro
+#    sem puxar. Não dá: o arco tem uma puxada visível e um gesto
+#    único, e a espada é um clique reflexo no meio da pancadaria.
+#    Clique recusado parece lag, e parece lag do servidor. A
+#    aritmética castiga mais fundo e ensina melhor, porque o
+#    jogador VÊ o número do seu golpe na tela.
+#
+#  - A CARÊNCIA É IGUAL AO PERÍODO. Depois de levar um golpe, o
+#    alvo fica `periodo-do-golpe` tiques sem poder levar outro.
+#    O Minecraft usa 10 tiques e o período da espada é 12,5 —
+#    e nessa folga de dois tiques e meio mora o defeito do PvP
+#    de vanilla: bater a cada 10 tiques rende 87% do dano de
+#    bater no tempo certo, então "clicar rápido" é quase tão bom
+#    quanto saber lutar. Com a carência igual ao período, bater
+#    adiantado rende 67% e martelar rende 37%. Não existe atalho
+#    quase tão bom: cada tique adiantado custa.
+#
+#  - ELIMINAR DEVOLVE VIDA. Num mata-mata de dezesseis, quem
+#    ganha uma briga sai dela com dois corações e é comida de
+#    quem assistiu — então a jogada certa seria nunca brigar, e
+#    um jogo de espada em que não se briga é uma sala de espera.
+#    `cura-por-eliminacao` devolve parte da vida a quem derruba,
+#    e com isso valer a briga volta a ser verdade.
+#
+#  O PLACAR É O DANO FEITO, não a contagem de golpes: golpe
+#  fraco vale pouco no placar exatamente como vale pouco na
+#  luta, e nenhum ponto premia martelar.
+#
+#  Os primeiros segundos são de GRAÇA, para a largada não ser um
+#  liquidificador de dezesseis pessoas no mesmo anel.
+# -------------------------------------------------------------
+
+mundo: arena_pvp
+
+arena:
+  y: 100
+
+  # O disco da arena. Fora dele é o vazio.
+  raio: 20
+
+  # O palanque do meio, em degraus: terreno alto que vale
+  # disputar, e o único lugar de onde não se cai.
+  palanque-raio: 6
+  palanque-altura: 2
+  palanque-degrau: 3
+
+  # Os quatro pilares, nos rumos. Quebram a linha de visão e
+  # impedem o cerco, e são baixos demais para acampar em cima.
+  pilar-anel: 13
+  pilar-altura: 3
+
+  # A beira: parapeito de um bloco em volta, rasgado por vãos.
+  # O parapeito é o que impede um golpe limpo de jogar alguém no
+  # vazio em qualquer lugar da arena — se desse, a vida seria
+  # enfeite e o jogo seria de empurrão, que este servidor já tem
+  # no Rei da Montanha. Os vãos são onde o vazio volta a valer.
+  vaos: 4
+  vao-largura: 9
+
+  saguao-altura: 20
+  saguao-raio: 9
+  saguao-parapeito: 4
+  marco-altura: 14
+  painel-altura: 7
+
+paleta:
+  placa: BIRCH_WALL_SIGN
+
+  # A espada, igual para todos.
+  espada: IRON_SWORD
+
+  piso: POLISHED_ANDESITE
+  piso-xadrez: POLISHED_DIORITE
+  beira: DEEPSLATE_TILES
+  parapeito: STONE_BRICK_WALL
+
+  # O chão dos vãos e a luz que os marca: a única cor diferente
+  # da arena fica onde está o perigo.
+  vao-piso: DEEPSLATE_BRICKS
+  vao-luz: SOUL_LANTERN
+
+  palanque: CHISELED_STONE_BRICKS
+  palanque-topo: SMOOTH_STONE
+
+  pilar: POLISHED_ANDESITE
+  pilar-topo: LIGHTNING_ROD
+
+  estrutura: POLISHED_ANDESITE
+  escuro: DEEPSLATE_TILES
+  borda: POLISHED_DEEPSLATE
+  metal: IRON_BLOCK
+  vidro: LIGHT_GRAY_STAINED_GLASS
+  luz: SEA_LANTERN
+  luz-fria: END_ROD
+  nucleo: IRON_BLOCK
+  poste: STONE_BRICK_WALL
+  poste-luz: LANTERN
+  torre: POLISHED_ANDESITE
+  torre-luz: SEA_LANTERN
+
+regras:
+  minimo: 2
+  maximo: 16
+  contagem-segundos: 15
+  fim-segundos: 8
+  treino-sozinho: true
+
+  # O período de recarga da espada, em tiques. A espada de ferro
+  # tem velocidade de ataque 1,6, e 20/1,6 = 12,5 — arredondado
+  # para cima. Este número é a carência do alvo também: ver o
+  # cabeçalho. O jogo confere ao começar a rodada se a espada
+  # entregue tem mesmo este período, e avisa no log se mudar.
+  periodo-do-golpe: 13
+
+  # A vida é do plugin, não do Minecraft: o dano de vanilla
+  # continua cancelado como em toda arena daqui, e os corações
+  # na tela são só o mostrador desta conta. Seis golpes cheios
+  # derrubam alguém, o que dá uns quatro segundos de pancada sem
+  # parar — tempo de reagir, e curto de aguentar.
+  vida-cheia: 120
+  dano-por-golpe: 20
+
+  # Quanto da vida volta para quem derruba. Um terço: suficiente
+  # para valer a briga, pouco para o primeiro a matar não virar
+  # uma bola de neve que limpa a arena.
+  cura-por-eliminacao: 40
+
+  # O empurrão, dado à mão porque dano cancelado leva junto o
+  # empurrão do Minecraft. Multiplicado pela prontidão: golpe
+  # fraco quase não empurra, e por isso não serve nem para jogar
+  # alguém num vão.
+  empurrao: 0.55
+  empurrao-altura: 0.32
+
+  # Quantos segundos no começo em que a espada não corta.
+  graca-segundos: 3
+
+  # O bônus de placar por derrubar alguém. Os pontos de golpe
+  # são o próprio dano feito, e não vêm do yml.
+  pontos-por-eliminacao: 40
+
+  queda-abaixo: 6
+  tempo-limite: 240
+
+textos:
+  titulo: "ARENA PVP"
+  cor: "#C9CCD1"
+  subtitulo: "só você e a espada"
+  regras:
+    - "clique em [ENTRAR] para entrar na fila"
+    - "todos recebem a mesma espada e nada mais"
+    - "o golpe vale pela prontidão da espada"
+    - "martelar o botão faz um terço do dano"
+    - "espere a espada carregar entre os golpes"
+    - "derrubar alguém devolve um terço da sua vida"
+    - "os quatro vãos da beira dão no vazio"
+  escala-titulo: 2.6
+  escala-placa: 1.6
+  fundo-alpha: 0
+
+  placa-entrar: "[ENTRAR]"
+  placa-sair: "[SAIR]"
+  placa-fila: "na fila"
+  placa-esperando: "esperando"
+  placa-jogando: "LUTANDO"
+  placa-refazendo: "refazendo"
