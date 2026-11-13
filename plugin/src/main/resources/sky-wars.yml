@@ -131,26 +131,26 @@ arena:
 paleta:
   placa: PALE_OAK_WALL_SIGN
 
-  ilha-topo: SNOW_BLOCK
-  ilha-corpo: CALCITE
-  ilha-beira: SMOOTH_QUARTZ
-  ilha-marco: QUARTZ_PILLAR
+  # AS ILHAS SÃO COGUMELOS, como no mapa de referência: chapéu
+  # vermelho de pintas brancas em cima, pé branco afinando embaixo
+  # até sumir no vazio. A silhueta vem do construtor (ilha-altura e
+  # ilha-afunilamento, lá embaixo); a cor vem daqui.
+  ilha-topo: RED_MUSHROOM_BLOCK
+  ilha-corpo: MUSHROOM_STEM
+  ilha-beira: RED_MUSHROOM_BLOCK
+  ilha-marco: MUSHROOM_STEM
 
-  # O TEMA DAS ILHAS, se quiser trocar.
+  # O TEMA DE GELO, se preferir.
   #
-  # O mapa de referência é de cogumelo: chapéu vermelho de pintas
-  # brancas em cima e o pé de cogumelo afinando embaixo. A silhueta
-  # daqui já é a dele; o que muda é a cor, e muda em quatro linhas.
-  # Para virar cogumelo, troque as quatro acima por:
+  # O vermelho tem um preço: contra o pôr do sol ele some, e achar a
+  # ilha do outro lado do anel fica mais difícil. O gelo é o que mais
+  # contrasta com o azul do vazio. Para voltar a ele, troque as
+  # quatro acima por:
   #
-  #   ilha-topo: RED_MUSHROOM_BLOCK
-  #   ilha-corpo: MUSHROOM_STEM
-  #   ilha-beira: RED_MUSHROOM_BLOCK
-  #   ilha-marco: MUSHROOM_STEM
-  #
-  # Ficou o gelo porque ele é o que contrasta com o azul do vazio: o
-  # vermelho some contra o pôr do sol e as ilhas do outro lado do
-  # anel ficam difíceis de achar. Mas é gosto, e é uma linha cada.
+  #   ilha-topo: SNOW_BLOCK
+  #   ilha-corpo: CALCITE
+  #   ilha-beira: SMOOTH_QUARTZ
+  #   ilha-marco: QUARTZ_PILLAR
 
   meio-topo: QUARTZ_BLOCK
   meio-corpo: SMOOTH_QUARTZ
