@@ -49,11 +49,16 @@ arena:
   # somem juntas, senão o jogador fica em pé numa casca de areia.
   espessura: 2
 
-  # Ar entre um piso e o de baixo. TRÊS é o número que importa:
-  # com três não se pula de volta para o piso de cima (o pulo
-  # sobe 1,25 e precisaria de quatro), com dois se pula e o jogo
-  # inteiro deixa de funcionar.
-  vao: 3
+  # Ar entre um piso e o de baixo.
+  #
+  # Três é o mínimo que o jogo aceita: com dois o jogador pula de
+  # volta para o piso de cima e o jogo inteiro deixa de funcionar.
+  # Mas três é o mínimo, não o bom: com três, quem está no piso do
+  # meio anda com a cabeça a um bloco do teto, e a sensação é de
+  # corredor de porão. CINCO dá pé-direito sem chegar perto de
+  # permitir a subida — um pulo sobe 1,25 e a volta ao piso de cima
+  # pede sete.
+  vao: 5
 
   # Quantos anéis da beira ficam em cor escura. É o aviso de
   # "aqui acaba": o olho não mede raio, mede contraste. Eles
@@ -74,6 +79,11 @@ arena:
   # o bastante para nenhum pulo da beira alcançar.
   marco-recuo: 8
   marco-altura: 30
+
+  # De quantos em quantos blocos entra uma lâmpada na capa do
+  # piso. Seis acende tudo sem o chão virar pisca-pisca — a luz do
+  # Minecraft alcança quinze.
+  luz-passo: 6
 
 # -------------------------------------------------------------
 #  Paleta
@@ -97,6 +107,16 @@ paleta:
   vidro: LIGHT_BLUE_STAINED_GLASS
   luz: SEA_LANTERN
   luz-fria: END_ROD
+
+  # A luz DENTRO do piso, e ela é necessária: do segundo andar
+  # para baixo o teto é o piso de cima, nenhuma luz do céu entra,
+  # e o jogo virava correr no escuro. Estas lâmpadas ficam na capa
+  # de cima de cada piso e acendem o andar que corre EM CIMA dele.
+  #
+  # Ela é um material DO PISO: derrete junto com o resto da coluna.
+  # Se não fosse, cada rodada deixaria um céu de lâmpadas boiando
+  # onde o piso sumiu.
+  piso-luz: SHROOMLIGHT
   nucleo: AMETHYST_BLOCK
 
 # -------------------------------------------------------------
@@ -119,6 +139,11 @@ regras:
 
   # Segundos de contagem depois de o mínimo estar reunido.
   contagem-segundos: 20
+
+  # Quantos segundos o jogador fica PARADO na arena antes de a rodada
+  # abrir. Sem isso a largada põe o jogador num chão que em alguns jogos
+  # já está sumindo, e ele perde antes de ver onde está.
+  preparo-segundos: 5
 
   # Quantos ticks o bloco aguenta depois de alguém pisar nele.
   # Oito é 0,4 segundo: dá para passar correndo e não dá para

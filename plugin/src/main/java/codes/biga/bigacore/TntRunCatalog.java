@@ -63,6 +63,11 @@ public final class TntRunCatalog extends CatalogoDeArena {
         return Math.max(0, config.getInt("arena.beira-aneis", 2));
     }
 
+    /** De quantos em quantos blocos entra uma lâmpada na capa do piso. */
+    public int luzPasso() {
+        return Math.max(2, config.getInt("arena.luz-passo", 6));
+    }
+
     /** De quanto em quanto um piso está abaixo do de cima. */
     public int passoEntrePisos() {
         return espessura() + vao();
@@ -156,6 +161,7 @@ public final class TntRunCatalog extends CatalogoDeArena {
         saida.add(cor("piso-base", Material.SAND));
         saida.add(cor("beira", Material.POLISHED_BLACKSTONE));
         saida.add(cor("beira-base", Material.BLACKSTONE));
+        saida.add(cor("piso-luz", Material.SHROOMLIGHT));
         return saida;
     }
 

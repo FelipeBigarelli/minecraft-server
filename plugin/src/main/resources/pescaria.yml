@@ -132,6 +132,11 @@ regras:
   minimo: 2
   maximo: 16
   contagem-segundos: 15
+
+  # Quantos segundos o jogador fica PARADO na arena antes de a rodada
+  # abrir. Sem isso a largada põe o jogador num chão que em alguns jogos
+  # já está sumindo, e ele perde antes de ver onde está.
+  preparo-segundos: 5
   fim-segundos: 8
   treino-sozinho: true
 

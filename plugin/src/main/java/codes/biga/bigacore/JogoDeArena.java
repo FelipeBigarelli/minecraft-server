@@ -24,6 +24,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
@@ -77,7 +78,7 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
     private static final int INTERVALO_TICKS = 1;
     private static final int ALCANCE_DA_CORTINA = 32;
 
-    public enum Estado { ESPERANDO, CONTAGEM, JOGANDO, FIM }
+    public enum Estado { ESPERANDO, CONTAGEM, PREPARO, JOGANDO, FIM }
 
     protected final BigaCore plugin;
     private BukkitTask tarefa;
@@ -91,6 +92,7 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
 
     private int comecouCom;
     private int contagem;
+    private int preparo;
     private int segundosDeJogo;
     private long inicioDaRodada;
     private long pulso;
@@ -335,6 +337,18 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
             mundoAjustado = true;
         }
 
+        // A meia-noite de meio minuto em meio minuto.
+        //
+        // O ciclo do dia já está desligado, mas isso só congela a hora em
+        // que o mundo estava: um /time de administrador, um mundo que
+        // nasceu à noite ou outro plugin mexendo deixam a arena no escuro
+        // para sempre. Reafirmar é barato e tira o problema da mão de
+        // quem joga.
+        if (pulso % 600 == 0 && mundo.getTime() != 6000L) {
+            mundo.setTime(6000L);
+            mundo.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+        }
+
         if (estado == Estado.JOGANDO) {
             conferirQuedas(mundo);
             aCadaTique(mundo);
@@ -360,6 +374,42 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
                 atualizarPlacas(mundo);
             }
         }
+    }
+
+    // ------------------------------------------------------------------
+    //  Comandos dentro da arena
+    // ------------------------------------------------------------------
+
+    /**
+     * O que não se digita dentro de uma arena.
+     *
+     * /speed é o caso que motivou isto: ele transforma qualquer jogo de
+     * corrida numa piada, e nenhum dos vinte tem defesa contra. A lista
+     * cobre a mesma família — velocidade, voo, vida, item, modo e
+     * teleporte — e é lida do config.yml para crescer sem recompilar.
+     *
+     * O que a lista NÃO tem é tão importante quanto o que tem: /spawn,
+     * /hub, /lobby, /home e /biga ficam livres de propósito. Um jogador
+     * preso numa arena sem saída é um defeito pior do que um jogador
+     * voando.
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void aoDigitarComando(PlayerCommandPreprocessEvent evento) {
+        Player jogador = evento.getPlayer();
+        if (!naArena(jogador)) {
+            return;
+        }
+        String raiz = ComandosDaArena.raiz(evento.getMessage());
+        if (!ComandosDaArena.lista(plugin).contains(raiz)) {
+            return;
+        }
+        evento.setCancelled(true);
+        velocidadeNormal(jogador);
+        jogador.sendActionBar(plugin.mini().deserialize(
+                "<color:#FF8A8A>/" + HubBuilder.escapar(raiz)
+                        + " não vale dentro do minigame</color>"));
+        jogador.playSound(jogador.getLocation(),
+                Sound.BLOCK_NOTE_BLOCK_BASS, 0.7f, 0.7f);
     }
 
     /**
@@ -419,6 +469,7 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
         if (jogador.getGameMode() != GameMode.CREATIVE) {
             plugin.mochila().guardar(jogador);
         }
+        velocidadeNormal(jogador);
         if (barra != null) {
             jogador.showBossBar(barra);
         }
@@ -442,7 +493,8 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
             return;
         }
 
-        if (estado == Estado.JOGANDO || estado == Estado.FIM) {
+        if (estado == Estado.PREPARO || estado == Estado.JOGANDO
+                || estado == Estado.FIM) {
             jogador.setGameMode(GameMode.SPECTATOR);
             jogador.sendActionBar(plugin.mini().deserialize(
                     "<gray>a rodada já começou — você entra na próxima</gray>"));
@@ -465,6 +517,7 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
         aoSairDaArena(id);
         Player jogador = Bukkit.getPlayer(id);
         if (jogador != null) {
+            velocidadeNormal(jogador);
             if (barra != null) {
                 jogador.hideBossBar(barra);
             }
@@ -551,6 +604,24 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
                     comecar();
                 }
             }
+            case PREPARO -> {
+                preparo--;
+                if (preparo <= 0) {
+                    abrirARodada(mundo);
+                    return;
+                }
+                for (Player jogador : jogadoresDaArena()) {
+                    jogador.showTitle(Title.title(
+                            plugin.mini().deserialize("<color:"
+                                    + planta.corDoTexto() + ">" + preparo
+                                    + "</color>"),
+                            plugin.mini().deserialize(
+                                    "<gray>prepare-se</gray>")));
+                    jogador.playSound(jogador.getLocation(),
+                            Sound.BLOCK_NOTE_BLOCK_BIT, 0.5f,
+                            1.0f + (3 - Math.min(3, preparo)) * 0.2f);
+                }
+            }
             case JOGANDO -> {
                 segundosDeJogo++;
                 aCadaSegundo(mundo);
@@ -587,6 +658,7 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
             }
             jogador.setGameMode(modoDeJogo());
             jogador.setFallDistance(0f);
+            velocidadeNormal(jogador);
             jogador.teleport(saguao);
         }
     }
@@ -612,7 +684,8 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
                     Sound.BLOCK_NOTE_BLOCK_BASS, 0.7f);
             return;
         }
-        if (estado == Estado.JOGANDO || estado == Estado.FIM) {
+        if (estado == Estado.PREPARO || estado == Estado.JOGANDO
+                || estado == Estado.FIM) {
             aviso(jogador, "<gray>a rodada já começou — entre na próxima</gray>",
                     Sound.BLOCK_NOTE_BLOCK_BASS, 0.7f);
             return;
@@ -682,10 +755,12 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
         String estadoEscrito = switch (estado) {
             case ESPERANDO -> planta.placa("esperando", "esperando");
             case CONTAGEM -> "em " + contagem + "s";
+            case PREPARO -> "prepare-se";
             case JOGANDO -> planta.placa("jogando", "JOGANDO");
             case FIM -> planta.placa("refazendo", "refazendo");
         };
-        String contagemEscrita = (estado == Estado.JOGANDO ? vivos.size() : fila.size())
+        String contagemEscrita = (estado == Estado.JOGANDO
+                || estado == Estado.PREPARO ? vivos.size() : fila.size())
                 + "/" + planta.maximo();
         String assinatura = estadoEscrito + "|" + contagemEscrita;
         if (assinatura.equals(ultimoTextoDaPlaca)) {
@@ -727,7 +802,7 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
         if (mundo == null) {
             return "O mundo da arena não está carregado.";
         }
-        if (estado == Estado.JOGANDO) {
+        if (estado == Estado.JOGANDO || estado == Estado.PREPARO) {
             return "A rodada já está rolando.";
         }
         if (!arenaConstruida(mundo)) {
@@ -780,7 +855,42 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
         largar(mundo, entram);
 
         comecouCom = vivos.size();
+        estado = Estado.PREPARO;
+        preparo = planta.preparoSegundos();
+
+        // O relógio do jogo NÃO anda no preparo: inicioDaRodada só é marcado
+        // quando a rodada abre de verdade, para tiquesDeJogo() continuar
+        // sendo o tempo de JOGO e nenhuma conta de jogo precisar descontar o
+        // preparo.
+        for (Player jogador : entram) {
+            congelar(jogador);
+        }
+        for (Player jogador : jogadoresDaArena()) {
+            jogador.showTitle(Title.title(
+                    plugin.mini().deserialize("<color:" + planta.corDoTexto()
+                            + "><bold>PREPARE-SE</bold></color>"),
+                    plugin.mini().deserialize("<gray>" + preparo
+                            + " segundos para a largada</gray>")));
+            jogador.playSound(jogador.getLocation(),
+                    Sound.BLOCK_NOTE_BLOCK_BIT, 0.6f, 0.8f);
+        }
+    }
+
+    /**
+     * Abre a rodada de verdade, no fim do preparo.
+     *
+     * O preparo existe porque a largada põe o jogador num chão que já está
+     * sumindo: no TNT Run o piso começa a cair no mesmo tique em que ele
+     * aparece, e quem ainda está carregando o pedaço de mundo perde sem ter
+     * jogado. Cinco segundos parado resolvem isso sem mudar jogo nenhum.
+     */
+    private void abrirARodada(World mundo) {
+        PlantaDeArena planta = planta();
+        for (Player jogador : jogadoresDaArena()) {
+            descongelar(jogador);
+        }
         inicioDaRodada = pulso;
+        segundosDeJogo = 0;
         estado = Estado.JOGANDO;
         aoComecarRodada(mundo);
 
@@ -794,6 +904,38 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
             jogador.playSound(jogador.getLocation(), Sound.BLOCK_BEACON_POWER_SELECT,
                     0.5f, 1.5f);
         }
+    }
+
+    // ------------------------------------------------------------------
+    //  Velocidade
+    // ------------------------------------------------------------------
+
+    /**
+     * Para o jogador no lugar durante o preparo.
+     *
+     * Velocidade zero e não efeito de lentidão: lentidão ainda deixa andar,
+     * e andar no preparo é largar antes. O voo também vai a zero para o
+     * administrador em criativo não atravessar a arena enquanto conta.
+     */
+    private void congelar(Player jogador) {
+        jogador.setWalkSpeed(0f);
+        jogador.setFlySpeed(0f);
+    }
+
+    /**
+     * Devolve a velocidade de fábrica.
+     *
+     * Chamado também na ENTRADA da arena, e isso é o que impede o /speed de
+     * entrar junto: o comando fica bloqueado lá dentro, mas quem já estava
+     * voando rápido no hub traria a velocidade no corpo.
+     */
+    protected static void velocidadeNormal(Player jogador) {
+        jogador.setWalkSpeed(0.2f);
+        jogador.setFlySpeed(0.1f);
+    }
+
+    private void descongelar(Player jogador) {
+        velocidadeNormal(jogador);
     }
 
     protected void eliminar(Player jogador) {
@@ -877,6 +1019,7 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
             }
             jogador.setGameMode(modoDeJogo());
             jogador.setFallDistance(0f);
+            velocidadeNormal(jogador);
             jogador.teleport(saguao);
             jogador.sendActionBar(plugin.mini().deserialize(
                     "<gray>clique em <green>" + HubBuilder.escapar(
@@ -888,7 +1031,8 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
     /** Para a rodada sem vencedor. É o {@code /biga <jogo> parar}. */
     @Override
     public String pararRodada() {
-        if (estado != Estado.JOGANDO && estado != Estado.CONTAGEM) {
+        if (estado != Estado.JOGANDO && estado != Estado.CONTAGEM
+                && estado != Estado.PREPARO) {
             return "Não há rodada para parar.";
         }
         anunciar("<gray>a rodada foi parada pela administração</gray>");
@@ -995,6 +1139,7 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
                 continue;
             }
             jogador.setFallDistance(0f);
+            velocidadeNormal(jogador);
             jogador.teleport(saguao);
             jogador.sendActionBar(plugin.mini().deserialize(
                     "<color:#8FD3FF>o saguão te pegou no ar</color>"));

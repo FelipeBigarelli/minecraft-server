@@ -495,4 +495,97 @@ class SorteTest {
         }
         assertEquals(SETORES, vistas.size());
     }
+
+    // ------------------------------------------------------------------
+    //  O chão desenhado e o chão contado dizem a mesma coisa
+    // ------------------------------------------------------------------
+
+    /**
+     * O construtor pinta pelo MEIO do bloco, que é onde o jogador pisa.
+     *
+     * Pintar pelo canto e julgar pelos pés discordam numa faixa de meio
+     * bloco de cada divisa: o jogador vê o chão da fatia dele debaixo dos
+     * pés, o jogo conta que ele está na vizinha, e ele cai com a fatia que
+     * não era a sua.
+     */
+    @Test
+    @DisplayName("o bloco é contado pelo meio dele, e não pelo canto")
+    void oBlocoEhContadoPeloMeio() {
+        int raio = 28;
+        int banco = 7;
+        int divergem = 0;
+        for (int x = -raio; x <= raio; x++) {
+            for (int z = -raio; z <= raio; z++) {
+                int peloCanto = SorteCatalog.setorDoPonto(x, z, 6, banco, raio);
+                int peloMeio = SorteCatalog.setorDoPonto(
+                        x + 0.5, z + 0.5, 6, banco, raio);
+                if (peloCanto != peloMeio) {
+                    divergem++;
+                }
+            }
+        }
+        assertTrue(divergem > 0,
+                "se canto e meio nunca divergissem, não haveria o que corrigir");
+    }
+
+    /**
+     * Toda fatia tem chão, e as seis somadas dão o disco.
+     *
+     * Uma fatia vazia seria uma face do dado que, ao sair, não apagaria nada
+     * e não derrubaria ninguém.
+     */
+    @Test
+    @DisplayName("as seis fatias cobrem o disco e nenhuma fica vazia")
+    void asSeisFatiasCobremODisco() {
+        int raio = 28;
+        int banco = 7;
+        int[] quantos = new int[6];
+        int noBanco = 0;
+        for (int x = -raio; x <= raio; x++) {
+            for (int z = -raio; z <= raio; z++) {
+                int setor = SorteCatalog.setorDoPonto(
+                        x + 0.5, z + 0.5, 6, banco, raio);
+                if (setor >= 0) {
+                    quantos[setor]++;
+                } else if (setor == SorteCatalog.BANCO) {
+                    noBanco++;
+                }
+            }
+        }
+        assertTrue(noBanco > 0, "o banco do meio não tem chão");
+        int menor = Integer.MAX_VALUE;
+        int maior = 0;
+        for (int k = 0; k < 6; k++) {
+            assertTrue(quantos[k] > 0, "a fatia " + (k + 1) + " não tem chão");
+            menor = Math.min(menor, quantos[k]);
+            maior = Math.max(maior, quantos[k]);
+        }
+        // Seis fatias iguais de um disco: nenhuma pode ser muito maior que
+        // a outra, ou o dado deixaria de ser justo no CHÃO mesmo sendo
+        // justo no sorteio.
+        assertTrue(maior <= menor * 1.1,
+                "a maior fatia tem " + maior + " blocos e a menor " + menor
+                        + ": o dado é justo mas o chão não");
+    }
+
+    /**
+     * A largada cai em fatia, e nunca no banco.
+     *
+     * Largar alguém dentro do banco o faria guardar zero ponto e sair da
+     * partida no primeiro tique, sem ter jogado.
+     */
+    @Test
+    @DisplayName("ninguém larga dentro do banco do meio")
+    void ninguemLargaNoBanco() {
+        for (int quantos = 2; quantos <= 16; quantos++) {
+            for (int[] ponto : SorteCatalog.largadas(quantos, 7, 28)) {
+                int setor = SorteCatalog.setorDoPonto(
+                        ponto[0] + 0.5, ponto[1] + 0.5, 6, 7, 28);
+                assertTrue(setor >= 0,
+                        "com " + quantos + " jogadores, a largada ("
+                                + ponto[0] + "," + ponto[1] + ") cai em "
+                                + (setor == SorteCatalog.BANCO ? "banco" : "fora"));
+            }
+        }
+    }
 }

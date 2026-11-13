@@ -43,13 +43,29 @@ public abstract class CatalogoDeArena implements PlantaDeArena {
         this.arquivo = arquivo;
         this.mundoPadrao = mundoPadrao;
         this.etiqueta = etiqueta;
-        reload();
+        lerOArquivo();
+
+        // O gancho NÃO é chamado aqui, e isto já custou três jogos.
+        //
+        // Em Java, os inicializadores de campo da SUBCLASSE rodam depois do
+        // construtor da superclasse. Chamar aoRecarregar() daqui faz o gancho
+        // escrever a tabela e, em seguida, o 'private List<Veio> tabela =
+        // List.of()' da subclasse apagar tudo. O jogo nasce com a tabela
+        // vazia e só se conserta no primeiro /biga reload — que ninguém roda
+        // antes de tentar construir a arena.
+        //
+        // Quem constrói chama reload() depois: é o registrarJogo.
     }
 
+    /** Relê o yml e refaz o que a subclasse derivar dele. */
     public void reload() {
+        lerOArquivo();
+        aoRecarregar();
+    }
+
+    private void lerOArquivo() {
         this.config = YamlConfiguration.loadConfiguration(
                 new File(plugin.getDataFolder(), arquivo));
-        aoRecarregar();
     }
 
     /** Gancho para o jogo reler o que for só dele. */
@@ -105,7 +121,12 @@ public abstract class CatalogoDeArena implements PlantaDeArena {
 
     @Override
     public Material cor(String chave, Material padrao) {
-        String nome = config.getString("paleta." + chave);
+        return cor(chave, padrao, "paleta");
+    }
+
+    /** O mesmo, lendo de outra seção do yml — "kit", por exemplo. */
+    public Material cor(String chave, Material padrao, String secao) {
+        String nome = config.getString(secao + "." + chave);
         if (nome == null) {
             return padrao;
         }
@@ -153,6 +174,12 @@ public abstract class CatalogoDeArena implements PlantaDeArena {
     @Override
     public int contagemSegundos() {
         return Math.max(3, config.getInt("regras.contagem-segundos", 20));
+    }
+
+    @Override
+    public int preparoSegundos() {
+        return Math.max(1, Math.min(15,
+                config.getInt("regras.preparo-segundos", 5)));
     }
 
     @Override

@@ -279,6 +279,20 @@ public final class Sorte extends JogoDeArena {
         }
 
         sorteada = dado.nextInt(setores);
+
+        // A FASE VIRA ANTES DO TRABALHO, e isto não é estilo.
+        //
+        // Virar no fim deixava o método inteiro — apagar a fatia, varrer os
+        // jogadores, pagar cada um — entre o sorteio e a troca de fase. Uma
+        // exceção em qualquer ponto daquele miolo abortaria o método com
+        // 'fase' ainda em ESCOLHA e 'tiqueDaFase' no passado: o tique
+        // seguinte sortearia OUTRA fatia e a apagaria também. Em seis tiques
+        // o disco inteiro sumia e todo mundo caía junto — que é exatamente o
+        // defeito relatado. Virando a fase primeiro, o pior caso de um
+        // defeito ali dentro é uma rodada mal paga, e não o chão sumindo.
+        fase = Fase.REVELACAO;
+        tiqueDaFase = agora + planta.tempoRevelacao() * 20L;
+
         plugin.sorteBuilder().apagarFatia(mundo, sorteada);
 
         Location noMeio = SorteBuilder.pontoDaFatia(mundo, planta, sorteada);
@@ -328,9 +342,6 @@ public final class Sorte extends JogoDeArena {
                             + " não dá um ponto · em mão <white>"
                             + emMao.getOrDefault(id, 0) + "</white></gray>"));
         }
-
-        fase = Fase.REVELACAO;
-        tiqueDaFase = agora + planta.tempoRevelacao() * 20L;
     }
 
     /** Fecha a revelação: refaz a fatia e abre a rodada seguinte. */

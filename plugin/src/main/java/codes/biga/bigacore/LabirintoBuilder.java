@@ -41,7 +41,7 @@ import java.util.Set;
  * <p>Refazer varre a área do MAIOR labirinto possível e não a do que está
  * saindo. Tem de ser assim: depois de uma rodada de vinte e cinco células vem
  * uma de nove, e sem varrer o tamanho grande o labirinto anterior ficaria de
- * pé em volta do novo — com porta, com patamar e com farol, apontando para
+ * pé em volta do novo — com porta e com patamar, apontando para
  * uma saída que não existe mais.
  */
 public final class LabirintoBuilder implements ConstrutorDeArena {
@@ -424,8 +424,8 @@ public final class LabirintoBuilder implements ConstrutorDeArena {
         }
         if (saidaFundo < 2) {
             return "O patamar da porta tem " + saidaFundo + " de fundo: com "
-                    + "menos de dois não cabe o farol nem dá para pisar fora "
-                    + "do vão.";
+                    + "menos de dois não dá para pisar fora do vão e a "
+                    + "chegada não se reconhece.";
         }
         return null;
     }
@@ -651,7 +651,13 @@ public final class LabirintoBuilder implements ConstrutorDeArena {
     }
 
     /**
-     * O patamar da porta, com o farol.
+     * O patamar da porta.
+     *
+     * Sem farol, e isso foi uma correção: o facho de luz do beacon sobe até
+     * o céu e se vê de qualquer ponto do labirinto, inclusive de cima do
+     * muro. Ele não facilitava a busca — ele a APAGAVA, e a busca é o jogo.
+     * O patamar continua existindo para a porta se reconhecer quando se
+     * chega NELA, que é outra coisa.
      *
      * O facho é a única informação que o jogo dá de graça, e é de propósito:
      * sem ele, achar a porta seria sorteio — dezesseis pessoas vasculhando
@@ -670,8 +676,6 @@ public final class LabirintoBuilder implements ConstrutorDeArena {
         Material piso = planta.corDoEstilo("patamar", Material.POLISHED_DIORITE);
         Material beira = planta.corDoEstilo("patamar-beira",
                 Material.DARK_PRISMARINE);
-        Material metal = planta.corDoEstilo("farol-base", Material.IRON_BLOCK);
-
         for (int p = 1; p <= fundo + 1; p++) {
             for (int q = -meiaLargura - 1; q <= meiaLargura + 1; q++) {
                 int x = porta[0] + rumo[0] * p + lado[0] * q;
@@ -688,15 +692,6 @@ public final class LabirintoBuilder implements ConstrutorDeArena {
             }
         }
 
-        int pFarol = (fundo + 1) / 2;
-        for (int p = pFarol - 1; p <= pFarol + 1; p++) {
-            for (int q = -1; q <= 1; q++) {
-                por(mundo, porta[0] + rumo[0] * p + lado[0] * q, y,
-                        porta[1] + rumo[1] * p + lado[1] * q, metal);
-            }
-        }
-        por(mundo, porta[0] + rumo[0] * pFarol, y + 1,
-                porta[1] + rumo[1] * pFarol, Material.BEACON);
     }
 
     /** As quatro torres de canto: é por elas que o labirinto tem escala. */
@@ -813,12 +808,4 @@ public final class LabirintoBuilder implements ConstrutorDeArena {
         return onde;
     }
 
-    /** O meio do patamar da porta, para o som e a partícula. */
-    public static Location pontoDoFarol(World mundo, LabirintoCatalog planta) {
-        int[] porta = pontoDaPorta(planta);
-        int[] rumo = LabirintoCatalog.RUMOS[planta.saida()[2]];
-        int p = (planta.saidaFundo() + 1) / 2;
-        return new Location(mundo, porta[0] + rumo[0] * p + 0.5,
-                planta.topoY() + 2, porta[1] + rumo[1] * p + 0.5);
-    }
 }

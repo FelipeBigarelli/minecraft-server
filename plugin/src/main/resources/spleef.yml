@@ -75,6 +75,11 @@ regras:
   minimo: 2
   maximo: 16
   contagem-segundos: 20
+
+  # Quantos segundos o jogador fica PARADO na arena antes de a rodada
+  # abrir. Sem isso a largada põe o jogador num chão que em alguns jogos
+  # já está sumindo, e ele perde antes de ver onde está.
+  preparo-segundos: 5
   fim-segundos: 6
 
   # Treino sozinho: a rodada de um jogador só acaba quando ele cai, em
@@ -95,6 +100,39 @@ regras:
 
   # O teto absoluto da partida, caso o aperto ainda não tenha bastado.
   tempo-limite: 420
+
+# -------------------------------------------------------------
+#  O KIT
+#
+#  Duas peças, e as duas foram pedidas pelo jogador depois de
+#  jogar: "coloque uma pa de ferro infinita pra cavar. só cava
+#  com a pa. e coloque bola de neve infinita pra empurrar".
+#
+#  A pá resolve um problema real: cavar com a mão não parece
+#  cavar. E exigir a pá na mão dá ao jogo uma troca de item que
+#  ele não tinha — com a bola de neve na mão você empurra, mas
+#  naquele instante você não cava.
+#
+#  NENHUMA das duas é "inquebrável" no sentido do Minecraft: o
+#  CreativePlots apaga item inquebrável do servidor inteiro. A pá
+#  não gasta porque o dano de ferramenta é cancelado dentro da
+#  arena, e a bola de neve não acaba porque o estoque é
+#  recomposto todo segundo.
+# -------------------------------------------------------------
+kit:
+  # A ferramenta que cava. Só ela cava: mão vazia e bola de neve
+  # não quebram gelo.
+  ferramenta: IRON_SHOVEL
+
+  # Quantas bolas de neve o jogador tem sempre em mão.
+  bolas-de-neve: 16
+
+  # O empurrão da bola de neve em quem ela acerta. É de propósito
+  # pequeno: empurrar para fora do disco é um golpe de sorte, e
+  # empurrar para cima de um buraco que alguém cavou é a jogada.
+  # Grande demais e o jogo vira só arremesso.
+  empurrao: 0.55
+  empurrao-alto: 0.24
 
 textos:
   titulo: "SPLEEF"

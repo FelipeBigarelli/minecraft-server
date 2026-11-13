@@ -56,7 +56,19 @@ public interface PlantaDeArena {
 
     int contagemSegundos();
 
+    /**
+     * Quantos segundos o jogador fica parado na arena antes de a rodada
+     * abrir.
+     *
+     * Existe porque a largada põe o jogador num chão que em alguns jogos já
+     * está sumindo: sem isso ele perde antes de ver onde está.
+     */
+    int preparoSegundos();
+
     int fimSegundos();
+
+    /** Quantos segundos a rodada dura no máximo. */
+    int tempoLimite();
 
     boolean treinoSozinho();
 

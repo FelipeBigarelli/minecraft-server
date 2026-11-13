@@ -42,7 +42,7 @@ class TntRunTest {
     private static final int RAIO = 24;
     private static final int PISOS = 3;
     private static final int ESPESSURA = 2;
-    private static final int VAO = 3;
+    private static final int VAO = 5;
     private static final int BEIRA = 2;
     private static final int SAGUAO_ALTURA = 18;
     private static final int SAGUAO_RAIO = 9;
@@ -185,6 +185,56 @@ class TntRunTest {
         assertTrue(VAO > alcanceDoPulo + 1,
                 "um pulo de " + alcanceDoPulo + " alcança o piso de cima com "
                         + VAO + " de vão");
+    }
+
+    /**
+     * A lâmpada do piso derrete junto com o piso.
+     *
+     * Se ela não estivesse na lista de materiais do piso, cada rodada
+     * deixaria um céu de lâmpadas boiando onde a coluna sumiu — e o
+     * derretimento tem a trava justamente para só comer o que é piso.
+     */
+    @Test
+    @DisplayName("a lâmpada do piso é material de piso e derrete com ele")
+    void aLampadaDerreteComOPiso() {
+        String nome = arena.getString("paleta.piso-luz");
+        assertNotNull(nome, "falta 'paleta.piso-luz': os andares de baixo "
+                + "ficam no escuro, o teto deles é o piso de cima");
+        Material luz = Material.matchMaterial(nome.toUpperCase(Locale.ROOT));
+        assertNotNull(luz, "material desconhecido em paleta.piso-luz: " + nome);
+        assertNotEquals(arena.getString("paleta.piso"), nome,
+                "a lâmpada é o mesmo bloco do piso: não ilumina nada");
+        assertNotEquals(arena.getString("paleta.beira"), nome,
+                "a lâmpada é o mesmo bloco da beira: não ilumina nada");
+    }
+
+    /**
+     * A luz alcança o meio de cada quadrado da grade.
+     *
+     * A luz do Minecraft anda quinze blocos e perde um por bloco. O pior
+     * ponto de uma grade de passo P é o centro do quadrado, a P/2·raiz(2)
+     * da lâmpada mais próxima.
+     */
+    @Test
+    @DisplayName("o passo da grade de lâmpadas acende o piso inteiro")
+    void aGradeDeLuzAcendeTudo() {
+        int passo = arena.getInt("arena.luz-passo", 6);
+        assertTrue(passo >= 2, "passo de " + passo + ": o chão vira pisca-pisca");
+        double piorCaso = passo / 2.0 * Math.sqrt(2);
+        assertTrue(piorCaso < 15,
+                "com passo " + passo + " o pior ponto fica a "
+                        + Math.round(piorCaso) + " blocos da lâmpada mais "
+                        + "próxima, e a luz só anda 15");
+    }
+
+    /** O preparo existe e é o mesmo do resto do servidor. */
+    @Test
+    @DisplayName("a rodada tem preparo antes de o chão começar a sumir")
+    void aRodadaTemPreparo() {
+        int preparo = arena.getInt("regras.preparo-segundos", 0);
+        assertTrue(preparo >= 3, "preparo de " + preparo + "s: no TNT Run o "
+                + "piso começa a cair no mesmo tique da largada");
+        assertTrue(preparo <= 15, "preparo de " + preparo + "s é espera demais");
     }
 
     @Test

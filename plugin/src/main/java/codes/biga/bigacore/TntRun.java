@@ -28,6 +28,7 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.ExplosionPrimeEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -91,7 +92,7 @@ public final class TntRun implements Listener, JogoDeMinigame {
     /** Até onde a cortina do arco de volta é desenhada. */
     private static final int ALCANCE_DA_CORTINA = 32;
 
-    public enum Estado { ESPERANDO, CONTAGEM, JOGANDO, FIM }
+    public enum Estado { ESPERANDO, CONTAGEM, PREPARO, JOGANDO, FIM }
 
     /** Um bloco do piso esperando a vez de sumir. */
     record Ponto(int x, int y, int z) {}
@@ -124,6 +125,7 @@ public final class TntRun implements Listener, JogoDeMinigame {
 
     private int comecouCom;
     private int contagem;
+    private int preparo;
     private long inicioDaRodada;
     private long pulso;
     private boolean mundoAjustado;
@@ -290,6 +292,9 @@ public final class TntRun implements Listener, JogoDeMinigame {
     }
 
     private void entrou(Player jogador) {
+        // Quem chegou com /speed ligado no hub não traz a velocidade
+        // para dentro da arena.
+        JogoDeArena.velocidadeNormal(jogador);
         TntRunCatalog planta = plugin.tntRunCatalog();
         naArena.add(jogador.getUniqueId());
         modoAnterior.putIfAbsent(jogador.getUniqueId(), jogador.getGameMode());
@@ -314,7 +319,8 @@ public final class TntRun implements Listener, JogoDeMinigame {
             return;
         }
 
-        if (estado == Estado.JOGANDO || estado == Estado.FIM) {
+        if (estado == Estado.PREPARO || estado == Estado.JOGANDO
+                || estado == Estado.FIM) {
             jogador.setGameMode(GameMode.SPECTATOR);
             jogador.sendActionBar(plugin.mini().deserialize(
                     "<gray>a rodada já começou — você entra na próxima</gray>"));
@@ -553,6 +559,24 @@ public final class TntRun implements Listener, JogoDeMinigame {
                     comecar(planta);
                 }
             }
+            case PREPARO -> {
+                preparo--;
+                if (preparo <= 0) {
+                    abrirARodada(planta);
+                    return;
+                }
+                for (Player jogador : jogadoresDaArena()) {
+                    jogador.showTitle(Title.title(
+                            plugin.mini().deserialize("<color:"
+                                    + planta.corDoTexto() + ">" + preparo
+                                    + "</color>"),
+                            plugin.mini().deserialize(
+                                    "<gray>prepare-se</gray>")));
+                    jogador.playSound(jogador.getLocation(),
+                            Sound.BLOCK_NOTE_BLOCK_BIT, 0.5f,
+                            1.0f + (3 - Math.min(3, preparo)) * 0.2f);
+                }
+            }
             case JOGANDO -> { }
             case FIM -> {
                 contagem--;
@@ -587,6 +611,7 @@ public final class TntRun implements Listener, JogoDeMinigame {
             }
             jogador.setGameMode(GameMode.ADVENTURE);
             jogador.setFallDistance(0f);
+            JogoDeArena.velocidadeNormal(jogador);
             jogador.teleport(saguao);
         }
     }
@@ -612,7 +637,8 @@ public final class TntRun implements Listener, JogoDeMinigame {
                     Sound.BLOCK_NOTE_BLOCK_BASS, 0.7f);
             return;
         }
-        if (estado == Estado.JOGANDO || estado == Estado.FIM) {
+        if (estado == Estado.PREPARO || estado == Estado.JOGANDO
+                || estado == Estado.FIM) {
             aviso(jogador, "<gray>a rodada já começou — entre na próxima</gray>",
                     Sound.BLOCK_NOTE_BLOCK_BASS, 0.7f);
             return;
@@ -682,10 +708,12 @@ public final class TntRun implements Listener, JogoDeMinigame {
         String estadoEscrito = switch (estado) {
             case ESPERANDO -> planta.placa("esperando", "esperando");
             case CONTAGEM -> "em " + contagem + "s";
+            case PREPARO -> "prepare-se";
             case JOGANDO -> planta.placa("jogando", "JOGANDO");
             case FIM -> planta.placa("refazendo", "refazendo");
         };
-        String contagemEscrita = (estado == Estado.JOGANDO ? vivos.size() : fila.size())
+        String contagemEscrita = (estado == Estado.JOGANDO
+                || estado == Estado.PREPARO ? vivos.size() : fila.size())
                 + "/" + planta.maximo();
         String assinatura = estadoEscrito + "|" + contagemEscrita;
         if (assinatura.equals(ultimoTextoDaPlaca)) {
@@ -722,7 +750,7 @@ public final class TntRun implements Listener, JogoDeMinigame {
         if (mundo == null) {
             return "O mundo da arena não está carregado.";
         }
-        if (estado == Estado.JOGANDO) {
+        if (estado == Estado.JOGANDO || estado == Estado.PREPARO) {
             return "A rodada já está rolando.";
         }
         TntRunCatalog planta = plugin.tntRunCatalog();
@@ -777,6 +805,32 @@ public final class TntRun implements Listener, JogoDeMinigame {
         }
 
         comecouCom = vivos.size();
+        estado = Estado.PREPARO;
+        preparo = planta.preparoSegundos();
+
+        // O relógio do jogo só começa no fim do preparo: sem isso a largada
+        // põe o jogador num chão que já está sumindo, e ele perde antes de
+        // ver onde está.
+        for (Player jogador : entram) {
+            jogador.setWalkSpeed(0f);
+            jogador.setFlySpeed(0f);
+        }
+        for (Player jogador : jogadoresDaArena()) {
+            jogador.showTitle(Title.title(
+                    plugin.mini().deserialize("<color:" + planta.corDoTexto()
+                            + "><bold>PREPARE-SE</bold></color>"),
+                    plugin.mini().deserialize("<gray>" + preparo
+                            + " segundos para a largada</gray>")));
+            jogador.playSound(jogador.getLocation(),
+                    Sound.BLOCK_NOTE_BLOCK_BIT, 0.6f, 0.8f);
+        }
+    }
+
+    /** Abre a rodada de verdade, no fim do preparo. */
+    private void abrirARodada(TntRunCatalog planta) {
+        for (Player jogador : jogadoresDaArena()) {
+            JogoDeArena.velocidadeNormal(jogador);
+        }
         inicioDaRodada = pulso;
         estado = Estado.JOGANDO;
 
@@ -875,6 +929,7 @@ public final class TntRun implements Listener, JogoDeMinigame {
             }
             jogador.setGameMode(GameMode.ADVENTURE);
             jogador.setFallDistance(0f);
+            JogoDeArena.velocidadeNormal(jogador);
             jogador.teleport(saguao);
             jogador.sendActionBar(plugin.mini().deserialize(
                     "<gray>clique em <green>" + HubBuilder.escapar(
@@ -885,7 +940,8 @@ public final class TntRun implements Listener, JogoDeMinigame {
 
     /** Para a rodada sem vencedor. É o {@code /biga tntrun parar}. */
     public String pararRodada() {
-        if (estado != Estado.JOGANDO && estado != Estado.CONTAGEM) {
+        if (estado != Estado.JOGANDO && estado != Estado.CONTAGEM
+                && estado != Estado.PREPARO) {
             return "Não há rodada para parar.";
         }
         TntRunCatalog planta = plugin.tntRunCatalog();
@@ -999,6 +1055,7 @@ public final class TntRun implements Listener, JogoDeMinigame {
                 continue;
             }
             jogador.setFallDistance(0f);
+            JogoDeArena.velocidadeNormal(jogador);
             jogador.teleport(saguao);
             jogador.sendActionBar(plugin.mini().deserialize(
                     "<color:#8FD3FF>o saguão te pegou no ar</color>"));
@@ -1089,6 +1146,26 @@ public final class TntRun implements Listener, JogoDeMinigame {
     private boolean nesteMundo(World mundo) {
         World arena = mundoDaArena();
         return arena != null && arena.equals(mundo);
+    }
+
+    /** O que não se digita aqui dentro — ver {@link ComandosDaArena}. */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void aoDigitarComando(PlayerCommandPreprocessEvent evento) {
+        Player jogador = evento.getPlayer();
+        if (!nesteMundo(jogador.getWorld())) {
+            return;
+        }
+        String raiz = ComandosDaArena.raiz(evento.getMessage());
+        if (!ComandosDaArena.lista(plugin).contains(raiz)) {
+            return;
+        }
+        evento.setCancelled(true);
+        JogoDeArena.velocidadeNormal(jogador);
+        jogador.sendActionBar(plugin.mini().deserialize(
+                "<color:#FF8A8A>/" + HubBuilder.escapar(raiz)
+                        + " não vale dentro do minigame</color>"));
+        jogador.playSound(jogador.getLocation(),
+                Sound.BLOCK_NOTE_BLOCK_BASS, 0.7f, 0.7f);
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

@@ -7,6 +7,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -46,6 +47,40 @@ public final class SaguaoPadrao {
     public static final BlockFace FRENTE_DA_PLACA = BlockFace.SOUTH;
 
     private static final String REGUA = "<color:#55595E>";
+
+    /** O cinza claro do corpo das regras: lê-se contra o céu e contra o muro. */
+    private static final String TINTA = "#C9D1D9";
+
+    /** O cinza escuro do rodapé e dos traços. */
+    private static final String SOMBRA = "#6E7681";
+
+    /**
+     * Altura de UMA linha de letreiro, em blocos, na escala 1.
+     *
+     * É o número que faltava: os três painéis ficavam em alturas fixas
+     * (11.0, 9.4, 6.6) escolhidas no olho para um bloco de regras curto.
+     * Um jogo com seis regras longas quebra cada uma em duas linhas, o
+     * painel cresce para os DOIS lados do ponto em que nasce, e aí ele
+     * sobe por cima da frase e desce para dentro do piso do saguão — que
+     * é exatamente o que se via no TNT Run.
+     */
+    private static final double ALTURA_DA_LINHA = 0.27;
+
+    /** O vão entre dois painéis, em blocos. */
+    private static final double FOLGA = 0.7;
+
+    /** De quanto o painel mais baixo sobe do piso do saguão. */
+    private static final double ALTURA_LIVRE = 3.2;
+
+    /**
+     * Quantas letras cabem numa linha antes de o letreiro quebrar.
+     *
+     * O painel é criado com largura de 220 pixels e a fonte do Minecraft
+     * gasta uns 6 por letra. Trinta e quatro é esse número com folga: a
+     * conta só precisa errar para MAIS linhas, porque errar para menos é
+     * o painel voltar a se atravessar.
+     */
+    private static final int LETRAS_POR_LINHA = 34;
 
     // ------------------------------------------------------------------
     //  Medidas
@@ -243,36 +278,118 @@ public final class SaguaoPadrao {
      * O nome, a frase e as regras, empilhados acima da fachada.
      *
      * Yaw 0 porque quem lê está no meio do saguão olhando para o norte (yaw
-     * 180), e um letreiro é legível por quem olha de yaw mais 180. A folga
-     * entre os três não é estética: um letreiro de cinco linhas cresce para os
-     * dois lados do ponto em que nasce, e apertados eles se atravessam.
+     * 180), e um letreiro é legível por quem olha de yaw mais 180.
+     *
+     * <p>A pilha é montada DE BAIXO PARA CIMA, e isso é o conserto: o piso
+     * do saguão é o único limite duro — por cima é céu aberto. Partindo do
+     * piso e somando a altura real de cada painel, nenhum deles afunda no
+     * chão e nenhum encosta no de cima, com uma regra ou com doze.
      */
     public static void escreverTextos(BigaCore plugin, World mundo,
                                       PlantaDeArena planta, String etiqueta) {
         int y = planta.saguaoY();
         int z = zDoArcoDeVolta(planta);
         String cor = planta.corDoTexto();
+        double escalaPlaca = planta.escalaPlaca();
+        int fundo = planta.fundoDoTexto();
 
-        ArenaComum.painel(mundo, new Location(mundo, 0.5, y + 11.0, z + 0.8),
+        List<String> corpo = corpoDasRegras(planta, cor);
+        double altura = ALTURA_LIVRE;
+
+        if (!corpo.isEmpty()) {
+            double alto = alturaDoPainel(linhasDoTexto(corpo), escalaPlaca);
+            ArenaComum.painel(mundo,
+                    new Location(mundo, 0.5, y + altura + alto / 2, z + 0.8),
+                    plugin.mini().deserialize(String.join("\n", corpo)),
+                    (float) escalaPlaca, fundoDasRegras(fundo), etiqueta);
+            altura += alto + FOLGA;
+        }
+
+        String frase = planta.subtitulo();
+        if (frase != null && !frase.isBlank()) {
+            String escrita = "<color:" + SOMBRA + "><italic>"
+                    + HubBuilder.escapar(frase) + "</italic></color>";
+            double alto = alturaDoPainel(
+                    linhasDoTexto(List.of(escrita)), escalaPlaca);
+            ArenaComum.painel(mundo,
+                    new Location(mundo, 0.5, y + altura + alto / 2, z + 0.8),
+                    plugin.mini().deserialize(escrita),
+                    (float) escalaPlaca, fundo, etiqueta);
+            altura += alto + FOLGA;
+        }
+
+        double altoDoNome = alturaDoPainel(1, planta.escalaTitulo());
+        ArenaComum.painel(mundo,
+                new Location(mundo, 0.5, y + altura + altoDoNome / 2, z + 0.8),
                 plugin.mini().deserialize("<color:" + cor + "><bold>"
                         + HubBuilder.escapar(planta.titulo()) + "</bold></color>"),
-                (float) planta.escalaTitulo(), planta.fundoDoTexto(), etiqueta);
+                (float) planta.escalaTitulo(), fundo, etiqueta);
+    }
 
-        ArenaComum.painel(mundo, new Location(mundo, 0.5, y + 9.4, z + 0.8),
-                plugin.mini().deserialize("<gray>"
-                        + HubBuilder.escapar(planta.subtitulo())),
-                (float) planta.escalaPlaca(), planta.fundoDoTexto(), etiqueta);
-
-        if (!planta.regrasEscritas().isEmpty()) {
-            StringBuilder regras = new StringBuilder();
-            regras.append(REGUA).append("────────");
-            for (String linha : planta.regrasEscritas()) {
-                regras.append("\n<gray>").append(HubBuilder.escapar(linha));
-            }
-            ArenaComum.painel(mundo, new Location(mundo, 0.5, y + 6.6, z + 0.8),
-                    plugin.mini().deserialize(regras.toString()),
-                    (float) planta.escalaPlaca(), planta.fundoDoTexto(), etiqueta);
+    /**
+     * O bloco das regras: cabeçalho, uma regra por linha, rodapé.
+     *
+     * Tudo num painel só e não um por linha — painéis separados voltariam
+     * a precisar de alturas escolhidas no olho. A cor do jogo entra no
+     * cabeçalho e no marcador de cada regra, e o texto fica num cinza
+     * claro em vez do cinza do Minecraft: o cinza puro contra o muro de
+     * pedra do saguão é o que o jogador chamou de "sumindo no bloco".
+     */
+    static List<String> corpoDasRegras(PlantaDeArena planta, String cor) {
+        List<String> regras = planta.regrasEscritas();
+        if (regras.isEmpty()) {
+            return List.of();
         }
+        List<String> corpo = new ArrayList<>();
+        corpo.add("<color:" + cor + ">\u2501\u2501\u2501 COMO SE JOGA "
+                + "\u2501\u2501\u2501</color>");
+        for (String linha : regras) {
+            corpo.add("<color:" + cor + ">\u203a</color> <color:" + TINTA + ">"
+                    + HubBuilder.escapar(linha) + "</color>");
+        }
+        corpo.add(REGUA + "\u2501\u2501\u2501\u2501\u2501\u2501\u2501"
+                + "\u2501\u2501\u2501\u2501\u2501</color>");
+        corpo.add("<color:" + SOMBRA + ">" + rodape(planta) + "</color>");
+        return List.copyOf(corpo);
+    }
+
+    /** Quantos jogam e quanto dura: o que se quer saber antes de entrar. */
+    static String rodape(PlantaDeArena planta) {
+        return planta.minimo() + " a " + planta.maximo() + " jogadores \u00b7 at\u00e9 "
+                + ArenaComum.tempo(planta.tempoLimite() * 20L);
+    }
+
+    /**
+     * O fundo do bloco de regras.
+     *
+     * Um pouco de preto atrás do texto denso mesmo quando o jogo pediu
+     * fundo transparente: o nome e a frase são grandes e se leem contra
+     * qualquer coisa, mas doze linhas pequenas em cima de pedra clara,
+     * não. Quem já escolheu um fundo no yml fica com o dele.
+     */
+    static int fundoDasRegras(int escolhido) {
+        return escolhido > 0 ? escolhido : 130;
+    }
+
+    /** Altura, em blocos, de um painel com tantas linhas naquela escala. */
+    static double alturaDoPainel(int linhas, double escala) {
+        return Math.max(1, linhas) * ALTURA_DA_LINHA * escala;
+    }
+
+    /** Quantas linhas o texto ocupa DEPOIS de o letreiro quebrar. */
+    static int linhasDoTexto(List<String> linhas) {
+        int total = 0;
+        for (String linha : linhas) {
+            int letras = semMarcacao(linha).length();
+            total += Math.max(1, (letras + LETRAS_POR_LINHA - 1)
+                    / LETRAS_POR_LINHA);
+        }
+        return total;
+    }
+
+    /** Tira as etiquetas do MiniMessage: a conta mede só o que se lê. */
+    static String semMarcacao(String texto) {
+        return texto == null ? "" : texto.replaceAll("<[^>]*>", "");
     }
 
     /** Conta blocos postos, para o construtor do jogo somar no resultado. */

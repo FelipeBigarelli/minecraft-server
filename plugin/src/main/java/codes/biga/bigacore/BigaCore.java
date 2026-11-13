@@ -1049,6 +1049,11 @@ public final class BigaCore extends JavaPlugin {
      */
     private void registrarJogo(CatalogoDeArena catalogo, ConstrutorDeArena construtor,
                                JogoDeMinigame jogo) {
+        // O primeiro reload do catálogo, e ele é obrigatório: o construtor
+        // do CatalogoDeArena não pode chamar o gancho aoRecarregar() sem que
+        // os campos da subclasse apaguem o que ele escreveu. Sem esta linha,
+        // mineração, pescaria e quiz nascem com a tabela vazia.
+        catalogo.reload();
         if (jogo instanceof org.bukkit.event.Listener ouvinte) {
             getServer().getPluginManager().registerEvents(ouvinte, this);
         }

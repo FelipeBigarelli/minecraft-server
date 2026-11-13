@@ -314,16 +314,23 @@ public final class SorteBuilder implements ConstrutorDeArena {
 
         for (int x = -raio; x <= raio; x++) {
             for (int z = -raio; z <= raio; z++) {
-                if (planta.setorDoPonto(x, z) != setor) {
+                // O MEIO do bloco, e não o canto dele.
+                //
+                // O jogo julga o jogador pela posição exata dos pés, que
+                // fica perto do meio do bloco; o construtor desenhava pelo
+                // canto. Perto de uma divisa isso faz o bloco ser PINTADO
+                // como de uma fatia e CONTADO como da outra — o jogador cai
+                // estando na fatia que ele via no chão.
+                if (setorDoBloco(planta, x, z) != setor) {
                     continue;
                 }
                 Material qual;
                 if (!ArenaComum.noDiscoMeio(x, z, raio - 1)) {
                     qual = beira;
-                } else if (planta.setorDoPonto(x + 1, z) != setor
-                        || planta.setorDoPonto(x, z + 1) != setor
-                        || planta.setorDoPonto(x - 1, z) != setor
-                        || planta.setorDoPonto(x, z - 1) != setor) {
+                } else if (setorDoBloco(planta, x + 1, z) != setor
+                        || setorDoBloco(planta, x, z + 1) != setor
+                        || setorDoBloco(planta, x - 1, z) != setor
+                        || setorDoBloco(planta, x, z - 1) != setor) {
                     qual = risco;
                 } else {
                     qual = ((x >> 2) + (z >> 2)) % 2 == 0 ? piso : xadrez;
@@ -343,11 +350,23 @@ public final class SorteBuilder implements ConstrutorDeArena {
                 }
                 int x = meio[0] + (coluna - 1) * passo;
                 int z = meio[1] + (fiada - 1) * passo;
-                if (planta.setorDoPonto(x, z) == setor) {
+                if (setorDoBloco(planta, x, z) == setor) {
                     por(mundo, x, y, z, pingo);
                 }
             }
         }
+    }
+
+    /**
+     * A fatia a que um BLOCO pertence.
+     *
+     * Pelo meio do bloco, que é onde o jogador pisa. Ver a nota em
+     * {@link #fatia}: canto e meio discordam numa faixa de meio bloco de
+     * cada divisa, e essa faixa é chão pintado de uma cor que some com a
+     * outra.
+     */
+    static int setorDoBloco(SorteCatalog planta, int x, int z) {
+        return planta.setorDoPonto(x + 0.5, z + 0.5);
     }
 
     /** Refaz as fatias que sumiram na rodada anterior. */
@@ -368,7 +387,7 @@ public final class SorteBuilder implements ConstrutorDeArena {
         contador = 0;
         for (int x = -raio; x <= raio; x++) {
             for (int z = -raio; z <= raio; z++) {
-                if (planta.setorDoPonto(x, z) == setor) {
+                if (setorDoBloco(planta, x, z) == setor) {
                     por(mundo, x, y, z, Material.AIR);
                 }
             }

@@ -160,3 +160,76 @@ hub:
 # -----------------------------------------------------------
 minigames:
   mundo: minigames
+
+  # O que não se digita dentro de uma arena de minigame.
+  #
+  # /speed foi o que motivou a lista: ele transforma qualquer jogo de
+  # corrida numa piada, e nenhum dos vinte jogos tem defesa contra. O
+  # bloqueio vale SÓ dentro do mundo da arena, e o prefixo do plugin é
+  # descartado antes de comparar — /essentials:speed cai aqui também.
+  #
+  # O que NÃO está na lista é de propósito: /spawn, /hub, /lobby, /home,
+  # /biga e o bate-papo ficam livres para ninguém ficar preso numa arena.
+  # Se você acrescentar um deles aqui, vai trancar o jogador lá dentro.
+  #
+  # Apagar a lista inteira não libera nada: a lista de fábrica volta a
+  # valer. Para liberar um comando, tire só ele daqui.
+  comandos-bloqueados:
+    - speed
+    - fly
+    - god
+    - heal
+    - feed
+    - ptime
+    - pweather
+    - vanish
+    - v
+    - gamemode
+    - gm
+    - gmc
+    - gms
+    - gma
+    - gmsp
+    - give
+    - i
+    - item
+    - more
+    - kit
+    - repair
+    - fix
+    - hat
+    - enderchest
+    - ec
+    - invsee
+    - workbench
+    - wb
+    - craft
+    - anvil
+    - smithingtable
+    - stonecutter
+    - loom
+    - grindstone
+    - cartographytable
+    - clearinventory
+    - ci
+    - powertool
+    - pt
+    - tp
+    - tpo
+    - tphere
+    - tpahere
+    - tppos
+    - top
+    - jump
+    - back
+    - butcher
+    - killall
+    - nuke
+    - sudo
+    - unlimited
+    - spawnmob
+    - tree
+    - bigtree
+    - effect
+    - enchant
+    - exp

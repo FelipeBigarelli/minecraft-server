@@ -164,6 +164,8 @@ public final class TntRunBuilder implements ConstrutorDeArena {
         Material pisoBase = planta.cor("piso-base", Material.SAND);
         Material beira = planta.cor("beira", Material.POLISHED_BLACKSTONE);
         Material beiraBase = planta.cor("beira-base", Material.BLACKSTONE);
+        Material pisoLuz = planta.cor("piso-luz", Material.SHROOMLIGHT);
+        int passoDaLuz = planta.luzPasso();
 
         for (int camada = 0; camada < planta.pisos(); camada++) {
             int topo = planta.topoDoPiso(camada);
@@ -175,7 +177,15 @@ public final class TntRunBuilder implements ConstrutorDeArena {
                         continue;
                     }
                     boolean naBeira = TntRunCatalog.naBeira(x, z, raio, aneis);
-                    por(mundo, x, topo, z, naBeira ? beira : piso);
+                    // A lâmpada vai na CAPA do piso, e é ela que acende o
+                    // andar que corre em cima dele. Do segundo piso para
+                    // baixo o teto é o piso de cima e não entra luz nenhuma
+                    // do céu — sem isto o jogo é correr no escuro.
+                    boolean acende = !naBeira
+                            && Math.floorMod(x, passoDaLuz) == 0
+                            && Math.floorMod(z, passoDaLuz) == 0;
+                    por(mundo, x, topo, z,
+                            naBeira ? beira : (acende ? pisoLuz : piso));
                     for (int y = base; y < topo; y++) {
                         por(mundo, x, y, z, naBeira ? beiraBase : pisoBase);
                     }

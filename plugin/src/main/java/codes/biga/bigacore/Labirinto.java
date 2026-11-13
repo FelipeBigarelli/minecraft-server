@@ -42,21 +42,28 @@ import java.util.UUID;
  * propósito: quem jogou dez rodadas sabe o que esse nome significa, e esse
  * saber é vantagem de verdade — a única que sobrevive ao sorteio.
  *
- * <h2>A porta se vê, o caminho não</h2>
+ * <h2>Nada diz onde é a porta</h2>
  *
- * O facho do farol entrega a direção de graça, e isso é escolha de desenho,
- * não descuido. Sem ele, dezesseis pessoas vasculhariam duzentos blocos de
- * borda à procura de um vão de três: seria sorteio. Com ele, todo mundo sabe
- * para onde ir desde o primeiro tique, e o que está em disputa é só o
- * caminho — que é o que o labirinto tem para oferecer.
+ * Esta classe já teve um farol: um beacon no patamar da porta, com o facho
+ * subindo até o céu. A ideia era poupar a busca de um vão de três numa borda
+ * de duzentos blocos. O que ele fez de verdade foi APAGAR a busca — e a
+ * busca é o jogo. Saber para onde correr desde o primeiro tique transforma o
+ * labirinto num corredor com curvas.
  *
- * <h2>A barra não conta passos</h2>
+ * <p>O que ficou no lugar não é nada: a porta é sorteada no terço mais
+ * LONGE do meio, então ela sempre está onde se chega andando bastante, e o
+ * número de esquinas do caminho mais curto é anunciado na largada. Dá para
+ * saber se esta rodada é de trinta segundos ou de três minutos sem saber
+ * para que lado ir.
  *
- * Ela mostra a distância EM LINHA RETA de quem está mais perto da porta, e
- * nunca a distância pelo labirinto. A diferença não é estética: distância
- * pelo labirinto na tela é um GPS — bastaria andar vendo o número descer e o
- * labirinto estaria resolvido. Em linha reta a barra não diz nada que o facho
- * já não diga, e ainda assim dá o aperto de saber que alguém está perto.
+ * <h2>A barra não aponta</h2>
+ *
+ * Ela mostra o quanto o mais adiantado se AFASTOU DO MEIO, e nunca a
+ * distância até a porta. A diferença é a mesma de antes, por escrito:
+ * distância até a porta na tela é um medidor de quente-e-frio, e andar vendo
+ * o número descer resolve o labirinto sem o jogador ler uma parede. O
+ * afastamento do meio dá o aperto de saber que alguém está avançando sem
+ * dizer para onde.
  *
  * <h2>Giz é memória, e memória é pública</h2>
  *
@@ -67,14 +74,23 @@ import java.util.UUID;
  */
 public final class Labirinto extends JogoDeArena {
 
+    /** O verde-água do jogo: nome, número e destaque. */
+    private static final String COR = "#4FD1C5";
+
+    /** O cinza claro do texto corrido. */
+    private static final String TINTA = "#C9D1D9";
+
+    /** O cinza escuro do que é só contexto. */
+    private static final String SOMBRA = "#6E7681";
+
     private final Map<UUID, Material> corDoGiz = new HashMap<>();
     private final Map<UUID, Integer> melhorDe = new HashMap<>();
     private final Set<Long> gizNoChao = new HashSet<>();
 
     private UUID campeao;
     private int tiquesDoCampeao;
-    private double menorDistancia;
-    private double distanciaDaLargada;
+    private double maiorAfastamento;
+    private double alcanceDoLabirinto;
 
     public Labirinto(BigaCore plugin) {
         super(plugin);
@@ -127,9 +143,8 @@ public final class Labirinto extends JogoDeArena {
         plugin.labirintoBuilder().refazerLabirinto(mundo);
 
         LabirintoCatalog planta = planta2();
-        int[] porta = LabirintoBuilder.pontoDaPorta(planta);
-        distanciaDaLargada = Math.hypot(porta[0], porta[1]);
-        menorDistancia = distanciaDaLargada;
+        alcanceDoLabirinto = Math.max(1.0, planta.lado() / 2.0);
+        maiorAfastamento = 0.0;
     }
 
     @Override
@@ -150,29 +165,35 @@ public final class Labirinto extends JogoDeArena {
     }
 
     /**
-     * Dois anúncios na largada, e os dois são informação de jogo.
+     * Três linhas na largada, e nenhuma delas diz onde é a porta.
      *
-     * O primeiro é o labirinto que saiu: traçado, tamanho e voltas. Não é
+     * A primeira é o labirinto que saiu: traçado, tamanho e voltas. Não é
      * enfeite — é o que transforma dez rodadas jogadas em vantagem na décima
      * primeira. Ouvir "VENTANIA" e já saber que existe uma avenida reta a
      * procurar é a única habilidade que o sorteio não apaga.
      *
-     * <p>O segundo é a porta e a caminhada. A direção já está no facho; o
-     * número de esquinas é o que diz se esta é uma corrida de trinta segundos
-     * ou de três minutos, e saber disso antes de largar muda como se corre.
+     * <p>A segunda é o que aquele traçado faz com quem anda dentro dele.
+     *
+     * <p>A terceira é o tamanho da caminhada, em esquinas. O LADO da porta
+     * ficava aqui e saiu junto com o farol: ele respondia metade da pergunta
+     * de graça. O número de esquinas diz se esta é uma corrida de trinta
+     * segundos ou de três minutos, e isso muda como se corre sem dizer para
+     * onde correr.
      */
     @Override
     protected void aoComecarRodada(World mundo) {
         LabirintoCatalog planta = planta2();
-        anunciar("<color:#4FD1C5>" + planta.nomeDoTracado() + "</color> <gray>de "
-                + "<white>" + planta.celulas() + "x" + planta.celulas()
-                + "</white> células, <white>" + planta.nomeDasVoltas()
-                + "</white> — " + planta.caraterDoTracado() + "</gray>");
-        anunciar("<gray>a porta é a <white>"
-                + LabirintoBuilder.nomeDoLado(planta.saida()[2])
-                + "</white> — o facho mostra onde. São <white>"
-                + planta.passosAteASaida() + " esquinas</white> pelo caminho "
-                + "mais curto</gray>");
+        anunciar("<color:" + COR + "><b>\u258c " + planta.nomeDoTracado()
+                + "</b></color>  <color:" + TINTA + ">" + planta.celulas()
+                + "\u00d7" + planta.celulas() + " c\u00e9lulas</color>"
+                + "  <color:" + SOMBRA + ">\u00b7 " + planta.nomeDasVoltas()
+                + "</color>");
+        anunciar("<color:" + SOMBRA + ">   " + planta.caraterDoTracado()
+                + "</color>");
+        anunciar("<color:" + TINTA + ">   a porta est\u00e1 na borda e "
+                + "<i>nada diz onde</i> \u2014 </color><color:" + COR + ">"
+                + planta.passosAteASaida() + " esquinas</color><color:"
+                + SOMBRA + "> pelo caminho mais curto</color>");
     }
 
     @Override
@@ -247,17 +268,19 @@ public final class Labirinto extends JogoDeArena {
 
     @Override
     protected float progressoDaBarra() {
-        if (distanciaDaLargada <= 0) {
+        if (alcanceDoLabirinto <= 0) {
             return 0f;
         }
-        return (float) (1.0 - menorDistancia / distanciaDaLargada);
+        return ArenaComum.limite(
+                (float) (maiorAfastamento / alcanceDoLabirinto));
     }
 
     @Override
     protected String textoDaBarra() {
-        return "<white>o mais perto está a " + (int) Math.round(menorDistancia)
-                + " blocos da porta</white> <gray>· "
-                + ArenaComum.tempo(tiquesDeJogo()) + "</gray>";
+        return "<color:" + COR + ">" + (int) Math.round(maiorAfastamento)
+                + " blocos</color><color:" + SOMBRA + "> do meio \u00e9 o mais "
+                + "longe que algu\u00e9m chegou \u00b7 </color><color:" + TINTA
+                + ">" + ArenaComum.tempo(tiquesDeJogo()) + "</color>";
     }
 
     // ------------------------------------------------------------------
@@ -279,15 +302,15 @@ public final class Labirinto extends JogoDeArena {
     @Override
     protected void aCadaSegundo(World mundo) {
         LabirintoCatalog planta = planta2();
-        int[] porta = LabirintoBuilder.pontoDaPorta(planta);
         int[] passos = planta.distanciasDaPorta();
         int meio = planta.meio();
-        double perto = distanciaDaLargada;
+        double longe = 0.0;
 
         for (Player jogador : jogadoresVivos()) {
             Location onde = jogador.getLocation();
-            perto = Math.min(perto, Math.hypot(onde.getX() - (porta[0] + 0.5),
-                    onde.getZ() - (porta[1] + 0.5)));
+            // Afastamento do MEIO, e não distância até a porta: a segunda
+            // seria um medidor de quente-e-frio na barra de todo mundo.
+            longe = Math.max(longe, Math.hypot(onde.getX(), onde.getZ()));
 
             int i = planta.celulaMaisProxima(onde.getBlockX() + meio);
             int j = planta.celulaMaisProxima(onde.getBlockZ() + meio);
@@ -296,12 +319,7 @@ public final class Labirinto extends JogoDeArena {
                 melhorDe.merge(jogador.getUniqueId(), quantos, Math::min);
             }
         }
-        menorDistancia = perto;
-
-        if (segundosDeJogo() % 3 == 0) {
-            Location farol = LabirintoBuilder.pontoDoFarol(mundo, planta);
-            mundo.spawnParticle(Particle.END_ROD, farol, 12, 0.4, 0.8, 0.4, 0.01);
-        }
+        maiorAfastamento = longe;
     }
 
     /** O primeiro a atravessar a porta fecha a partida. */
@@ -311,9 +329,11 @@ public final class Labirinto extends JogoDeArena {
         melhorDe.put(campeao, 0);
         mundo.playSound(jogador.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE,
                 1.0f, 1.0f);
-        anunciar("<color:#4FD1C5>" + HubBuilder.escapar(jogador.getName())
-                + "</color> <gray>achou a saída em <white>"
-                + ArenaComum.tempo(tiquesDoCampeao) + "</white></gray>");
+        anunciar("<color:" + COR + "><b>\u2726 "
+                + HubBuilder.escapar(jogador.getName())
+                + "</b></color><color:" + TINTA + "> achou a sa\u00edda em "
+                + "</color><color:" + COR + ">"
+                + ArenaComum.tempo(tiquesDoCampeao) + "</color>");
     }
 
     // ------------------------------------------------------------------

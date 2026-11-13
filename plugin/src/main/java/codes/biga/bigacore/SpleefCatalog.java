@@ -135,6 +135,28 @@ public final class SpleefCatalog extends CatalogoDeArena {
     }
 
     // ------------------------------------------------------------------
+    //  O kit
+    // ------------------------------------------------------------------
+
+    /** A ferramenta que cava — e só ela cava. */
+    public Material ferramenta() {
+        return cor("ferramenta", Material.IRON_SHOVEL, "kit");
+    }
+
+    public int bolasDeNeve() {
+        return Math.max(0, Math.min(64, config.getInt("kit.bolas-de-neve", 16)));
+    }
+
+    public double empurrao() {
+        return Math.max(0.0, Math.min(2.0, config.getDouble("kit.empurrao", 0.55)));
+    }
+
+    public double empurraoAlto() {
+        return Math.max(0.0, Math.min(1.0,
+                config.getDouble("kit.empurrao-alto", 0.24)));
+    }
+
+    // ------------------------------------------------------------------
     //  Regras
     // ------------------------------------------------------------------
 
