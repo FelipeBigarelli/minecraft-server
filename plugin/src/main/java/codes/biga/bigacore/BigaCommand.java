@@ -28,7 +28,7 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBCOMANDOS_FIXOS =
             List.of("info", "eco", "loja", "hub", "lobby",
-                    "painel", "reload", "voar");
+                    "painel", "reload", "voar", "refazer");
     private static final List<String> PAINEL_SUBCOMANDOS = List.of("construir", "limpar");
     private static final List<String> ECO_SUBCOMANDOS =
             List.of("status", "saldo", "preco", "vender", "regras");
@@ -72,6 +72,7 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             case "painel" -> paredaoAjuda(sender, label, args);
             case "reload" -> recarregar(sender);
             case "voar" -> alternarVoo(sender);
+            case "refazer" -> refazerTodas(sender, label, args);
             default -> jogoOuAjuda(sender, label, args);
         }
 
@@ -692,6 +693,69 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             case "parar" -> sender.sendMessage(Component.text(
                     registrado.jogo().pararRodada(), NamedTextColor.GRAY));
             default -> enviarAjudaDoJogo(sender, label, registrado);
+        }
+    }
+
+    /**
+     * Refaz as VINTE arenas de uma vez.
+     *
+     * Existe porque o saguão é compartilhado. Quando a planta dele muda — e
+     * ela mudou: a caixa de vidro virou uma rua de vila —, as vinte arenas
+     * ficam desatualizadas ao mesmo tempo, e consertar isso à mão são
+     * quarenta comandos digitados em ordem. Quarenta comandos é onde se pula
+     * um, e o jogo pulado fica com o saguão velho até alguém reparar.
+     *
+     * <p>DESFAZ ANTES DE CONSTRUIR, e é por isso que pede CONFIRMAR: a
+     * planta nova pode ocupar menos espaço que a velha, e construir por cima
+     * deixaria pedaços da anterior pendurados onde a nova não passa.
+     *
+     * <p>O servidor trava enquanto roda. São vinte arenas inteiras, e não há
+     * como não travar — mas travar vinte vezes seguidas por engano, com o
+     * servidor cheio, é pior do que travar uma vez de propósito.
+     */
+    private void refazerTodas(CommandSender sender, String label, String[] args) {
+        if (!sender.hasPermission("bigacore.admin")) {
+            semPermissao(sender);
+            return;
+        }
+        if (args.length < 2 || !args[1].equals("CONFIRMAR")) {
+            sender.sendMessage(Component.text("Isto APAGA e levanta de novo as "
+                    + plugin.jogos().size() + " arenas, uma por uma. O servidor "
+                    + "trava por alguns segundos.", NamedTextColor.RED));
+            sender.sendMessage(Component.text("É o que se roda depois de mudar "
+                    + "a planta do saguão, que os " + plugin.jogos().size()
+                    + " jogos dividem.", NamedTextColor.GRAY));
+            sender.sendMessage(Component.text("/" + label + " refazer CONFIRMAR",
+                    NamedTextColor.YELLOW));
+            return;
+        }
+
+        int feitas = 0;
+        int blocos = 0;
+        List<String> falharam = new ArrayList<>();
+        for (JogoRegistrado registrado : plugin.jogos().values()) {
+            org.bukkit.World mundo = plugin.getServer()
+                    .getWorld(registrado.catalogo().mundo());
+            if (mundo == null) {
+                falharam.add(registrado.etiqueta() + " (sem mundo)");
+                continue;
+            }
+            registrado.construtor().desfazer(mundo);
+            ConstrutorDeArena.Resultado saiu =
+                    registrado.construtor().construir(mundo, true);
+            if (saiu.ok()) {
+                feitas++;
+                blocos += saiu.blocos();
+            } else {
+                falharam.add(registrado.etiqueta());
+            }
+        }
+
+        sender.sendMessage(Component.text(feitas + " arena(s) refeitas, "
+                + blocos + " blocos.", NamedTextColor.GREEN));
+        if (!falharam.isEmpty()) {
+            sender.sendMessage(Component.text("Não saíram: "
+                    + String.join(", ", falharam), NamedTextColor.RED));
         }
     }
 
