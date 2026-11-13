@@ -473,22 +473,22 @@ public final class ArenaPvp extends JogoDeArena {
      * voltaria a ser jogada — não para fazer dano, mas para jogar alguém num
      * vão. O empurrão é parte do golpe e segue a mesma regra que ele.
      */
+    /**
+     * O empurrão do golpe, com a força DESTA arena.
+     *
+     * Ele estava sendo aplicado aqui dentro mesmo, com um {@code setVelocity}
+     * direto, e nunca chegava ao jogador: velocidade escrita de dentro do
+     * evento de dano é sobrescrita pela repulsa do Minecraft ou zerada junto
+     * com o evento cancelado. Agora quem aplica é o arcabouço, no tique
+     * SEGUINTE — e a escala pela prontidão, que é o que esta arena ensina,
+     * continua sendo daqui.
+     */
     private void empurrar(Player quemBateu, Player alvo,
                           ArenaPvpCatalog planta, double prontidao) {
-        Vector direcao = alvo.getLocation().toVector()
-                .subtract(quemBateu.getLocation().toVector()).setY(0);
-        if (direcao.lengthSquared() < 1.0E-6) {
-            direcao = quemBateu.getLocation().getDirection().setY(0);
-        }
-        if (direcao.lengthSquared() < 1.0E-6) {
-            direcao = new Vector(1, 0, 0);
-        }
-        direcao.normalize().multiply(ArenaPvpCatalog.empurraoDoGolpe(prontidao,
-                planta.empurrao()));
-        direcao.setY(ArenaPvpCatalog.empurraoDoGolpe(prontidao,
-                planta.empurraoAltura()));
-        alvo.setVelocity(alvo.getVelocity().multiply(0.4).add(direcao));
-        alvo.setFallDistance(0f);
+        empurrar(alvo, quemBateu.getLocation(),
+                ArenaPvpCatalog.empurraoDoGolpe(prontidao, planta.empurrao()),
+                ArenaPvpCatalog.empurraoDoGolpe(prontidao,
+                        planta.empurraoAltura()));
     }
 
     private void avisarDoGolpe(Player dono, Player alvo, double prontidao,

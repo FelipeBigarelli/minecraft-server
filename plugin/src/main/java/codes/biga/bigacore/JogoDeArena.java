@@ -1382,6 +1382,20 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
      * @param deOnde de onde veio a pancada
      */
     protected void animarGolpe(Player alvo, Location deOnde) {
+        animarGolpe(alvo, deOnde, true);
+    }
+
+    /**
+     * O mesmo, para o jogo que empurra com a força DELE.
+     *
+     * A Arena PVP e o Sky Wars escalam o empurrão pela prontidão da espada —
+     * golpe no tempo certo joga mais longe que golpe apressado —, e isso é
+     * metade do que se aprende nessas duas arenas. Elas passam
+     * {@code false} aqui e chamam o {@code empurrar} de quatro argumentos
+     * com os próprios números; sem este parâmetro, o empurrão genérico do
+     * arcabouço seria agendado junto e os dois disputariam o mesmo tique.
+     */
+    protected void animarGolpe(Player alvo, Location deOnde, boolean empurra) {
         if (alvo == null || deOnde == null) {
             return;
         }
@@ -1392,7 +1406,9 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
                 ? onde.getYaw()
                 : ArenaComum.yawDaDirecao(dx, dz);
         alvo.playHurtAnimation(daPancada - onde.getYaw());
-        empurrar(alvo, deOnde);
+        if (empurra) {
+            empurrar(alvo, deOnde);
+        }
         // No mundo e não no jogador: o som de dor é a confirmação de quem
         // BATEU, e tocado só para o alvo ele nunca chega em quem precisa.
         alvo.getWorld().playSound(onde, Sound.ENTITY_PLAYER_HURT, 0.9f, 1.0f);
@@ -1462,7 +1478,13 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
 
     /** O mesmo, quando quem bateu é um jogador. */
     protected void animarGolpe(Player alvo, Player quemBateu) {
-        animarGolpe(alvo, quemBateu == null ? null : quemBateu.getLocation());
+        animarGolpe(alvo, quemBateu, true);
+    }
+
+    protected void animarGolpe(Player alvo, Player quemBateu,
+                               boolean empurra) {
+        animarGolpe(alvo, quemBateu == null ? null : quemBateu.getLocation(),
+                empurra);
     }
 
     /**

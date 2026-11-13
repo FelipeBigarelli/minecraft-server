@@ -206,6 +206,59 @@ saque:
   item-de-comida: COOKED_BEEF
   comida: 3
 
+  # -----------------------------------------------------------
+  #  AS FERRAMENTAS DO GÊNERO
+  #
+  #  Esta seção saiu de um estudo do SkyWarsReloaded, o plugin de
+  #  referência. O baú dele não é uma tabela de itens: é um punhado
+  #  de GRUPOS, cada um com uma porcentagem, e o baú recebe a soma
+  #  dos grupos que saíram. O grupo garantido dele (a faixa de
+  #  cima, que cai sempre) tem blocos, comida e — a parte que a
+  #  nossa arena não tinha — BALDE DE ÁGUA E BALDE DE LAVA. O grupo
+  #  de 40% tem bolas de neve, ovos e arco.
+  #
+  #  Faltavam aqui, e a falta era grande: nossa arena tinha espada,
+  #  armadura, arco e bloco de ponte, que é o equipamento. Faltava
+  #  o FERRAMENTAL — o que se usa no outro, e não em si mesmo. Em
+  #  Sky Wars o balde d'água é a jogada mais característica que
+  #  existe: lava-se o inimigo para fora da ponte sem encostar nele.
+  #  A lava é o contrário: fecha a ponte e cobra pedágio. E a bola
+  #  de neve é o empurrão a dez blocos de distância.
+  #
+  #  Cada ferramenta tem a SUA chance e é sorteada por baú, não por
+  #  ilha nem por partida: dois baús da mesma ilha quase nunca dão
+  #  a mesma coisa, e é isso que faz valer a pena abrir o segundo.
+  #
+  #  Nada disto entra no piso garantido. O piso é espada, comida,
+  #  armadura e ponte — o que impede alguém de abrir um baú e ficar
+  #  preso. Ferramenta é sorte boa, e sorte boa pode faltar.
+  # -----------------------------------------------------------
+  ferramentas:
+    # O balde d'água. Alto de propósito: é a jogada que define o
+    # gênero, e quem nunca abre um não aprende a usá-la.
+    #
+    # A água SOME sozinha depois de `balde-segundos`. Sem isso a
+    # primeira partida deixaria cachoeiras penduradas no vazio para
+    # sempre, e a segunda começaria num mapa diferente.
+    chance-de-agua: 35
+
+    # A lava. Metade da água porque ela é bem mais cruel: fecha
+    # ponte, e `dano-da-lava` cobra de quem pisar. Ela também some
+    # sozinha, pelo mesmo relógio.
+    chance-de-lava: 16
+
+    # As bolas de neve e quantas. Não tiram vida nenhuma: empurram.
+    # Num jogo em que todo mundo anda sobre uma fileira de blocos,
+    # empurrar vale mais que machucar.
+    chance-de-bolas: 45
+    bolas-de-neve: 8
+
+    # A pérola, e ela só existe no baú do MEIO. É a recompensa de
+    # atravessar: quem pegou o meio ganha a carta de fuga, e quem
+    # não atravessou não tem como responder a ela. Uma só — duas
+    # fariam do dono do meio alguém que não pode ser alcançado.
+    perolas-no-meio: 1
+
 regras:
   minimo: 2
   maximo: 16
@@ -255,6 +308,32 @@ regras:
   empurrao: 0.5
   empurrao-altura: 0.3
 
+  # O empurrão da BOLA DE NEVE, que é o que ela faz — ela não tira
+  # vida nenhuma. Menor que o da espada de propósito: a bola é um
+  # encosto de longe, não um golpe, e quem empurra com bola está
+  # dez blocos longe do perigo que está criando.
+  empurrao-da-bola: 0.45
+  empurrao-da-bola-alto: 0.3
+
+  # Quanto a LAVA tira por segundo, de quem estiver dentro dela.
+  #
+  # Ele é escrito porque TEM de ser: o dano do Minecraft está
+  # cancelado nesta arena inteira — a vida é número do plugin e os
+  # corações são só o mostrador. Sem esta linha, o balde de lava
+  # seria um balde de tinta laranja: fecharia a ponte e não cobraria
+  # nada de quem atravessasse. Doze por segundo mata em oito
+  # segundos de vida cheia; atravessar correndo custa caro e é
+  # possível, parar dentro é morte.
+  dano-da-lava: 12
+
+  # Quantos segundos a água e a lava do balde duram antes de secar.
+  #
+  # Elas secam porque este mundo não tem chão: água derramada na
+  # beira de uma ilha escorre para o vazio e fica lá, escorrendo,
+  # para sempre — a arena da segunda partida não seria a mesma da
+  # primeira. Dez segundos é tempo de a jogada acontecer e acabar.
+  balde-segundos: 10
+
   # Por quantos segundos o último golpe ainda dá o crédito da
   # queda no vazio a quem bateu.
   credito-segundos: 8
@@ -285,6 +364,9 @@ textos:
     - "só no meio a espada sobe de nível"
     - "só se quebra o bloco que alguém colocou"
     - "o anel cai no fim, uma ilha de cada vez, em ordem"
+    - "balde d'água lava o inimigo para fora da ponte"
+    - "a lava fecha a ponte e cobra pedágio"
+    - "a bola de neve empurra de longe e não machuca"
     - "o vazio não perdoa, e tem autor"
   escala-titulo: 2.8
   escala-placa: 1.6

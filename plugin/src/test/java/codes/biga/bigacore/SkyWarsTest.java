@@ -16,6 +16,7 @@ import java.util.Random;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -798,13 +799,186 @@ class SkyWarsTest {
     }
 
     /** Um sorteio de baú com os números do yml, no nível pedido. */
+    /**
+     * As chances das ferramentas usadas nos sorteios de teste.
+     *
+     * Não são as do yml: são números que deixam as três ferramentas
+     * ACONTECEREM e FALTAREM dentro de dez mil sorteios, que é o que os
+     * testes precisam conferir. Se fossem 0 ou 100, metade das perguntas
+     * abaixo não teria resposta.
+     */
+    private static final SkyWarsCatalog.Ferramentas FERRAMENTAS =
+            new SkyWarsCatalog.Ferramentas(35, 16, 45, 8);
+
+    // ------------------------------------------------------------------
+    //  As ferramentas do gênero
+    //
+    //  Vieram do estudo do SkyWarsReloaded, cujo baú garantido traz balde
+    //  d'água e balde de lava. A arena tinha o equipamento todo — espada,
+    //  armadura, arco, bloco de ponte — e nenhuma ferramenta, que é o que se
+    //  usa no OUTRO em vez de em si mesmo.
+    // ------------------------------------------------------------------
+
+    @Test
+    @DisplayName("as três ferramentas acontecem E faltam")
+    void asFerramentasAcontecemEFaltam() {
+        Random sorteio = new Random(90210);
+        int agua = 0;
+        int lava = 0;
+        int bolas = 0;
+        int quantos = 10_000;
+        for (int k = 0; k < quantos; k++) {
+            SkyWarsCatalog.Saque saque = sorteia(1, sorteio);
+            if (saque.agua()) {
+                agua++;
+            }
+            if (saque.lava()) {
+                lava++;
+            }
+            if (saque.bolas() > 0) {
+                bolas++;
+            }
+        }
+        // Nem nunca nem sempre: ferramenta que sai em todo baú é equipamento
+        // disfarçado, e ferramenta que nunca sai é linha morta no yml.
+        for (int[] conta : new int[][]{{agua, 35}, {lava, 16}, {bolas, 45}}) {
+            assertTrue(conta[0] > 0 && conta[0] < quantos,
+                    "ferramenta de " + conta[1] + "% saiu " + conta[0]
+                            + " vezes em " + quantos);
+            double visto = 100.0 * conta[0] / quantos;
+            assertEquals(conta[1], visto, 3.0,
+                    "a chance pedida era " + conta[1] + "% e saiu "
+                            + String.format("%.1f", visto) + "%");
+        }
+    }
+
+    @Test
+    @DisplayName("as bolas vêm na quantidade cheia ou não vêm")
+    void asBolasVemCheiasOuNaoVem() {
+        Random sorteio = new Random(4242);
+        for (int k = 0; k < 2_000; k++) {
+            int bolas = sorteia(2, sorteio).bolas();
+            assertTrue(bolas == 0 || bolas == 8,
+                    "veio um punhado quebrado de bolas: " + bolas);
+        }
+    }
+
+    /**
+     * O piso garantido não depende de sorte nenhuma das ferramentas.
+     *
+     * Com as três chances em zero, o baú tem de continuar dando espada,
+     * comida, armadura e blocos para a ponte. Ferramenta é sorte boa; o piso
+     * é o que impede alguém de abrir um baú e ficar preso na própria ilha.
+     */
+    @Test
+    @DisplayName("sem ferramenta nenhuma o piso continua de pé")
+    void semFerramentaOPisoContinua() {
+        Random sorteio = new Random(777);
+        SkyWarsCatalog.Ferramentas secas =
+                new SkyWarsCatalog.Ferramentas(0, 0, 0, 8);
+        for (int k = 0; k < 2_000; k++) {
+            SkyWarsCatalog.Saque saque = SkyWarsCatalog.sortearSaque(
+                    Material.matchMaterial(ESPADAS.get(1)),
+                    SkyWarsCatalog.pecasDaFamilia(ARMADURAS.get(1)),
+                    ARM_MINIMA, ARM_MAXIMA, BLOCOS_GARANTIDOS, BLOCOS_EXTRAS,
+                    CHANCE_ARCO, FLECHAS.get(1), CHANCE_CURA, CURAS_NA_ILHA,
+                    COMIDA, secas, sorteio);
+            assertFalse(saque.agua());
+            assertFalse(saque.lava());
+            assertEquals(0, saque.bolas());
+            assertNotNull(saque.espada());
+            assertTrue(saque.comida() > 0);
+            assertTrue(saque.armadura().size() >= ARM_MINIMA);
+            assertTrue(saque.blocos() >= BLOCOS_GARANTIDOS);
+        }
+    }
+
+    /**
+     * Mexer na chance de UMA ferramenta não pode mexer no resto do baú.
+     *
+     * É o motivo de as três serem sorteadas sempre, mesmo com chance zero:
+     * se o sorteio pulasse a linha da água quando a chance é 0, ele gastaria
+     * um valor a menos do gerador e TODO o resto do baú sairia diferente.
+     * Quem baixasse `chance-de-agua` no yml veria as espadas, as armaduras e
+     * os blocos mudarem junto, e não teria como saber por quê.
+     */
+    @Test
+    @DisplayName("mexer na chance da água não mexe no resto do baú")
+    void aChanceDaAguaNaoMexeNoResto() {
+        for (int semente = 0; semente < 200; semente++) {
+            SkyWarsCatalog.Saque com = comFerramentas(
+                    new SkyWarsCatalog.Ferramentas(100, 16, 45, 8), semente);
+            SkyWarsCatalog.Saque sem = comFerramentas(
+                    new SkyWarsCatalog.Ferramentas(0, 16, 45, 8), semente);
+            assertEquals(com.espada(), sem.espada());
+            assertEquals(com.armadura(), sem.armadura());
+            assertEquals(com.blocos(), sem.blocos());
+            assertEquals(com.arco(), sem.arco());
+            assertEquals(com.flechas(), sem.flechas());
+            assertEquals(com.curas(), sem.curas());
+            // E as OUTRAS duas ferramentas também não se mexem.
+            assertEquals(com.lava(), sem.lava());
+            assertEquals(com.bolas(), sem.bolas());
+            // Só a água muda, que é o que se pediu.
+            assertTrue(com.agua());
+            assertFalse(sem.agua());
+        }
+    }
+
+    private static SkyWarsCatalog.Saque comFerramentas(
+            SkyWarsCatalog.Ferramentas quais, long semente) {
+        return SkyWarsCatalog.sortearSaque(
+                Material.matchMaterial(ESPADAS.get(1)),
+                SkyWarsCatalog.pecasDaFamilia(ARMADURAS.get(1)),
+                ARM_MINIMA, ARM_MAXIMA, BLOCOS_GARANTIDOS, BLOCOS_EXTRAS,
+                CHANCE_ARCO, FLECHAS.get(1), CHANCE_CURA, CURAS_NA_ILHA,
+                COMIDA, quais, new Random(semente));
+    }
+
+    /**
+     * O yml tem de trazer as ferramentas, senão elas só existem no código.
+     *
+     * O padrão do catálogo cobriria a falta em silêncio, e a seção inteira
+     * ficaria invisível para quem for ajustar o jogo.
+     */
+    @Test
+    @DisplayName("o sky-wars.yml traz as ferramentas e o preço da lava")
+    void oYmlTrazAsFerramentas() throws Exception {
+        org.bukkit.configuration.file.YamlConfiguration config;
+        try (java.io.InputStream in = SkyWarsTest.class.getClassLoader()
+                .getResourceAsStream("sky-wars.yml")) {
+            config = org.bukkit.configuration.file.YamlConfiguration
+                    .loadConfiguration(new java.io.InputStreamReader(in,
+                            java.nio.charset.StandardCharsets.UTF_8));
+        }
+        for (String chave : List.of("saque.ferramentas.chance-de-agua",
+                "saque.ferramentas.chance-de-lava",
+                "saque.ferramentas.chance-de-bolas",
+                "saque.ferramentas.bolas-de-neve",
+                "saque.ferramentas.perolas-no-meio",
+                "regras.dano-da-lava", "regras.balde-segundos",
+                "regras.empurrao-da-bola")) {
+            assertTrue(config.contains(chave), "falta " + chave);
+        }
+        // A lava tem de MATAR em alguns segundos e não em um só: atravessar
+        // correndo é jogada legítima, parar dentro é que tem de ser morte.
+        int lava = config.getInt("regras.dano-da-lava");
+        int cheia = config.getInt("regras.vida-cheia");
+        assertTrue(lava > 0, "lava sem dano é um balde de tinta laranja");
+        assertTrue(lava * 4 <= cheia,
+                "a lava mata em " + (cheia / Math.max(1, lava))
+                        + "s: atravessar correndo ficou impossível");
+        assertTrue(config.getInt("regras.balde-segundos") >= 2,
+                "poça que seca antes de a jogada acontecer");
+    }
+
     private static SkyWarsCatalog.Saque sorteia(int nivel, Random sorteio) {
         return SkyWarsCatalog.sortearSaque(
                 Material.matchMaterial(ESPADAS.get(nivel)),
                 SkyWarsCatalog.pecasDaFamilia(ARMADURAS.get(nivel)),
                 ARM_MINIMA, ARM_MAXIMA, BLOCOS_GARANTIDOS, BLOCOS_EXTRAS,
                 CHANCE_ARCO, FLECHAS.get(nivel), CHANCE_CURA, CURAS_NA_ILHA,
-                COMIDA, sorteio);
+                COMIDA, FERRAMENTAS, sorteio);
     }
 
     @Test

@@ -482,6 +482,79 @@ public final class SkyWarsCatalog extends CatalogoDeArena {
         return Math.max(1, config.getInt("saque.comida", 3));
     }
 
+    // ------------------------------------------------------------------
+    //  As ferramentas do gênero
+    //
+    //  Vieram do estudo do SkyWarsReloaded: o baú dele carrega balde
+    //  d'água e balde de lava no grupo garantido e bolas de neve no grupo
+    //  de 40%. Nossa arena tinha o EQUIPAMENTO todo — espada, armadura,
+    //  arco, bloco de ponte — e nenhuma ferramenta, que é o que se usa no
+    //  outro em vez de em si mesmo. Num jogo em que todo mundo anda sobre
+    //  uma fileira de blocos, lavar alguém para fora da ponte é a jogada
+    //  mais característica que existe, e ela não estava no jogo.
+    // ------------------------------------------------------------------
+
+    public int chanceDeAgua() {
+        return porcento("saque.ferramentas.chance-de-agua", 35);
+    }
+
+    public int chanceDeLava() {
+        return porcento("saque.ferramentas.chance-de-lava", 16);
+    }
+
+    public int chanceDeBolas() {
+        return porcento("saque.ferramentas.chance-de-bolas", 45);
+    }
+
+    public int bolasDeNeve() {
+        return Math.max(1, Math.min(64,
+                config.getInt("saque.ferramentas.bolas-de-neve", 8)));
+    }
+
+    /** A pérola só existe no baú do meio: é a recompensa de atravessar. */
+    public int perolasNoMeio() {
+        return Math.max(0, Math.min(8,
+                config.getInt("saque.ferramentas.perolas-no-meio", 1)));
+    }
+
+    private int porcento(String chave, int padrao) {
+        return Math.max(0, Math.min(100, config.getInt(chave, padrao)));
+    }
+
+    public double empurraoDaBolaForca() {
+        return Math.max(0.0, Math.min(2.0,
+                config.getDouble("regras.empurrao-da-bola", 0.45)));
+    }
+
+    public double empurraoDaBolaAlto() {
+        return Math.max(0.0, Math.min(2.0,
+                config.getDouble("regras.empurrao-da-bola-alto", 0.3)));
+    }
+
+    /**
+     * Quanto a lava tira por segundo.
+     *
+     * Ele existe porque o dano do Minecraft está cancelado nesta arena
+     * inteira. Sem este número o balde de lava seria tinta laranja: fecharia
+     * a ponte e não cobraria nada de quem atravessasse.
+     */
+    public int danoDaLava() {
+        return Math.max(0, Math.min(vidaCheia(),
+                config.getInt("regras.dano-da-lava", 12)));
+    }
+
+    /**
+     * Quantos segundos a água e a lava do balde duram.
+     *
+     * Elas secam porque este mundo não tem chão: água derramada na beira
+     * escorre para o vazio e fica escorrendo para sempre, e a arena da
+     * segunda partida não seria a mesma da primeira.
+     */
+    public int baldeSegundos() {
+        return Math.max(2, Math.min(120,
+                config.getInt("regras.balde-segundos", 10)));
+    }
+
     /**
      * O que um baú de ilha recebeu.
      *
@@ -491,7 +564,20 @@ public final class SkyWarsCatalog extends CatalogoDeArena {
      * valor em vez de mexer num inventário.
      */
     public record Saque(Material espada, List<Material> armadura, int blocos,
-                        boolean arco, int flechas, int curas, int comida) {
+                        boolean arco, int flechas, int curas, int comida,
+                        boolean agua, boolean lava, int bolas) {
+    }
+
+    /**
+     * As chances das ferramentas, num pacote só.
+     *
+     * Num registro e não em quatro parâmetros soltos porque
+     * {@link #sortearSaque} já recebia onze: o décimo-quinto argumento
+     * posicional é onde se troca `chanceArco` por `chanceCura` sem o
+     * compilador notar, já que os dois são int.
+     */
+    public record Ferramentas(int chanceAgua, int chanceLava, int chanceBolas,
+                              int bolas) {
     }
 
     /**
@@ -519,7 +605,8 @@ public final class SkyWarsCatalog extends CatalogoDeArena {
                                      int minimo, int maximo, int blocosPiso,
                                      int blocosExtras, int chanceArco,
                                      int flechas, int chanceCura, int curas,
-                                     int comida, java.util.Random sorteio) {
+                                     int comida, Ferramentas ferramentas,
+                                     java.util.Random sorteio) {
         int quantasPecas = minimo + (maximo > minimo
                 ? sorteio.nextInt(maximo - minimo + 1) : 0);
         List<Material> baralho = new ArrayList<>(familia);
@@ -531,17 +618,31 @@ public final class SkyWarsCatalog extends CatalogoDeArena {
                 + (blocosExtras > 0 ? sorteio.nextInt(blocosExtras + 1) : 0);
         boolean temArco = flechas > 0 && sorteio.nextInt(100) < chanceArco;
         int temCura = sorteio.nextInt(100) < chanceCura ? curas : 0;
+
+        // As ferramentas, uma a uma e cada uma com a sua chance. Sorteadas
+        // SEMPRE, mesmo quando a chance é zero: o sorteio tem de gastar o
+        // mesmo número de valores do gerador em toda configuração, senão
+        // mudar `chance-de-agua` no yml mudaria todo o resto do baú junto.
+        boolean temAgua = sorteio.nextInt(100) < ferramentas.chanceAgua();
+        boolean temLava = sorteio.nextInt(100) < ferramentas.chanceLava();
+        boolean temBolas = sorteio.nextInt(100) < ferramentas.chanceBolas();
         return new Saque(espada, pecas, blocos, temArco,
-                temArco ? flechas : 0, temCura, comida);
+                temArco ? flechas : 0, temCura, comida, temAgua, temLava,
+                temBolas ? Math.max(1, ferramentas.bolas()) : 0);
     }
 
     /** O mesmo, com os números desta planta e o nível da partida. */
+    public Ferramentas ferramentas() {
+        return new Ferramentas(chanceDeAgua(), chanceDeLava(),
+                chanceDeBolas(), bolasDeNeve());
+    }
+
     public Saque sortearSaque(int nivel, java.util.Random sorteio) {
         return sortearSaque(espadaDoNivel(nivel),
                 pecasDaFamilia(armaduraDoNivel(nivel)), armaduraMinima(),
                 armaduraMaxima(), blocosGarantidos(), blocosExtras(),
                 chanceDeArco(), flechasDoNivel(nivel), chanceDeCura(),
-                curasNaIlha(), comida(), sorteio);
+                curasNaIlha(), comida(), ferramentas(), sorteio);
     }
 
     // ------------------------------------------------------------------

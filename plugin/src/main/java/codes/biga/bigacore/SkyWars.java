@@ -16,6 +16,8 @@ import org.bukkit.block.Chest;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.entity.Snowball;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.Action;
@@ -24,6 +26,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
+import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
@@ -126,6 +129,16 @@ public final class SkyWars extends JogoDeArena {
     /** Os blocos que alguém colocou: os únicos que podem ser quebrados. */
     private final Set<Long> colocados = new HashSet<>();
 
+    /**
+     * De quem é cada poça: posição do bloco de líquido → quem derramou.
+     *
+     * Existe por causa da mesma regra que dá autor à queda no vazio. Morrer
+     * numa lava que alguém despejou na sua ponte é morte com autor, e sem
+     * este mapa a lava seria a única coisa da arena que mata e não tem nome
+     * — o jogador veria "você caiu" sem saber quem o empurrou.
+     */
+    private final Map<Long, UUID> deQuemEhAPoca = new HashMap<>();
+
     private int nivel;
     private int nivelDoMeio;
     private boolean meioAberto;
@@ -185,6 +198,7 @@ public final class SkyWars extends JogoDeArena {
         avisadas = 0;
 
         apagarAsPontes(mundo);
+        secarAsPocas(mundo);
         limparFlechas(mundo);
         for (int k = 0; k < planta.ilhas(); k++) {
             obra.refazerIlha(mundo, planta, k);
@@ -233,6 +247,14 @@ public final class SkyWars extends JogoDeArena {
                 + "ilha na mesma partida; o resto do baú varia — mas tem "
                 + "<white>piso garantido</white>: espada, comida, uma peça "
                 + "de armadura e blocos para a ponte.</gray>");
+        dizer(jogador, "<gray>e pode vir <white>ferramenta</white>, que é o "
+                + "que se usa no outro: o <color:#6FC3FF>balde d'água</color> "
+                + "lava o inimigo para fora da ponte sem encostar nele, o "
+                + "<color:#FF8A3D>balde de lava</color> fecha a ponte e cobra "
+                + "<white>" + planta.danoDaLava() + "</white> por segundo de "
+                + "quem atravessar, e a <color:#DCE9FF>bola de neve</color> "
+                + "empurra de longe sem tirar vida nenhuma. As duas poças "
+                + "<white>secam em " + planta.baldeSegundos() + "s</white>.</gray>");
         dizer(jogador, "<gray>o baú do <white>meio</white> tem a espada do "
                 + "nível de cima e o <white>conjunto de armadura</white>, e "
                 + "só abre quando a <white>cúpula cair</white>, em <white>"
@@ -463,6 +485,18 @@ public final class SkyWars extends JogoDeArena {
         if (saque.curas() > 0) {
             dentro.setItem(13, new ItemStack(planta.itemDeCura(), saque.curas()));
         }
+        if (saque.agua()) {
+            dentro.setItem(9, marcar(Material.WATER_BUCKET, 1, planta,
+                    "Balde d'Água"));
+        }
+        if (saque.lava()) {
+            dentro.setItem(11, marcar(Material.LAVA_BUCKET, 1, planta,
+                    "Balde de Lava"));
+        }
+        if (saque.bolas() > 0) {
+            dentro.setItem(15, marcar(Material.SNOWBALL, saque.bolas(), planta,
+                    "Bolas de Neve"));
+        }
         dentro.setItem(17, new ItemStack(planta.itemDeComida(), planta.comida()));
     }
 
@@ -506,6 +540,18 @@ public final class SkyWars extends JogoDeArena {
                 dentro.setItem(13, new ItemStack(planta.itemDeCura(),
                         planta.curasNoBau()));
             }
+            // A pérola só existe aqui. É o que o meio tem a oferecer a quem
+            // já saqueou a própria ilha e precisa de um motivo para
+            // atravessar: a carta de fuga, que ninguém do anel tem como
+            // responder.
+            if (planta.perolasNoMeio() > 0) {
+                dentro.setItem(11, marcar(Material.ENDER_PEARL,
+                        planta.perolasNoMeio(), planta, "Pérola do Meio"));
+            }
+            dentro.setItem(15, marcar(Material.WATER_BUCKET, 1, planta,
+                    "Balde d'Água"));
+            dentro.setItem(17, marcar(Material.SNOWBALL,
+                    planta.bolasDeNeve(), planta, "Bolas de Neve"));
         }
     }
 
@@ -769,22 +815,23 @@ public final class SkyWars extends JogoDeArena {
         mostrarOPainel(alvo.getWorld(), planta);
     }
 
+    /**
+     * O empurrão do golpe, com a força DESTA arena.
+     *
+     * Era um {@code setVelocity} escrito aqui dentro, e ele nunca chegava ao
+     * jogador: velocidade escrita de dentro do evento de dano é sobrescrita
+     * pela repulsa do Minecraft ou zerada junto com o evento cancelado. Num
+     * jogo cuja arena inteira é uma fileira de blocos sobre o vazio, isso não
+     * era um detalhe de polimento — era a metade do jogo que não acontecia.
+     * Quem aplica agora é o arcabouço, no tique SEGUINTE; a escala pela
+     * prontidão continua sendo daqui.
+     */
     private void empurrar(Player quemBateu, Player alvo,
                           SkyWarsCatalog planta, double prontidao) {
-        Vector direcao = alvo.getLocation().toVector()
-                .subtract(quemBateu.getLocation().toVector()).setY(0);
-        if (direcao.lengthSquared() < 1.0E-6) {
-            direcao = quemBateu.getLocation().getDirection().setY(0);
-        }
-        if (direcao.lengthSquared() < 1.0E-6) {
-            direcao = new Vector(1, 0, 0);
-        }
-        direcao.normalize().multiply(ArenaPvpCatalog.empurraoDoGolpe(
-                prontidao, planta.empurrao()));
-        direcao.setY(ArenaPvpCatalog.empurraoDoGolpe(prontidao,
-                planta.empurraoAltura()));
-        alvo.setVelocity(alvo.getVelocity().multiply(0.4).add(direcao));
-        alvo.setFallDistance(0f);
+        empurrar(alvo, quemBateu.getLocation(),
+                ArenaPvpCatalog.empurraoDoGolpe(prontidao, planta.empurrao()),
+                ArenaPvpCatalog.empurraoDoGolpe(prontidao,
+                        planta.empurraoAltura()));
     }
 
     // ------------------------------------------------------------------
@@ -899,6 +946,197 @@ public final class SkyWars extends JogoDeArena {
         colocados.clear();
     }
 
+    // ------------------------------------------------------------------
+    //  AS FERRAMENTAS: o balde, a lava e a bola de neve
+    //
+    //  Vieram do estudo do SkyWarsReloaded, cujo baú garantido traz balde
+    //  d'água e balde de lava, e cujo grupo de 40% traz bolas de neve. Nossa
+    //  arena tinha o equipamento todo e nenhuma ferramenta: dava para bater
+    //  no outro e não dava para fazer nada COM o mapa.
+    // ------------------------------------------------------------------
+
+    /**
+     * O balde derramado: fica registrado, e seca sozinho.
+     *
+     * As duas coisas são obrigatórias, e por motivos diferentes.
+     *
+     * <p>REGISTRADO porque este é o único jogo com a regra "só se quebra o
+     * que alguém colocou" e porque a lava mata: morrer numa poça que alguém
+     * despejou na sua ponte é morte com autor, e sem o registro a lava seria
+     * a única coisa da arena que mata sem nome.
+     *
+     * <p>SECA porque este mundo não tem chão. Água derramada na beira de uma
+     * ilha escorre para o vazio e continua escorrendo para sempre — nenhuma
+     * reconstrução de ilha alcança uma coluna de água pendurada vinte blocos
+     * abaixo dela. Em três partidas o mapa estaria irreconhecível.
+     */
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+    public void aoDerramarBalde(PlayerBucketEmptyEvent evento) {
+        Player jogador = evento.getPlayer();
+        if (!nesteMundo(jogador.getWorld())) {
+            return;
+        }
+        if (!jogando() || !estaVivo(jogador)) {
+            evento.setCancelled(true);
+            return;
+        }
+        SkyWarsCatalog planta = planta2();
+        Block bloco = evento.getBlock();
+        int alcance = planta.ilhaAnel() + planta.ilhaRaio() + 4;
+        if (Math.abs(bloco.getX()) > alcance || Math.abs(bloco.getZ()) > alcance
+                || bloco.getY() <= planta.quedaY()
+                || bloco.getY() > planta.topoY() + planta.marcoAltura()) {
+            evento.setCancelled(true);
+            jogador.sendActionBar(plugin.mini().deserialize(
+                    "<color:#FF8A8A>fora da arena</color>"));
+            return;
+        }
+        long chave = ArenaComum.chave(bloco.getX(), bloco.getY(), bloco.getZ());
+        deQuemEhAPoca.put(chave, jogador.getUniqueId());
+        marcarParaSecar(jogador.getWorld(), chave, planta.baldeSegundos());
+        jogador.sendActionBar(plugin.mini().deserialize("<gray>a poça seca em "
+                + "<white>" + planta.baldeSegundos() + "s</white></gray>"));
+    }
+
+    /** Tira a fonte depois do prazo; o que escorreu drena sozinho. */
+    private void marcarParaSecar(World mundo, long chave, int segundos) {
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (deQuemEhAPoca.remove(chave) == null) {
+                return;
+            }
+            Block bloco = mundo.getBlockAt(ArenaComum.daChave(chave, 0),
+                    ArenaComum.daChave(chave, 1), ArenaComum.daChave(chave, 2));
+            if (bloco.getType() == Material.WATER
+                    || bloco.getType() == Material.LAVA) {
+                bloco.setType(Material.AIR, false);
+            }
+        }, Math.max(1L, segundos * 20L));
+    }
+
+    /** No começo de cada rodada: nenhuma poça da rodada passada sobrevive. */
+    private void secarAsPocas(World mundo) {
+        for (long chave : deQuemEhAPoca.keySet()) {
+            Block bloco = mundo.getBlockAt(ArenaComum.daChave(chave, 0),
+                    ArenaComum.daChave(chave, 1), ArenaComum.daChave(chave, 2));
+            if (bloco.getType() == Material.WATER
+                    || bloco.getType() == Material.LAVA) {
+                bloco.setType(Material.AIR, false);
+            }
+        }
+        deQuemEhAPoca.clear();
+    }
+
+    /**
+     * A lava cobra pedágio, uma vez por segundo.
+     *
+     * Ela precisa de código porque o dano do Minecraft está cancelado nesta
+     * arena inteira: a vida é número do plugin e os corações são o mostrador.
+     * Sem isto, o balde de lava seria um balde de tinta laranja — fecharia a
+     * ponte e deixaria quem atravessasse passar de graça.
+     *
+     * <p>O crédito vai para quem DERRAMOU, enquanto a poça for dele. É a
+     * mesma regra do vazio: toda morte desta arena tem autor.
+     */
+    private void cobrarALava(SkyWarsCatalog planta) {
+        if (planta.danoDaLava() <= 0) {
+            return;
+        }
+        for (Player jogador : new ArrayList<>(jogadoresDaArena())) {
+            if (!estaVivo(jogador)) {
+                continue;
+            }
+            Block pes = jogador.getLocation().getBlock();
+            Block corpo = pes.getRelative(0, 1, 0);
+            Block qual = pes.getType() == Material.LAVA ? pes
+                    : corpo.getType() == Material.LAVA ? corpo : null;
+            if (qual == null) {
+                continue;
+            }
+            Player dono = donoDaPoca(qual, jogador);
+            if (dono != null) {
+                aplicarDano(jogador, dono, planta, planta.danoDaLava(), 1.0,
+                        "lava");
+            } else {
+                queimarSemAutor(jogador, planta);
+            }
+        }
+    }
+
+    /**
+     * De quem é a lava que está queimando este jogador.
+     *
+     * Procura a fonte nas vizinhanças e não só no bloco pisado: lava escorre,
+     * e quem morre três blocos adiante morreu da mesma poça. Nunca devolve o
+     * próprio jogador — quem se queima na própria lava se queimou sozinho, e
+     * dar o crédito a si mesmo viraria ponto de graça.
+     */
+    private Player donoDaPoca(Block qual, Player quemPisou) {
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dy = -1; dy <= 2; dy++) {
+                for (int dz = -2; dz <= 2; dz++) {
+                    UUID quem = deQuemEhAPoca.get(ArenaComum.chave(
+                            qual.getX() + dx, qual.getY() + dy,
+                            qual.getZ() + dz));
+                    if (quem == null || quem.equals(quemPisou.getUniqueId())) {
+                        continue;
+                    }
+                    Player dono = Bukkit.getPlayer(quem);
+                    if (dono != null && estaVivo(dono)) {
+                        return dono;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Lava sem dono (a própria, ou a de quem já saiu): queima igual. */
+    private void queimarSemAutor(Player jogador, SkyWarsCatalog planta) {
+        UUID id = jogador.getUniqueId();
+        int sobrou = Math.max(0, vida.getOrDefault(id, planta.vidaCheia())
+                - planta.danoDaLava());
+        vida.put(id, sobrou);
+        mostrarVida(jogador);
+        jogador.sendActionBar(plugin.mini().deserialize("<color:#FF8A8A>-"
+                + planta.danoDaLava() + " de lava</color> <gray>· restam "
+                + "<white>" + sobrou + "</white></gray>"));
+        if (sobrou <= 0) {
+            eliminar(jogador);
+        }
+    }
+
+    /**
+     * A bola de neve: empurra e não machuca.
+     *
+     * Ela não tira vida de propósito. Num jogo em que todo mundo anda sobre
+     * uma fileira de blocos, empurrar JÁ é o dano — quem levou a bola no meio
+     * da ponte não perdeu vida nenhuma e perdeu a partida. Uma bola que
+     * também machucasse seria uma espada de dez blocos de alcance.
+     */
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = false)
+    public void aoAcertarBola(ProjectileHitEvent evento) {
+        Projectile tiro = evento.getEntity();
+        if (!(tiro instanceof Snowball)
+                || !(evento.getHitEntity() instanceof Player alvo)
+                || !nesteMundo(alvo.getWorld())) {
+            return;
+        }
+        if (!jogando() || !estaVivo(alvo)) {
+            return;
+        }
+        if (!(tiro.getShooter() instanceof Player quemJogou)
+                || quemJogou.equals(alvo) || !estaVivo(quemJogou)) {
+            return;
+        }
+        SkyWarsCatalog planta = planta2();
+        empurrar(alvo, quemJogou.getLocation(), planta.empurraoDaBolaForca(),
+                planta.empurraoDaBolaAlto());
+        animarGolpe(alvo, quemJogou, false);
+        quemJogou.sendActionBar(plugin.mini().deserialize("<color:#A8D8FF>"
+                + "bola em " + HubBuilder.escapar(alvo.getName())
+                + "</color> <gray>— sem dano, só empurrão</gray>"));
+    }
+
     private void limparFlechas(World mundo) {
         for (Entity bicho : mundo.getEntities()) {
             if (bicho instanceof AbstractArrow) {
@@ -946,6 +1184,7 @@ public final class SkyWars extends JogoDeArena {
         if (!meioAberto && agora >= planta.segundosParaOMeio()) {
             abrirOMeio(mundo, planta);
         }
+        cobrarALava(planta);
         cuidarDoCerco(mundo, planta, agora);
         avisarDoAr(planta, agora);
     }
