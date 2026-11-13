@@ -1,12 +1,15 @@
 package codes.biga.bigacore;
 
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -186,6 +189,53 @@ class SaguaoTextosTest {
             int preparo = ler(jogo).getInt("regras.preparo-segundos", 0);
             assertTrue(preparo >= 1 && preparo <= 15,
                     jogo + ": preparo de " + preparo + "s");
+        }
+    }
+
+    /**
+     * Nenhum construtor guarda cópia própria do código dos letreiros.
+     *
+     * Esta é a lição do defeito, e não o defeito.
+     * {@code TntRunBuilder} e {@code SpleefBuilder} nasceram antes do
+     * arcabouço e ficaram com uma cópia do empilhamento, com as mesmas
+     * alturas fixas. Consertar o {@link SaguaoPadrao} não consertou os dois
+     * — e o TNT Run era justamente o jogo da foto em que o defeito foi
+     * notado. Uma altura de letreiro escrita à mão num construtor é cópia
+     * voltando.
+     */
+    @Test
+    @DisplayName("nenhum construtor empilha letreiro por conta própria")
+    void ninguemTemCopiaDoEmpilhamento() {
+        File pasta = new File("src/main/java/codes/biga/bigacore");
+        Assumptions.assumeTrue(pasta.isDirectory(),
+                "fonte não disponível a partir daqui");
+
+        File[] arquivos = pasta.listFiles(
+                (dir, nome) -> nome.endsWith("Builder.java"));
+        assertTrue(arquivos != null && arquivos.length > 0,
+                "não achei construtor nenhum para conferir");
+
+        for (File arquivo : arquivos) {
+            String fonte;
+            try {
+                fonte = Files.readString(arquivo.toPath());
+            } catch (Exception erro) {
+                throw new IllegalStateException("não li " + arquivo, erro);
+            }
+            // O saguão é o único lugar onde painel de letreiro nasce numa
+            // altura calculada. Qualquer outro construtor que escreva uma
+            // altura dessas à mão está com uma cópia do empilhamento.
+            if (arquivo.getName().equals("SaguaoPadrao.java")) {
+                continue;
+            }
+            for (String proibida : List.of("y + 11.0", "y + 9.4", "y + 6.6",
+                    "y + 7.0")) {
+                assertFalse(fonte.contains(proibida),
+                        arquivo.getName() + " empilha letreiro com altura "
+                                + "fixa (" + proibida + "): é a cópia do "
+                                + "empilhamento voltando. Chame "
+                                + "SaguaoPadrao.escreverTextos.");
+            }
         }
     }
 }

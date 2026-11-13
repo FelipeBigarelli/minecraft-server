@@ -526,43 +526,24 @@ public final class TntRunBuilder implements ConstrutorDeArena {
     //  Letreiros
     // ------------------------------------------------------------------
 
-    private static final String REGUA = "<color:#55595E>";
-
     /**
      * O nome e as regras, no arco de volta.
      *
      * Yaw 0 porque quem lê está no meio do saguão olhando para o norte (yaw
      * 180), e um letreiro é legível por quem olha de yaw mais 180.
      */
+    /**
+     * Os letreiros, pelo mesmo código dos outros dezoito.
+     *
+     * Esta classe tinha cópia própria, com as alturas fixas 11.0 / 9.4 /
+     * 7.0 — e foi justamente aqui que o defeito apareceu em jogo: as seis
+     * regras do TNT Run quebram em muitas linhas, o painel cresce para os
+     * dois lados do ponto em que nasce, e ele subia por cima da frase e
+     * afundava no piso do saguão. Consertar só o {@link SaguaoPadrao} não
+     * consertava este jogo. Agora não há duas versões para divergir.
+     */
     private void escreverTextos(World mundo, TntRunCatalog planta) {
-        int y = planta.saguaoY();
-        int z = zDoArcoDeVolta(planta);
-        String cor = planta.corDoTexto();
-
-        StringBuilder regras = new StringBuilder();
-        regras.append(REGUA).append("────────");
-        for (String linha : planta.regrasEscritas()) {
-            regras.append("\n<gray>").append(HubBuilder.escapar(linha));
-        }
-
-        // Empilhados acima da fachada, com folga entre eles: um letreiro de
-        // cinco linhas cresce para os dois lados do ponto em que nasce, e
-        // apertados eles se atravessam — defeito que só se vê em jogo.
-        painel(mundo, new Location(mundo, 0.5, y + 11.0, z + 0.8),
-                plugin.mini().deserialize("<color:" + cor + "><bold>"
-                        + HubBuilder.escapar(planta.titulo()) + "</bold></color>"),
-                (float) planta.escalaTitulo(), planta.fundoDoTexto());
-
-        painel(mundo, new Location(mundo, 0.5, y + 9.4, z + 0.8),
-                plugin.mini().deserialize("<gray>"
-                        + HubBuilder.escapar(planta.subtitulo())),
-                (float) planta.escalaPlaca(), planta.fundoDoTexto());
-
-        if (!planta.regrasEscritas().isEmpty()) {
-            painel(mundo, new Location(mundo, 0.5, y + 7.0, z + 0.8),
-                    plugin.mini().deserialize(regras.toString()),
-                    (float) planta.escalaPlaca(), planta.fundoDoTexto());
-        }
+        SaguaoPadrao.escreverTextos(plugin, mundo, planta, TAG_PAINEL);
     }
 
     private void painel(World mundo, Location alvo, Component texto,

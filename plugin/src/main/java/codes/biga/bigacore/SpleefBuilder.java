@@ -534,40 +534,15 @@ public final class SpleefBuilder implements ConstrutorDeArena {
     //  Letreiros
     // ------------------------------------------------------------------
 
-    private static final String REGUA = "<color:#55595E>";
-
     /**
-     * O nome e as regras, acima da fachada.
+     * Os letreiros, pelo mesmo código dos outros dezoito.
      *
-     * Yaw 0 porque quem lê está no meio do saguão olhando para o norte (yaw
-     * 180), e um letreiro é legível por quem olha de yaw mais 180.
+     * Esta classe tinha cópia própria, com alturas fixas, e uma cópia é um
+     * lugar a mais para o mesmo defeito voltar: o bloco de regras crescia
+     * para cima da frase e para dentro do piso do saguão.
      */
     private void escreverTextos(World mundo, SpleefCatalog planta) {
-        int y = planta.saguaoY();
-        int z = zDoArcoDeVolta(planta);
-        String cor = planta.corDoTexto();
-
-        StringBuilder regras = new StringBuilder();
-        regras.append(REGUA).append("────────");
-        for (String linha : planta.regrasEscritas()) {
-            regras.append("\n<gray>").append(HubBuilder.escapar(linha));
-        }
-
-        ArenaComum.painel(mundo, new Location(mundo, 0.5, y + 11.0, z + 0.8),
-                plugin.mini().deserialize("<color:" + cor + "><bold>"
-                        + HubBuilder.escapar(planta.titulo()) + "</bold></color>"),
-                (float) planta.escalaTitulo(), planta.fundoDoTexto(), TAG_PAINEL);
-
-        ArenaComum.painel(mundo, new Location(mundo, 0.5, y + 9.4, z + 0.8),
-                plugin.mini().deserialize("<gray>"
-                        + HubBuilder.escapar(planta.subtitulo())),
-                (float) planta.escalaPlaca(), planta.fundoDoTexto(), TAG_PAINEL);
-
-        if (!planta.regrasEscritas().isEmpty()) {
-            ArenaComum.painel(mundo, new Location(mundo, 0.5, y + 6.6, z + 0.8),
-                    plugin.mini().deserialize(regras.toString()),
-                    (float) planta.escalaPlaca(), planta.fundoDoTexto(), TAG_PAINEL);
-        }
+        SaguaoPadrao.escreverTextos(plugin, mundo, planta, TAG_PAINEL);
     }
 
     // ------------------------------------------------------------------
