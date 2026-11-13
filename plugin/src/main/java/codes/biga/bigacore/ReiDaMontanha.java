@@ -144,13 +144,18 @@ public final class ReiDaMontanha extends JogoDeArena {
     }
 
     @Override
-    protected void aoComecarRodada(World mundo) {
+    protected void instrucoes(Player jogador) {
         ReiCatalog planta = planta2();
-        anunciar("<gray>ganha quem SOMAR <white>"
+        dizer(jogador, "<gray>ganha quem SOMAR <white>"
                 + planta.segundosParaGanhar() + "s</white> no topo. O seu "
                 + "relógio <white>não zera</white> quando você sai: ele para "
                 + "e continua na próxima subida — mas com dois lá em cima ele "
                 + "congela para os dois</gray>");
+    }
+
+    @Override
+    protected void aoComecarRodada(World mundo) {
+        ReiCatalog planta = planta2();
     }
 
     @Override

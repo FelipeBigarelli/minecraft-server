@@ -124,15 +124,22 @@ public final class Mineracao extends JogoDeArena {
     }
 
     @Override
-    protected void aoComecarRodada(World mundo) {
+    protected void instrucoes(Player jogador) {
         MineracaoCatalog planta = planta2();
         MineracaoCatalog.Veio melhor = planta.tabela().isEmpty() ? null
                 : planta.tabela().get(planta.tabela().size() - 1);
-        anunciar("<gray>a mina é nova — minério vale ponto, e o fundo paga "
+        dizer(jogador, "<gray>a mina é nova — minério vale ponto, e o fundo paga "
                 + "mais" + (melhor == null ? "" : ": <white>" + melhor.nome()
                 + "</white> vale <white>" + melhor.pontos() + "</white>")
                 + ". Os últimos <white>" + planta.dobroSegundos()
                 + "s</white> valem dobrado</gray>");
+    }
+
+    @Override
+    protected void aoComecarRodada(World mundo) {
+        MineracaoCatalog planta = planta2();
+        MineracaoCatalog.Veio melhor = planta.tabela().isEmpty() ? null
+                : planta.tabela().get(planta.tabela().size() - 1);
     }
 
     @Override

@@ -170,15 +170,20 @@ public final class Arco extends JogoDeArena {
     }
 
     @Override
-    protected void aoComecarRodada(World mundo) {
+    protected void instrucoes(Player jogador) {
         ArcoCatalog planta = planta2();
-        anunciar("<gray>a flecha é <white>infinita</white> e <white>um acerto "
+        dizer(jogador, "<gray>a flecha é <white>infinita</white> e <white>um acerto "
                 + "elimina</white>. Tiro sem puxar o arco é <white>recusado"
                 + "</white> — puxe <white>"
                 + ArcoCatalog.tiquesParaForca(planta.forcaMinima())
                 + " tiques</white> (um segundo) antes de soltar. A flecha "
                 + "<white>come o muro</white> em que acerta, então acampar "
                 + "gasta o próprio abrigo.</gray>");
+    }
+
+    @Override
+    protected void aoComecarRodada(World mundo) {
+        ArcoCatalog planta = planta2();
         anunciar("<color:" + planta.corDoTexto() + ">os primeiros "
                 + planta.gracaSegundos() + "s a flecha não mata</color> "
                 + "<gray>— corra para um muro</gray>");

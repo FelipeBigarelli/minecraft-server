@@ -216,18 +216,22 @@ public final class ArenaPvp extends JogoDeArena {
     }
 
     @Override
-    protected void aoComecarRodada(World mundo) {
+    protected void instrucoes(Player jogador) {
         ArenaPvpCatalog planta = planta2();
-        anunciar("<gray>todos têm a <white>mesma espada</white> e nada mais. "
+        dizer(jogador, "<gray>todos têm a <white>mesma espada</white> e nada mais. "
                 + "O golpe vale pela <white>prontidão</white> da espada: "
                 + "martelar o botão faz <white>um terço</white> do dano. "
                 + "Espere a espada carregar — são <white>"
                 + planta.periodoDoGolpe() + " tiques</white> entre "
-                + "golpes.</gray>");
-        anunciar("<gray>derrubar alguém devolve <white>"
+                + "golpes.</gray>");        dizer(jogador, "<gray>derrubar alguém devolve <white>"
                 + planta.curaPorEliminacao() + "</white> de vida, e os "
                 + "<white>" + planta.vaos() + " vãos</white> da beira dão no "
                 + "vazio.</gray>");
+    }
+
+    @Override
+    protected void aoComecarRodada(World mundo) {
+        ArenaPvpCatalog planta = planta2();
         anunciar("<color:" + planta.corDoTexto() + ">os primeiros "
                 + planta.gracaSegundos() + "s a espada não corta</color>");
         conferirOPeriodo(planta);

@@ -6,6 +6,7 @@ import org.bukkit.GameMode;
 import org.bukkit.GameRule;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Tag;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
@@ -15,12 +16,14 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.player.PlayerBedEnterEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -127,6 +130,7 @@ public final class BedWars extends JogoDeArena {
         return GameMode.SURVIVAL;
     }
 
+
     @Override
     protected String verboDaLargada() {
         return "DEFENDA!";
@@ -227,26 +231,29 @@ public final class BedWars extends JogoDeArena {
     }
 
     @Override
-    protected void aoComecarRodada(World mundo) {
+    protected void instrucoes(Player jogador) {
         BedWarsCatalog planta = planta2();
         int travessia = planta.travessiaEntreCamas();
-        anunciar("<gray>a sua cama custa <white>" + planta.golpesDaCama()
+        dizer(jogador, "<gray>a sua cama custa <white>" + planta.golpesDaCama()
                 + " golpes</white> e <white>cada golpe avisa</white> o seu "
                 + "time, com nome e lado. Ela também <white>se cura</white> um "
                 + "golpe a cada " + planta.curaDaCama() + "s sem ninguém "
-                + "encostar: expulsar o invasor devolve terreno.</gray>");
-        anunciar("<gray>a cama só pode ser batida depois de <white>"
+                + "encostar: expulsar o invasor devolve terreno.</gray>");        dizer(jogador, "<gray>a cama só pode ser batida depois de <white>"
                 + planta.gracaSegundos() + "s</white>, que é o tempo de ir de "
                 + "uma cama até a outra andando (<white>" + travessia
                 + " blocos</white>) — o rush não é de graça nem é "
-                + "proibido.</gray>");
-        anunciar("<gray>a lã sai <white>só do tear</white>, no meio, e é da "
+                + "proibido.</gray>");        dizer(jogador, "<gray>a lã sai <white>só do tear</white>, no meio, e é da "
                 + "<white>cor do seu time</white>. Não há gerador em casa: "
-                + "ficar parado não rende nada em lugar nenhum.</gray>");
-        anunciar("<gray>sem cama, o time passa a ter <white>"
+                + "ficar parado não rende nada em lugar nenhum.</gray>");        dizer(jogador, "<gray>sem cama, o time passa a ter <white>"
                 + planta.vidasDoTime() + " vidas</white> e <white>continua "
                 + "jogando</white> — ninguém vira espectador na primeira "
                 + "cama que cai.</gray>");
+    }
+
+    @Override
+    protected void aoComecarRodada(World mundo) {
+        BedWarsCatalog planta = planta2();
+        int travessia = planta.travessiaEntreCamas();
         mostrarOPainel(mundo, planta);
     }
 
@@ -436,12 +443,25 @@ public final class BedWars extends JogoDeArena {
         jogador.updateInventory();
     }
 
+    /**
+     * Põe o jogador de volta na base do time dele, jogando.
+     *
+     * O modo é o modo DO JOGO, e isto é um conserto. Aqui estava
+     * {@code devolverModo}, que é o helper de quem está SAINDO da arena: ele
+     * devolve o modo que o jogador tinha ANTES de entrar e apaga o registro
+     * ao devolver. Numa volta de respawn isso errava duas vezes — na
+     * primeira morte repunha o modo do hub em vez do modo do jogo, e na
+     * segunda não havia mais registro nenhum para repor, então o jogador
+     * ficava espectador até o fim da partida com a cama de pé. Era o relato
+     * de "morreu, virou espectador e não voltou".
+     */
     private void levarAoNascimento(Player jogador, BedWarsCatalog planta,
                                    int time) {
         jogador.teleport(BedWarsBuilder.pontoDaBase(jogador.getWorld(),
                 planta, time));
         jogador.setFallDistance(0f);
-        devolverModo(jogador);
+        jogador.setGameMode(modoDeJogo());
+        JogoDeArena.velocidadeNormal(jogador);
     }
 
     // ------------------------------------------------------------------
@@ -513,22 +533,19 @@ public final class BedWars extends JogoDeArena {
         }
     }
 
+    /**
+     * O empurrão do golpe, com a força escalada pela prontidão.
+     *
+     * A aplicação em si é a do arcabouço, que faz no tique SEGUINTE — dentro
+     * do evento de dano o Minecraft sobrescreve a velocidade e o jogador
+     * leva o golpe sem sair do lugar.
+     */
     private void empurrar(Player quemBateu, Player alvo,
                           BedWarsCatalog planta, double prontidao) {
-        Vector direcao = alvo.getLocation().toVector()
-                .subtract(quemBateu.getLocation().toVector()).setY(0);
-        if (direcao.lengthSquared() < 1.0E-6) {
-            direcao = quemBateu.getLocation().getDirection().setY(0);
-        }
-        if (direcao.lengthSquared() < 1.0E-6) {
-            direcao = new Vector(1, 0, 0);
-        }
-        direcao.normalize().multiply(ArenaPvpCatalog.empurraoDoGolpe(
-                prontidao, planta.empurrao()));
-        direcao.setY(ArenaPvpCatalog.empurraoDoGolpe(prontidao,
-                planta.empurraoAltura()));
-        alvo.setVelocity(alvo.getVelocity().multiply(0.4).add(direcao));
-        alvo.setFallDistance(0f);
+        empurrar(alvo, quemBateu.getLocation(),
+                ArenaPvpCatalog.empurraoDoGolpe(prontidao, planta.empurrao()),
+                ArenaPvpCatalog.empurraoDoGolpe(prontidao,
+                        planta.empurraoAltura()));
     }
 
     // ------------------------------------------------------------------
@@ -642,6 +659,77 @@ public final class BedWars extends JogoDeArena {
     // ------------------------------------------------------------------
     //  A cama
     // ------------------------------------------------------------------
+
+    /**
+     * O clique na cama: bater pela esquerda, e NUNCA dormir nela.
+     *
+     * <p><b>O direito está cancelado em TODA cama</b>, a sua e a do inimigo.
+     * O Minecraft responde ao clique direito numa cama marcando o ponto de
+     * renascimento do jogador ali — e num servidor onde o Bed Wars é um
+     * mundo entre outros, isso tira o jogador do mundo dele e o joga numa
+     * arena quando ele morrer em qualquer lugar. É o pior defeito que este
+     * jogo teve: um clique sem querer, dentro de uma partida, muda para onde
+     * o jogador nasce no servidor inteiro.
+     *
+     * <p><b>O esquerdo conta o golpe aqui</b>, e não só no quebrar bloco. O
+     * evento de quebra pode não chegar: quem tem permissão de administrador
+     * passa direto pela conferência, e qualquer plugin de proteção que
+     * cancele a quebra antes faz o golpe sumir sem aviso — foi o relato de
+     * "não dá para bater na cama". No clique o golpe sempre chega, e o
+     * período entre golpes impede que os dois caminhos contem duas vezes.
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
+    public void aoClicarNaCama(PlayerInteractEvent evento) {
+        Block bloco = evento.getClickedBlock();
+        if (bloco == null || !nesteMundo(bloco.getWorld())) {
+            return;
+        }
+        if (!ehCama(bloco.getType())) {
+            return;
+        }
+        Player jogador = evento.getPlayer();
+
+        if (evento.getAction() == Action.RIGHT_CLICK_BLOCK) {
+            evento.setCancelled(true);
+            jogador.sendActionBar(plugin.mini().deserialize(
+                    "<color:#FF8A8A>não se dorme na cama aqui</color> "
+                            + "<gray>— ela é o seu respawn na partida, "
+                            + "não no servidor</gray>"));
+            return;
+        }
+        if (evento.getAction() != Action.LEFT_CLICK_BLOCK) {
+            return;
+        }
+        evento.setCancelled(true);
+        if (!jogando() || !estaVivo(jogador)
+                || esperando.contains(jogador.getUniqueId())) {
+            return;
+        }
+        BedWarsCatalog planta = planta2();
+        int qual = BedWarsBuilder.camaDoBloco(bloco, planta);
+        if (qual != BedWarsCatalog.FORA) {
+            baterNaCama(jogador, planta, qual);
+        }
+    }
+
+    /**
+     * Nem deitar.
+     *
+     * O clique direito já está cancelado, mas este evento também chega por
+     * outros caminhos — um plugin, um comando — e deitar na cama marca o
+     * renascimento do mesmo jeito.
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
+    public void aoDeitar(PlayerBedEnterEvent evento) {
+        if (nesteMundo(evento.getPlayer().getWorld())) {
+            evento.setCancelled(true);
+        }
+    }
+
+    /** Todo bloco de cama, de qualquer cor. */
+    static boolean ehCama(Material material) {
+        return material != null && Tag.BEDS.isTagged(material);
+    }
 
     /**
      * Quebrar: a cama conta golpes, e o resto só se quebra se foi posto.

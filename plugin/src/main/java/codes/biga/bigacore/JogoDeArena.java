@@ -159,6 +159,27 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
     protected void aoComecarRodada(World mundo) {
     }
 
+    /**
+     * As regras do jogo, ditas no SAGUÃO e para um jogador só.
+     *
+     * Elas moravam no {@link #aoComecarRodada}, e lá não serviam para nada:
+     * quatro parágrafos aparecem no bate-papo no instante em que o chão
+     * começa a sumir, com o jogador correndo. Quem precisa das regras é
+     * quem ainda não entrou, e esse está parado no saguão esperando a fila
+     * encher — é ali que dá tempo de ler.
+     *
+     * <p>Para um jogador só, e não para a arena: quem entra no meio de uma
+     * partida em curso recebe as regras sem encher o bate-papo de quem já
+     * está jogando.
+     */
+    protected void instrucoes(Player jogador) {
+    }
+
+    /** Uma linha de instrução, no bate-papo de um jogador só. */
+    protected void dizer(Player jogador, String mini) {
+        jogador.sendMessage(plugin.mini().deserialize(mini));
+    }
+
     protected void aoTerminarRodada() {
     }
 
@@ -474,6 +495,7 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
             jogador.showBossBar(barra);
         }
         aoEntrarNaArena(jogador);
+        instrucoes(jogador);
 
         // Administrador voando não é jogador: nem muda de modo, nem conta para
         // o mínimo, nem é largado numa rodada.
@@ -1370,9 +1392,72 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
                 ? onde.getYaw()
                 : ArenaComum.yawDaDirecao(dx, dz);
         alvo.playHurtAnimation(daPancada - onde.getYaw());
+        empurrar(alvo, deOnde);
         // No mundo e não no jogador: o som de dor é a confirmação de quem
         // BATEU, e tocado só para o alvo ele nunca chega em quem precisa.
         alvo.getWorld().playSound(onde, Sound.ENTITY_PLAYER_HURT, 0.9f, 1.0f);
+    }
+
+    /**
+     * O empurrão do golpe.
+     *
+     * Faltava, e a falta era visível: o golpe piscava vermelho, tirava vida
+     * e deixava os dois jogadores exatamente onde estavam. Quem apanhava não
+     * sentia nada, quem batia não via nada acontecer, e em Sky Wars e Bed
+     * Wars o empurrão não é enfeite — derrubar é metade do jogo.
+     *
+     * <p>Ele não vinha de graça porque estes jogos calculam o dano SOZINHOS,
+     * sem passar pelo dano do Minecraft: sem o dano baunilha não há repulsa
+     * baunilha. O jeito de ter os dois é este, aplicar a repulsa à mão.
+     *
+     * <p>A conta é a do Minecraft: a velocidade de agora vale metade, o
+     * empurrão soma por cima, e a subida tem teto — sem o teto, dois golpes
+     * seguidos jogam o jogador para fora do mapa.
+     */
+    protected void empurrar(Player alvo, Location deOnde) {
+        empurrar(alvo, deOnde, forcaDoEmpurrao(), alturaDoEmpurrao());
+    }
+
+    /** O mesmo, com a força dita pelo jogo em vez da do config.yml. */
+    protected void empurrar(Player alvo, Location deOnde, double forca,
+                            double alto) {
+        if (alvo == null || deOnde == null) {
+            return;
+        }
+        Location onde = alvo.getLocation();
+        double[] fuga = ArenaComum.empurrao(
+                onde.getX() - deOnde.getX(), onde.getZ() - deOnde.getZ(),
+                alvo.getVelocity().getX(), alvo.getVelocity().getY(),
+                alvo.getVelocity().getZ(),
+                forca, alto, tetoDoEmpurrao());
+
+        // NO TIQUE SEGUINTE, e esta linha é o conserto inteiro.
+        //
+        // Aplicar a velocidade DENTRO do evento de dano não funciona: o
+        // Minecraft resolve o empurrão dele depois do evento e sobrescreve
+        // o nosso, e quando o evento é cancelado — que é o caso em todos os
+        // vinte, porque o dano é calculado aqui — o cancelamento devolve a
+        // velocidade de antes. Nos dois casos o jogador leva o golpe e não
+        // sai do lugar, que foi o relato.
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            if (alvo.isOnline()) {
+                alvo.setVelocity(new org.bukkit.util.Vector(
+                        fuga[0], fuga[1], fuga[2]));
+                alvo.setFallDistance(0f);
+            }
+        });
+    }
+
+    protected double forcaDoEmpurrao() {
+        return plugin.getConfig().getDouble("minigames.empurrao", 0.42);
+    }
+
+    protected double alturaDoEmpurrao() {
+        return plugin.getConfig().getDouble("minigames.empurrao-alto", 0.36);
+    }
+
+    protected double tetoDoEmpurrao() {
+        return plugin.getConfig().getDouble("minigames.empurrao-teto", 0.42);
     }
 
     /** O mesmo, quando quem bateu é um jogador. */
@@ -1409,11 +1494,28 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
         }
     }
 
+    /**
+     * Quebrar bloco na arena.
+     *
+     * O passe de administrador vale só para quem NÃO está jogando. Antes
+     * valia sempre, e isso fazia o jogo ignorar as próprias regras para o
+     * dono do servidor: no Bed Wars a cama dele saía num golpe sem contar
+     * golpe nenhum, e testar o jogo virava testar outro jogo. Quem entrou
+     * na rodada joga a rodada; quem está de criativo olhando continua
+     * podendo mexer na arena.
+     */
     @EventHandler(ignoreCancelled = true)
     public void aoQuebrar(BlockBreakEvent evento) {
-        if (nesteMundo(evento.getBlock().getWorld())
-                && !evento.getPlayer().hasPermission("bigacore.admin")
-                && !permiteQuebrar(evento)) {
+        Player jogador = evento.getPlayer();
+        if (!nesteMundo(evento.getBlock().getWorld())) {
+            return;
+        }
+        if (jogador.getGameMode() == GameMode.CREATIVE
+                || (!estaVivo(jogador)
+                        && jogador.hasPermission("bigacore.admin"))) {
+            return;
+        }
+        if (!permiteQuebrar(evento)) {
             evento.setCancelled(true);
         }
     }

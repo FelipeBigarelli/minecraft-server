@@ -161,6 +161,25 @@ hub:
 minigames:
   mundo: minigames
 
+  # O EMPURRÃO DO GOLPE.
+  #
+  # Os vinte jogos calculam o dano SOZINHOS, sem passar pelo dano do
+  # Minecraft — e sem dano baunilha não há repulsa baunilha. O golpe
+  # piscava vermelho, tirava vida e deixava os dois jogadores
+  # exatamente onde estavam. Isto repõe a repulsa à mão.
+  #
+  # 'empurrao' é o quanto o alvo anda para trás, em blocos por tique;
+  # 'empurrao-alto' é o quanto ele sobe; 'empurrao-teto' é o máximo
+  # que a subida pode valer depois de somar a velocidade que ele já
+  # tinha. Sem o teto, dois golpes seguidos jogam o jogador por cima
+  # do mapa em vez de para o lado.
+  #
+  # 0.42 / 0.36 é perto do Minecraft. Subir isso faz de Sky Wars e Bed
+  # Wars um jogo de empurrar e não de bater.
+  empurrao: 0.42
+  empurrao-alto: 0.36
+  empurrao-teto: 0.42
+
   # O que não se digita dentro de uma arena de minigame.
   #
   # /speed foi o que motivou a lista: ele transforma qualquer jogo de

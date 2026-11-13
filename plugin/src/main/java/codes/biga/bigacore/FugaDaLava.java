@@ -338,14 +338,19 @@ public final class FugaDaLava extends JogoDeArena {
     }
 
     @Override
-    protected void aoComecarRodada(World mundo) {
+    protected void instrucoes(Player jogador) {
         LavaCatalog planta = planta2();
-        anunciar("<gray>a lava começa a subir em <white>" + planta.carenciaSegundos()
+        dizer(jogador, "<gray>a lava começa a subir em <white>" + planta.carenciaSegundos()
                 + "s</white> e leva <white>"
                 + LavaCatalog.segundosAte(planta.altura(), planta.segundosPorFiada(),
                         planta.aceleraACada())
                 + "s</white> até o topo — são <white>" + planta.altura()
                 + "</white> fiadas de rampa</gray>");
+    }
+
+    @Override
+    protected void aoComecarRodada(World mundo) {
+        LavaCatalog planta = planta2();
     }
 
     /** Quem está mais alto, para o anúncio do fim. */

@@ -129,16 +129,21 @@ public final class Sorte extends JogoDeArena {
     }
 
     @Override
-    protected void aoComecarRodada(World mundo) {
+    protected void instrucoes(Player jogador) {
         SorteCatalog planta = planta2();
-        tiqueDaFase = planta.tempoEscolha() * 20L;
-        anunciar("<gray>o dado é <white>justo</white>: toda fatia é <white>1 em "
+        dizer(jogador, "<gray>o dado é <white>justo</white>: toda fatia é <white>1 em "
                 + planta.setores() + "</white>. O prêmio da rodada é "
                 + "<white>dividido</white> por quantos escolherem a mesma "
                 + "fatia — a cheia paga <white>zero</white>. Pular no "
                 + "<color:#E8A87C>banco do meio</color> guarda o que você tem "
                 + "e te tira da partida; <white>cair não guarda nada</white>."
                 + "</gray>");
+    }
+
+    @Override
+    protected void aoComecarRodada(World mundo) {
+        SorteCatalog planta = planta2();
+        tiqueDaFase = planta.tempoEscolha() * 20L;
         anunciarARodada(mundo, planta);
     }
 

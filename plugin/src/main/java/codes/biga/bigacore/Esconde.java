@@ -214,15 +214,22 @@ public final class Esconde extends JogoDeArena {
     }
 
     @Override
-    protected void aoComecarRodada(World mundo) {
+    protected void instrucoes(Player jogador) {
         EscondeCatalog planta = planta2();
-        anunciar("<gray>quem se esconde ganha <white>"
+        dizer(jogador, "<gray>quem se esconde ganha <white>"
                 + planta.pontosPorSegundo() + " ponto por segundo</white> de "
-                + "pé; cada captura vale <white>" + valorDaCaptura
-                + "</white>. Os caçadores saem da cabine em <white>"
+                + "pé; cada captura paga ao caçador o que o escondido "
+                + "deixou de ganhar, e sobreviver até o fim vale <white>"
+                + planta.premioDeSobreviver() + "</white>. Os caçadores saem "
+                + "da cabine em <white>"
                 + planta.segredoSegundos() + "s</white> — fique <white>parado "
                 + "um segundo</white> num lugar de caixote para "
                 + "<color:" + planta.corDoTexto() + ">ENCAIXAR</color></gray>");
+    }
+
+    @Override
+    protected void aoComecarRodada(World mundo) {
+        EscondeCatalog planta = planta2();
         mostrarOPainel(mundo, planta);
         for (Player jogador : jogadoresDaArena()) {
             boolean caca = cacadores.contains(jogador.getUniqueId());

@@ -370,4 +370,51 @@ public final class ArenaComum {
             }
         }
     }
+
+    // ------------------------------------------------------------------
+    //  O empurrão do golpe
+    // ------------------------------------------------------------------
+
+    /**
+     * A velocidade que o alvo passa a ter depois de levar um golpe.
+     *
+     * A conta do Minecraft, escrita aqui para o teste medir sem servidor: a
+     * velocidade de agora vale METADE, o empurrão soma por cima na direção
+     * de fuga, e a subida tem TETO.
+     *
+     * <p>Os três pedaços são necessários. Sem a metade, golpes seguidos
+     * somariam velocidade sem limite. Sem o teto na subida, dois golpes
+     * jogam o jogador por cima do mapa em vez de para o lado — que é o
+     * contrário do que empurrar quer dizer. E a direção é horizontal pura:
+     * o eixo vertical vem do {@code alto}, não da posição de quem bateu, ou
+     * um golpe vindo de baixo pregaria o alvo no chão.
+     *
+     * @param dx    quanto o alvo está a LESTE de quem bateu
+     * @param dz    quanto o alvo está ao SUL de quem bateu
+     * @param vx    a velocidade que o alvo já tinha
+     * @param forca o empurrão horizontal, em blocos por tique
+     * @param alto  o empurrão para cima
+     * @param teto  o máximo que a parte de cima pode valer
+     * @return {x, y, z} da velocidade nova
+     */
+    public static double[] empurrao(double dx, double dz, double vx, double vy,
+                                    double vz, double forca, double alto,
+                                    double teto) {
+        double longe = Math.sqrt(dx * dx + dz * dz);
+        double ux;
+        double uz;
+        if (longe < 1.0E-6) {
+            // Em cima um do outro: empurra para o norte, que é melhor do
+            // que dividir por zero e melhor do que não empurrar.
+            ux = 0.0;
+            uz = -1.0;
+        } else {
+            ux = dx / longe;
+            uz = dz / longe;
+        }
+        return new double[]{
+                vx / 2 + ux * forca,
+                Math.min(teto, vy / 2 + alto),
+                vz / 2 + uz * forca};
+    }
 }

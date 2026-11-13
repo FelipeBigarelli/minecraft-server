@@ -163,12 +163,17 @@ public final class GuerraDeNeve extends JogoDeArena {
     }
 
     @Override
-    protected void aoComecarRodada(World mundo) {
+    protected void instrucoes(Player jogador) {
         NeveCatalog planta = planta2();
-        anunciar("<gray>cada um tem <white>" + planta.vidas()
+        dizer(jogador, "<gray>cada um tem <white>" + planta.vidas()
                 + "</white> vidas e bola de neve sem fim — o campo começa a "
                 + "encolher em <white>" + planta.apertoSegundos()
                 + "s</white></gray>");
+    }
+
+    @Override
+    protected void aoComecarRodada(World mundo) {
+        NeveCatalog planta = planta2();
     }
 
     // ------------------------------------------------------------------

@@ -292,6 +292,7 @@ public final class TntRun implements Listener, JogoDeMinigame {
     }
 
     private void entrou(Player jogador) {
+        instrucoes(jogador);
         // Quem chegou com /speed ligado no hub não traz a velocidade
         // para dentro da arena.
         JogoDeArena.velocidadeNormal(jogador);
@@ -1304,5 +1305,31 @@ public final class TntRun implements Listener, JogoDeMinigame {
                 && !RegrasDoHub.nascimentoEhDeAdmin(evento.getSpawnReason())) {
             evento.setCancelled(true);
         }
+    }
+
+    /**
+     * As regras, no SAGUÃO e para um jogador só.
+     *
+     * Não na largada: quatro parágrafos no bate-papo no instante em que o
+     * chão começa a sumir não são lidos por ninguém. Quem precisa das
+     * regras está parado aqui esperando a fila encher.
+     */
+    private void instrucoes(Player jogador) {
+        TntRunCatalog planta = plugin.tntRunCatalog();
+        dizer(jogador, "<gray>o chão some <white>atrás de você</white>: "
+                + "pisou, conta <white>" + planta.derreteTicks() + " tiques"
+                + "</white> e cai. Parar é o mesmo que cavar um buraco "
+                + "debaixo dos próprios pés.</gray>");
+        dizer(jogador, "<gray>são <white>" + planta.pisos() + " pisos</white> "
+                + "empilhados: cair no de baixo <white>não elimina</white>, dá "
+                + "uma segunda chance. Abaixo do último é que acaba.</gray>");
+        dizer(jogador, "<gray>a <white>beira escura</white> é o aviso de onde "
+                + "o disco termina, e ela derrete igual ao resto — acampar na "
+                + "borda não salva ninguém.</gray>");
+    }
+
+    /** Uma linha de instrução, no bate-papo de um jogador só. */
+    private void dizer(Player jogador, String mini) {
+        jogador.sendMessage(plugin.mini().deserialize(mini));
     }
 }

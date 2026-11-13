@@ -279,9 +279,13 @@ public final class Parkour extends JogoDeArena {
     }
 
     @Override
-    protected void aoComecarRodada(World mundo) {
-        anunciar("<gray>são <white>" + planta2().saltos() + "</white> saltos e "
+    protected void instrucoes(Player jogador) {
+        dizer(jogador, "<gray>são <white>" + planta2().saltos() + "</white> saltos e "
                 + "<white>" + (planta2().saltos() / planta2().checkpointACada())
                 + "</white> checkpoints — cair não elimina</gray>");
+    }
+
+    @Override
+    protected void aoComecarRodada(World mundo) {
     }
 }

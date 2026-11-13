@@ -225,24 +225,37 @@ public final class SkyWars extends JogoDeArena {
     }
 
     @Override
-    protected void aoComecarRodada(World mundo) {
+    protected void instrucoes(Player jogador) {
         SkyWarsCatalog planta = planta2();
-        anunciar("<gray>você largou <white>sem nada</white>: o saque está no "
-                + "<white>" + planta.bausDaIlha() + " baú(s)</white> da sua "
-                + "ilha. Esta partida saiu no nível <white>"
-                + nomeBonito(planta.espadaDoNivel(nivel)) + "</white> — a "
-                + "espada é <white>a mesma em toda ilha</white>, o resto do "
-                + "baú varia.</gray>");
-        anunciar("<gray>o baú do meio tem <white>"
-                + nomeBonito(planta.espadaDoNivel(nivelDoMeio))
-                + "</white> e o <white>conjunto de armadura</white>, e abre em "
-                + "<white>" + planta.segundosParaOMeio() + "s</white>, quando "
-                + "a cúpula cair — chegar antes ganha <white>posição</white>, "
-                + "não o baú.</gray>");
-        anunciar("<gray>só se quebra o <white>bloco que alguém colocou</white>: "
-                + "as ilhas não se mineram. E em <white>"
+        dizer(jogador, "<gray>você larga <white>sem nada</white>: o saque "
+                + "está nos <white>" + planta.bausDaIlha() + " baú(s)</white> "
+                + "da sua ilha. A <white>espada</white> é a mesma em toda "
+                + "ilha na mesma partida; o resto do baú varia — mas tem "
+                + "<white>piso garantido</white>: espada, comida, uma peça "
+                + "de armadura e blocos para a ponte.</gray>");
+        dizer(jogador, "<gray>o baú do <white>meio</white> tem a espada do "
+                + "nível de cima e o <white>conjunto de armadura</white>, e "
+                + "só abre quando a <white>cúpula cair</white>, em <white>"
+                + planta.segundosParaOMeio() + "s</white> — chegar antes "
+                + "ganha posição, não o baú.</gray>");
+        dizer(jogador, "<gray>só se quebra o <white>bloco que alguém "
+                + "colocou</white>: as ilhas não se mineram. E em <white>"
                 + planta.segundosDeCerco() + "s</white> o anel começa a cair, "
                 + "uma ilha de cada vez, <white>dando a volta</white>.</gray>");
+    }
+
+    @Override
+    protected void aoComecarRodada(World mundo) {
+        SkyWarsCatalog planta = planta2();
+        // O que sobrou aqui é o que só esta rodada sabe: que espada saiu.
+        // As regras do jogo são ditas no saguão, em instrucoes().
+        anunciar("<color:" + planta.corDoTexto() + ">"
+                + nomeBonito(planta.espadaDoNivel(nivel)) + "</color>"
+                + "<gray> é a espada desta partida \u2014 igual em toda ilha. "
+                + "No meio, <white>"
+                + nomeBonito(planta.espadaDoNivel(nivelDoMeio))
+                + "</white> e a armadura, em <white>"
+                + planta.segundosParaOMeio() + "s</white></gray>");
         mostrarOPainel(mundo, planta);
     }
 

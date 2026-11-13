@@ -204,6 +204,20 @@ public final class BuildBattle extends JogoDeArena {
     }
 
     @Override
+    protected void instrucoes(Player jogador) {
+        BuildBattleCatalog planta = planta2();
+        dizer(jogador, "<gray>você tem <white>" + planta.segundosDeObra()
+                + "s</white> de obra num lote só seu, com uma paleta que "
+                + "<white>cabe inteira no inventário</white>, e durante a "
+                + "obra você <white>não sai do seu lote</white>.</gray>");
+        dizer(jogador, "<gray>depois tem um <white>passeio</white> sem voto e "
+                + "depois a <white>volta do voto</white>: quando você votar "
+                + "no primeiro lote, já vai ter visto todos. E "
+                + "<white>dar nota baixa para todos não levanta a sua</white> "
+                + "— a conta usa a ordem da sua cédula, não as notas.</gray>");
+    }
+
+    @Override
     protected void aoComecarRodada(World mundo) {
         BuildBattleCatalog planta = planta2();
         tituloEmTodos("<color:" + planta.corDoTexto() + ">" + tema
@@ -214,11 +228,6 @@ public final class BuildBattle extends JogoDeArena {
                 + "<white>" + paleta.size() + " blocos</white> e cabe inteira "
                 + "no inventário, e durante a obra você <white>não sai do seu "
                 + "lote</white>.</gray>");
-        anunciar("<gray>depois tem um <white>passeio</white> sem voto e "
-                + "depois a <white>volta do voto</white>: quando você votar "
-                + "no primeiro lote, já vai ter visto todos. E "
-                + "<white>dar nota baixa para todos não levanta a sua</white> "
-                + "— a conta usa a ordem da sua cédula, não as notas.</gray>");
         mostrarOPainel(mundo, planta);
     }
 

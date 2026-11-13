@@ -161,12 +161,17 @@ public final class Quiz extends JogoDeArena {
     }
 
     @Override
-    protected void aoComecarRodada(World mundo) {
+    protected void instrucoes(Player jogador) {
         QuizCatalog planta = planta2();
-        anunciar("<gray>são <white>" + rodada.size() + " perguntas</white>, do "
+        dizer(jogador, "<gray>são <white>" + planta.perguntasPorRodada() + " perguntas</white>, do "
                 + "fácil ao difícil. <white>" + planta.tempoResposta()
                 + " segundos</white> para pisar na resposta — e ficar no átrio "
                 + "conta como <white>errar</white></gray>");
+    }
+
+    @Override
+    protected void aoComecarRodada(World mundo) {
+        QuizCatalog planta = planta2();
         proximaPergunta(mundo);
     }
 

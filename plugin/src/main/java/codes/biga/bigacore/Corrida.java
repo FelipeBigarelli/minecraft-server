@@ -417,11 +417,16 @@ public final class Corrida extends JogoDeArena {
     }
 
     @Override
-    protected void aoComecarRodada(World mundo) {
+    protected void instrucoes(Player jogador) {
         CorridaCatalog planta = planta2();
-        anunciar("<gray>são <white>" + planta.voltas() + "</white> voltas de <white>"
+        dizer(jogador, "<gray>são <white>" + planta.voltas() + "</white> voltas de <white>"
                 + planta.quantosBlocosDePista() + "</white> blocos — as <white>"
                 + planta.atalhos().length + "</white> pontes de ouro cortam caminho "
                 + "sobre o vazio</gray>");
+    }
+
+    @Override
+    protected void aoComecarRodada(World mundo) {
+        CorridaCatalog planta = planta2();
     }
 }

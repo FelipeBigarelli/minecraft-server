@@ -139,14 +139,19 @@ public final class Pescaria extends JogoDeArena {
     }
 
     @Override
-    protected void aoComecarRodada(World mundo) {
+    protected void instrucoes(Player jogador) {
         PescariaCatalog planta = planta2();
-        anunciar("<gray>são <white>" + planta.pocos().size() + " poços</white> "
+        dizer(jogador, "<gray>são <white>" + planta.pocos().size() + " poços</white> "
                 + "e todos pagam o mesmo por segundo — o que muda é o ritmo. "
                 + "Poço que é muito pescado <white>cansa</white>, e <white>"
                 + HubBuilder.escapar(planta.oGrande().nome())
                 + "</white> vale <white>" + planta.oGrande().pontos()
                 + "</white></gray>");
+    }
+
+    @Override
+    protected void aoComecarRodada(World mundo) {
+        PescariaCatalog planta = planta2();
     }
 
     @Override
