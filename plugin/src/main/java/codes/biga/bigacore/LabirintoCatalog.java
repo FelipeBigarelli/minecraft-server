@@ -2,38 +2,59 @@ package codes.biga.bigacore;
 
 import org.bukkit.Material;
 
-import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.Random;
 
 /**
- * A planta do Labirinto — e o labirinto de hoje.
+ * A planta do Labirinto — e o labirinto desta rodada.
  *
- * <h2>Tudo aqui é função pura da semente</h2>
+ * <h2>Um labirinto novo por rodada, e nunca o mesmo duas vezes</h2>
  *
- * O labirinto não é desenhado à mão nem guardado em arquivo: ele SAI da data.
- * {@link #cavar} recebe uma semente e devolve o mapa, sempre o mesmo para a
- * mesma semente, e {@link #sementeDoDia} escolhe a semente a partir do número
- * do dia. Isso dá três coisas de uma vez: todo mundo joga o mesmo labirinto
- * o dia inteiro (dá para decorar, dá para contar para um amigo, dá para
- * disputar o recorde do dia), amanhã é outro, e o teste consegue rodar
- * quatrocentos dias em um segundo sem servidor nenhum.
+ * O labirinto não é desenhado à mão nem guardado em arquivo: ele sai de um
+ * SORTEIO, refeito a cada rodada. O sorteio tira quatro coisas de uma vez —
+ * o traçado (qual dos cinco algoritmos de {@link LabirintoTracados} cava), o
+ * tamanho em células, o estilo (a paleta) e quantas voltas o labirinto tem —
+ * e por último a semente do mapa em si.
+ *
+ * <p>A conta é inteira: cinco traçados, cinco tamanhos, cinco estilos e três
+ * níveis de volta dão trezentas e setenta e cinco combinações, cada uma com
+ * um mapa diferente por cima. Não é "vinte labirintos": é um labirinto
+ * diferente toda vez, para sempre.
+ *
+ * <p>E o que muda não é só o desenho. Cada traçado tem uma textura própria e
+ * reconhecível — corredor comprido, beco curto, avenida reta, salão — e é
+ * isso que impede a coisa de virar ruído: o jogador que joga dez rodadas
+ * aprende a reconhecer o traçado na primeira esquina, e esse reconhecimento
+ * é vantagem de verdade. Ver {@link LabirintoTracados}.
  *
  * <h2>Labirinto com voltas, e não labirinto perfeito</h2>
  *
- * O algoritmo clássico (cavar em profundidade, sempre pelo galho mais novo)
- * devolve um labirinto PERFEITO: entre dois pontos quaisquer existe um
- * caminho e só um. Isso é bonito no papel e ruim numa corrida de dezesseis:
- * errar a curva custa a partida inteira, e os quinze de trás não têm o que
- * fazer além de seguir o primeiro. Depois de cavar, abrimos mais algumas
- * paredes ao acaso. Cada parede aberta é um ciclo, cada ciclo é uma rota
- * alternativa, e é a rota alternativa que transforma seguir o primeiro em
- * tentar passar na frente dele.
+ * Os cinco algoritmos devolvem um labirinto PERFEITO: entre dois pontos
+ * quaisquer existe um caminho e só um. Isso é bonito no papel e ruim numa
+ * corrida de dezesseis: errar a curva custa a partida inteira, e os quinze
+ * de trás não têm o que fazer além de seguir o primeiro. Depois de cavar,
+ * abrem-se mais algumas paredes ao acaso. Cada parede aberta é um ciclo,
+ * cada ciclo é uma rota alternativa, e é a rota alternativa que transforma
+ * seguir o primeiro em tentar passar na frente dele.
+ *
+ * <h2>A porta é ESCOLHIDA, não sorteada</h2>
+ *
+ * Antes a porta caía num ponto qualquer da borda e, quando a caminhada saía
+ * curta demais, o labirinto inteiro era re-sorteado até dar certo. Isso
+ * funcionava com um traçado só. Com cinco não funciona: o GALHOS é um
+ * labirinto de becos curtos e as caminhadas dele são naturalmente mais
+ * curtas que as do FUNDO — exigir o mesmo número dos dois é exigir que o
+ * GALHOS deixe de ser o que é.
+ *
+ * <p>Então a porta passa a ser escolhida: {@link #portaLonge} mede a
+ * distância do meio até cada casa da borda e sorteia entre as mais longes.
+ * Funciona em qualquer traçado e em qualquer tamanho, nunca precisa
+ * re-sortear nada, e dá de graça uma coisa que a re-sortagem não dava — a
+ * caminhada é sempre das mais longas QUE AQUELE labirinto tinha para
+ * oferecer, em vez de uma caminhada qualquer que coube numa janela.
  *
  * <h2>A sala do meio é uma célula só, para quem conta</h2>
  *
@@ -43,7 +64,7 @@ import java.util.Random;
  */
 public final class LabirintoCatalog extends CatalogoDeArena {
 
-    /** Os quatro lados da borda, na ordem em que {@link #saidaDoDia} sorteia. */
+    /** Os quatro lados da borda, na ordem em que {@link #portaLonge} olha. */
     public static final int NORTE = 0;
     public static final int SUL = 1;
     public static final int OESTE = 2;
@@ -66,8 +87,19 @@ public final class LabirintoCatalog extends CatalogoDeArena {
     public static final int PISO = 1;
     public static final int MURO = 2;
 
-    private long diaEmCache = Long.MIN_VALUE;
-    private long sementeEmCache;
+    /**
+     * O sorteio de uma rodada: tudo o que faz este labirinto ser este.
+     *
+     * Guardado inteiro num objeto só, e não em cinco campos soltos, porque é
+     * uma coisa só: trocar o tamanho sem trocar a semente dá um labirinto que
+     * não é nem o de antes nem um novo. Ou troca tudo, ou não troca nada.
+     */
+    public record Sorteio(int tracado, int celulas, int estilo, int voltas,
+                          long semente) {
+    }
+
+    private Sorteio sorteioAtual;
+    private Sorteio sorteioEmCache;
     private boolean[] ligadoEmCache;
     private int[] distanciaEmCache;
     private int[] distanciaDaPortaEmCache;
@@ -79,7 +111,8 @@ public final class LabirintoCatalog extends CatalogoDeArena {
 
     @Override
     protected void aoRecarregar() {
-        diaEmCache = Long.MIN_VALUE;
+        sorteioAtual = null;
+        sorteioEmCache = null;
         ligadoEmCache = null;
         distanciaEmCache = null;
         distanciaDaPortaEmCache = null;
@@ -90,8 +123,37 @@ public final class LabirintoCatalog extends CatalogoDeArena {
     //  Geometria
     // ------------------------------------------------------------------
 
+    /** O tamanho desta rodada, em células. */
     public int celulas() {
-        return Math.max(7, config.getInt("arena.celulas", 13));
+        return sorteio().celulas();
+    }
+
+    /**
+     * Os tamanhos que o sorteio pode tirar, em células.
+     *
+     * Ímpares, sempre: é o que põe a sala do meio exatamente sobre o (0,0) do
+     * mundo, que é onde fica o saguão e onde todo mundo larga. Um tamanho par
+     * na lista é recusado pela conferência em vez de sair torto em silêncio.
+     */
+    public List<Integer> tamanhos() {
+        List<Integer> lista = config.getIntegerList("arena.tamanhos");
+        return lista.isEmpty() ? List.of(9, 13, 17, 21, 25) : List.copyOf(lista);
+    }
+
+    /**
+     * O maior tamanho que o sorteio pode tirar.
+     *
+     * É ele, e não o tamanho da rodada, que manda na área da obra: depois de
+     * uma rodada de vinte e cinco células vem uma de nove, e o que sobrou da
+     * grande tem de ser apagado. Uma área de obra que encolhesse junto com o
+     * labirinto deixaria o anterior de pé em volta do novo.
+     */
+    public int celulasMaximo() {
+        int maior = 7;
+        for (int qual : tamanhos()) {
+            maior = Math.max(maior, qual);
+        }
+        return maior;
     }
 
     public int celula() {
@@ -118,24 +180,90 @@ public final class LabirintoCatalog extends CatalogoDeArena {
         return Math.max(celula(), config.getInt("arena.saida-largura", 7));
     }
 
-    public int aberturasExtras() {
-        return Math.max(0, config.getInt("arena.aberturas-extras", 12));
+    /**
+     * Quantas voltas o labirinto desta rodada tem, em paredes abertas.
+     *
+     * Vem de uma PORCENTAGEM e não de um número fixo, porque doze voltas num
+     * labirinto de nove células é um descampado e num de vinte e cinco é
+     * quase nada. A porcentagem é sobre o número de casas, que é o que
+     * cresce com o quadrado do tamanho — é a mesma densidade de rota em
+     * qualquer tamanho.
+     */
+    public int voltas() {
+        return sorteio().voltas();
     }
 
-    public int passosMinimos() {
-        return Math.max(1, config.getInt("arena.passos-minimos", 12));
+    /** Os três níveis de volta que o sorteio pode tirar, em porcentagem. */
+    public List<Integer> voltasPorCento() {
+        List<Integer> lista = config.getIntegerList("arena.voltas-por-cento");
+        return lista.isEmpty() ? List.of(4, 7, 12) : List.copyOf(lista);
     }
 
-    public int passosMaximos() {
-        return Math.max(passosMinimos(), config.getInt("arena.passos-maximos", 30));
+    /** Quantas voltas uma porcentagem dá num labirinto de tantas células. */
+    public static int voltasDe(int celulas, int porCento) {
+        return Math.max(0, celulas * celulas * Math.max(0, porCento) / 100);
     }
 
-    public int tentativas() {
-        return Math.max(1, config.getInt("arena.tentativas", 64));
+    /** Como chamar o nível de volta desta rodada, para o jogador. */
+    public String nomeDasVoltas() {
+        List<Integer> niveis = voltasPorCento();
+        int pct = Math.round(voltas() * 100f / Math.max(1, celulas() * celulas()));
+        int menor = niveis.get(0);
+        int maior = niveis.get(niveis.size() - 1);
+        if (pct <= menor) {
+            return "poucas voltas";
+        }
+        return pct >= maior ? "muitas voltas" : "voltas na medida";
     }
 
-    public long sementeBase() {
-        return config.getLong("arena.semente", 4712L);
+    /**
+     * Os traçados que o sorteio pode tirar.
+     *
+     * Por nome no yml e não por número, para dar para desligar um sem contar
+     * de cabeça qual é o índice dele. Nome desconhecido é recusado pela
+     * conferência: um erro de digitação que virasse "usa o primeiro" deixaria
+     * o jogo com um traçado só e ninguém saberia por quê.
+     */
+    public List<String> tracadosEscritos() {
+        List<String> lista = config.getStringList("arena.tracados");
+        return lista.isEmpty() ? LabirintoTracados.NOMES : List.copyOf(lista);
+    }
+
+    /** Os traçados ligados, já convertidos em número. */
+    public List<Integer> tracadosLigados() {
+        List<Integer> saida = new ArrayList<>();
+        for (String nome : tracadosEscritos()) {
+            int qual = LabirintoTracados.porNome(nome);
+            if (qual >= 0 && !saida.contains(qual)) {
+                saida.add(qual);
+            }
+        }
+        return saida.isEmpty() ? List.of(LabirintoTracados.FUNDO)
+                : List.copyOf(saida);
+    }
+
+    /** O traçado desta rodada. */
+    public int tracado() {
+        return sorteio().tracado();
+    }
+
+    public String nomeDoTracado() {
+        return LabirintoTracados.nome(tracado());
+    }
+
+    public String caraterDoTracado() {
+        return LabirintoTracados.carater(tracado());
+    }
+
+    /**
+     * Prende o sorteio num valor, para evento e para teste.
+     *
+     * -1 sorteia de verdade. Qualquer outro valor faz toda rodada tirar o
+     * mesmo labirinto — que é o que um torneio precisa, e o que o teste
+     * precisa para a mesma pergunta dar sempre a mesma resposta.
+     */
+    public long sorteioFixo() {
+        return config.getLong("arena.sorteio-fixo", -1L);
     }
 
     public int marcoAltura() {
@@ -152,9 +280,19 @@ public final class LabirintoCatalog extends CatalogoDeArena {
         return lado(celulas(), celula(), parede());
     }
 
+    /** O lado do MAIOR labirinto que pode sair: a área que a obra varre. */
+    public int ladoMaximo() {
+        return lado(celulasMaximo(), celula(), parede());
+    }
+
     /** A maior coordenada do labirinto: ele vai de -meio a +meio. */
     public int meio() {
         return (lado() - 1) / 2;
+    }
+
+    /** O mesmo, para o maior labirinto possível. */
+    public int meioMaximo() {
+        return (ladoMaximo() - 1) / 2;
     }
 
     @Override
@@ -164,7 +302,7 @@ public final class LabirintoCatalog extends CatalogoDeArena {
 
     @Override
     public int alcanceDaObra() {
-        return meio() + saidaFundo() + 4;
+        return meioMaximo() + saidaFundo() + 4;
     }
 
     @Override
@@ -188,10 +326,109 @@ public final class LabirintoCatalog extends CatalogoDeArena {
 
     public Material material(int tipo) {
         return switch (tipo) {
-            case MURO -> cor("muro", Material.PRISMARINE_BRICKS);
-            case PISO -> cor("piso", Material.STONE_BRICKS);
+            case MURO -> corDoEstilo("muro", Material.PRISMARINE_BRICKS);
+            case PISO -> corDoEstilo("piso", Material.STONE_BRICKS);
             default -> Material.AIR;
         };
+    }
+
+    // ------------------------------------------------------------------
+    //  Os estilos
+    // ------------------------------------------------------------------
+
+    /**
+     * Os nomes dos estilos, na ordem em que estão no yml.
+     *
+     * O estilo é só paleta — piso, muro, topo — e é de propósito: trocar
+     * material não muda regra nenhuma, então um estilo novo nunca pode
+     * quebrar o jogo. É a variação mais barata que existe e é a que o
+     * jogador mais vê, porque ele corre olhando para o muro.
+     */
+    public List<String> estilos() {
+        org.bukkit.configuration.ConfigurationSection secao =
+                config.getConfigurationSection("estilos");
+        if (secao == null) {
+            return List.of();
+        }
+        return List.copyOf(secao.getKeys(false));
+    }
+
+    public int estilo() {
+        return sorteio().estilo();
+    }
+
+    public String nomeDoEstilo() {
+        List<String> lista = estilos();
+        if (lista.isEmpty()) {
+            return "padrão";
+        }
+        return lista.get(Math.max(0, Math.min(lista.size() - 1, estilo())));
+    }
+
+    /**
+     * Um material do estilo da rodada, caindo para a paleta se ele não disser.
+     *
+     * A queda para a paleta é o que permite um estilo trocar só três
+     * materiais e herdar o resto: sem ela, cada estilo novo teria de repetir
+     * a paleta inteira, e a décima cópia divergiria da primeira em silêncio.
+     */
+    public Material corDoEstilo(String chave, Material padrao) {
+        return corDoEstilo(estilo(), chave, padrao);
+    }
+
+    /**
+     * O mesmo, para um estilo qualquer da lista.
+     *
+     * Existe para a conferência da obra poder olhar os CINCO estilos antes de
+     * pôr um bloco. Olhar só o da rodada deixaria um estilo com o muro da cor
+     * do piso esperando o dia em que fosse sorteado — e aí o labirinto sai
+     * invisível, no meio de uma partida, sem nada no log.
+     */
+    public Material corDoEstilo(int qual0, String chave, Material padrao) {
+        List<String> lista = estilos();
+        if (!lista.isEmpty()) {
+            String qual = lista.get(Math.max(0,
+                    Math.min(lista.size() - 1, qual0)));
+            String nome = config.getString("estilos." + qual + "." + chave);
+            if (nome != null) {
+                Material achado = Material.matchMaterial(
+                        nome.trim().toUpperCase(java.util.Locale.ROOT));
+                if (achado != null) {
+                    return achado;
+                }
+                plugin.getLogger().warning("[labirinto] Material desconhecido "
+                        + "em estilos." + qual + "." + chave + ": " + nome
+                        + " — usando a paleta.");
+            }
+        }
+        return cor(chave, padrao);
+    }
+
+    // ------------------------------------------------------------------
+    //  O relógio
+    // ------------------------------------------------------------------
+
+    /**
+     * O teto da partida, medido no labirinto que saiu.
+     *
+     * Um teto fixo não serve mais. Antes servia: um tamanho só, uma janela de
+     * passos só. Agora a mesma arena tira rodadas de dez esquinas e rodadas
+     * de noventa, e um número que caiba nas duas ou dá uma eternidade de
+     * espera na curta ou corta a longa no meio. Então o teto é a caminhada
+     * vezes um tempo por esquina, mais uma folga — e um teto duro por cima,
+     * porque nenhuma rodada pode durar para sempre.
+     */
+    @Override
+    public int tempoLimite() {
+        return relogioDe(passosAteASaida(),
+                Math.max(10, config.getInt("regras.tempo-base", 45)),
+                Math.max(1, config.getInt("regras.segundos-por-passo", 5)),
+                Math.max(60, config.getInt("regras.tempo-limite", 420)));
+    }
+
+    /** A mesma conta, pura: o teste confere o relógio sem subir servidor. */
+    public static int relogioDe(int passos, int base, int porPasso, int teto) {
+        return Math.max(30, Math.min(teto, base + Math.max(0, passos) * porPasso));
     }
 
     // ------------------------------------------------------------------
@@ -199,33 +436,79 @@ public final class LabirintoCatalog extends CatalogoDeArena {
     // ------------------------------------------------------------------
 
     /**
-     * O número do dia de hoje, ou o que o yml prendeu.
+     * O sorteio desta rodada, tirando um novo se ainda não houver.
      *
-     * Prender o dia existe para duas coisas: um evento em que o labirinto
-     * tem de ser o mesmo a semana toda, e o teste de que a conta não muda.
+     * Tira um sozinho na primeira pergunta para que o comando {@code info} e
+     * a conferência da obra funcionem antes de qualquer partida: sem isso, um
+     * admin que rodasse {@code /biga labirinto construir} com o servidor
+     * recém-ligado levaria um erro em vez de um labirinto.
      */
-    public long diaDeHoje() {
-        int fixo = config.getInt("arena.dia-fixo", -1);
-        return fixo >= 0 ? fixo : LocalDate.now(ZoneId.systemDefault()).toEpochDay();
+    public Sorteio sorteio() {
+        if (sorteioAtual == null) {
+            sortearRodada();
+        }
+        return sorteioAtual;
+    }
+
+    /**
+     * Tira um labirinto novo: traçado, tamanho, estilo, voltas e semente.
+     *
+     * É chamado no começo de toda rodada. Com {@code sorteio-fixo} ligado no
+     * yml, tira sempre o mesmo — que é o que um torneio precisa.
+     */
+    public Sorteio sortearRodada() {
+        long fixo = sorteioFixo();
+        long semente = fixo >= 0 ? fixo : new Random().nextLong();
+        return sortearRodada(semente);
+    }
+
+    /** O mesmo, com a semente na mão: é por aqui que o teste entra. */
+    public Sorteio sortearRodada(long semente) {
+        sorteioAtual = sortear(semente, tamanhos(), tracadosLigados(),
+                Math.max(1, estilos().size()), voltasPorCento());
+        sorteioEmCache = null;
+        return sorteioAtual;
+    }
+
+    /**
+     * O sorteio, puro: a mesma semente dá sempre o mesmo labirinto.
+     *
+     * Puro e estático para o teste poder rodar mil sorteios por segundo sem
+     * servidor nenhum, e para a pergunta "este sorteio pode sair?" ter
+     * resposta sem ter de subir um mundo.
+     */
+    public static Sorteio sortear(long semente, List<Integer> tamanhos,
+                                  List<Integer> tracados, int quantosEstilos,
+                                  List<Integer> pctVoltas) {
+        Random sorte = new Random(semente);
+        int tracado = tracados.isEmpty() ? LabirintoTracados.FUNDO
+                : tracados.get(sorte.nextInt(tracados.size()));
+        int celulas = tamanhos.isEmpty() ? 13
+                : tamanhos.get(sorte.nextInt(tamanhos.size()));
+        celulas = Math.max(7, celulas % 2 == 0 ? celulas + 1 : celulas);
+        int estilo = quantosEstilos <= 0 ? 0 : sorte.nextInt(quantosEstilos);
+        int pct = pctVoltas.isEmpty() ? 7
+                : pctVoltas.get(sorte.nextInt(pctVoltas.size()));
+        return new Sorteio(tracado, celulas, estilo, voltasDe(celulas, pct),
+                sorte.nextLong());
     }
 
     private void garantirCache() {
-        long dia = diaDeHoje();
-        if (dia == diaEmCache && ligadoEmCache != null) {
+        Sorteio agora = sorteio();
+        if (agora.equals(sorteioEmCache) && ligadoEmCache != null) {
             return;
         }
-        int n = celulas();
-        sementeEmCache = sementeDoDia(n, sementeBase(), dia, aberturasExtras(),
-                sala(), passosMinimos(), passosMaximos(), tentativas());
-        ligadoEmCache = cavar(n, sementeEmCache, aberturasExtras(), sala());
+        int n = agora.celulas();
+        ligadoEmCache = LabirintoTracados.cavar(agora.tracado(), n,
+                agora.semente(), agora.voltas(), sala());
         distanciaEmCache = distancias(n, ligadoEmCache, sala());
-        saidaEmCache = saidaDoDia(n, sementeEmCache);
+        saidaEmCache = portaLonge(n, ligadoEmCache, sala(), agora.semente());
         distanciaDaPortaEmCache = distanciasDe(n, ligadoEmCache,
                 saidaEmCache[0], saidaEmCache[1]);
-        diaEmCache = dia;
+        sorteioEmCache = agora;
     }
 
-    /** As passagens abertas do labirinto de hoje. */
+    /** As passagens abertas do labirinto desta rodada. */
     public boolean[] ligacoes() {
         garantirCache();
         return ligadoEmCache;
@@ -249,16 +532,15 @@ public final class LabirintoCatalog extends CatalogoDeArena {
         return distanciaDaPortaEmCache;
     }
 
-    /** A saída de hoje: {i, j, lado}. */
+    /** A saída desta rodada: {i, j, lado}. */
     public int[] saida() {
         garantirCache();
         return saidaEmCache;
     }
 
-    /** A semente que o dia de hoje acabou usando. */
+    /** A semente do mapa desta rodada. */
     public long semente() {
-        garantirCache();
-        return sementeEmCache;
+        return sorteio().semente();
     }
 
     /** Quantas células separam a sala do meio da porta de hoje. */
@@ -292,92 +574,6 @@ public final class LabirintoCatalog extends CatalogoDeArena {
      */
     public static int ligacao(int celulas, int i, int j, int eixo) {
         return indice(celulas, i, j) * 2 + eixo;
-    }
-
-    /**
-     * Cava o labirinto.
-     *
-     * Em profundidade a partir do meio, sempre pelo galho mais novo — é o que
-     * dá corredor comprido e sinuoso em vez de um emaranhado de becos de duas
-     * casas. Depois abre {@code extras} paredes internas ao acaso, que são as
-     * voltas, e por fim derruba todas as paredes internas da sala do meio.
-     *
-     * @return um vetor de {@code celulas*celulas*2} passagens; true = aberta
-     */
-    public static boolean[] cavar(int celulas, long semente, int extras, int sala) {
-        boolean[] ligado = new boolean[celulas * celulas * 2];
-        boolean[] visto = new boolean[celulas * celulas];
-        Random sorte = new Random(semente);
-        int meio = celulas / 2;
-
-        Deque<int[]> pilha = new ArrayDeque<>();
-        pilha.push(new int[]{meio, meio});
-        visto[indice(celulas, meio, meio)] = true;
-
-        List<int[]> livres = new ArrayList<>(4);
-        while (!pilha.isEmpty()) {
-            int[] onde = pilha.peek();
-            livres.clear();
-            for (int[] rumo : RUMOS) {
-                int ni = onde[0] + rumo[0];
-                int nj = onde[1] + rumo[1];
-                if (dentro(celulas, ni, nj) && !visto[indice(celulas, ni, nj)]) {
-                    livres.add(new int[]{ni, nj});
-                }
-            }
-            if (livres.isEmpty()) {
-                pilha.pop();
-                continue;
-            }
-            int[] escolhido = livres.get(sorte.nextInt(livres.size()));
-            abrir(ligado, celulas, onde[0], onde[1], escolhido[0], escolhido[1]);
-            visto[indice(celulas, escolhido[0], escolhido[1])] = true;
-            pilha.push(escolhido);
-        }
-
-        // As voltas: paredes internas ainda fechadas, sorteadas sem repetir.
-        List<int[]> fechadas = new ArrayList<>();
-        for (int j = 0; j < celulas; j++) {
-            for (int i = 0; i < celulas; i++) {
-                if (i + 1 < celulas && !ligado[ligacao(celulas, i, j, 0)]) {
-                    fechadas.add(new int[]{i, j, 0});
-                }
-                if (j + 1 < celulas && !ligado[ligacao(celulas, i, j, 1)]) {
-                    fechadas.add(new int[]{i, j, 1});
-                }
-            }
-        }
-        Collections.shuffle(fechadas, sorte);
-        for (int k = 0; k < Math.min(extras, fechadas.size()); k++) {
-            int[] qual = fechadas.get(k);
-            ligado[ligacao(celulas, qual[0], qual[1], qual[2])] = true;
-        }
-
-        // A sala: todas as paredes internas dela caem.
-        for (int j = meio - sala; j <= meio + sala; j++) {
-            for (int i = meio - sala; i <= meio + sala; i++) {
-                if (i + 1 <= meio + sala) {
-                    ligado[ligacao(celulas, i, j, 0)] = true;
-                }
-                if (j + 1 <= meio + sala) {
-                    ligado[ligacao(celulas, i, j, 1)] = true;
-                }
-            }
-        }
-        return ligado;
-    }
-
-    private static void abrir(boolean[] ligado, int celulas, int i, int j,
-                              int ni, int nj) {
-        if (ni > i) {
-            ligado[ligacao(celulas, i, j, 0)] = true;
-        } else if (ni < i) {
-            ligado[ligacao(celulas, ni, nj, 0)] = true;
-        } else if (nj > j) {
-            ligado[ligacao(celulas, i, j, 1)] = true;
-        } else {
-            ligado[ligacao(celulas, ni, nj, 1)] = true;
-        }
     }
 
     /** Há passagem aberta entre duas células vizinhas? */
@@ -468,48 +664,62 @@ public final class LabirintoCatalog extends CatalogoDeArena {
     }
 
     /**
-     * A porta do dia: {i, j, lado}.
+     * A porta: {i, j, lado}, escolhida entre as mais longes do meio.
      *
-     * Sorteada com a semente embaralhada, e nunca num canto — o canto é onde
-     * ficam as torres, e um patamar saindo do canto encostaria nas duas.
+     * Mede a distância do meio até cada casa da borda, põe as mais longes na
+     * frente e sorteia entre o primeiro terço. É o que substituiu a
+     * re-sortagem da semente, e é melhor por três motivos.
+     *
+     * <p>Primeiro: funciona em qualquer traçado. A janela fixa de passos não
+     * funcionava — no GALHOS, que é um labirinto de becos curtos, treze
+     * células não chegam a doze passos nem no melhor caso, então exigir doze
+     * dele era re-sortear sessenta e quatro vezes e aceitar o último de
+     * qualquer jeito.
+     *
+     * <p>Segundo: nunca precisa de segunda tentativa. A borda tem sempre
+     * casas, as casas têm sempre distância, e a mais longe delas é a resposta
+     * — não existe sorteio ruim para descartar.
+     *
+     * <p>Terceiro, e é o que mais importa para o jogo: a caminhada passa a ser
+     * das mais longas QUE AQUELE labirinto tinha para oferecer, em vez de uma
+     * caminhada qualquer que coube numa janela. Um labirinto apertado dá uma
+     * corrida apertada; um labirinto largo dá uma corrida larga. O relógio da
+     * partida é que se ajusta ao labirinto — ver {@link #tempoLimite()} — e
+     * não o contrário.
+     *
+     * <p>Sorteia entre as mais longes, e não pega a campeã, porque a campeã é
+     * uma só: dez rodadas no mesmo traçado e mesmo tamanho cairiam na mesma
+     * esquina. O terço é largo o bastante para a porta mudar e estreito o
+     * bastante para a caminhada nunca encurtar.
+     *
+     * <p>Canto nunca: é lá que ficam as torres, e um patamar saindo do canto
+     * encostaria nas duas.
      */
-    public static int[] saidaDoDia(int celulas, long semente) {
-        Random sorte = new Random(semente ^ 0x5A1DAL);
-        int lado = sorte.nextInt(4);
-        int k = 1 + sorte.nextInt(Math.max(1, celulas - 2));
-        return switch (lado) {
-            case NORTE -> new int[]{k, 0, NORTE};
-            case SUL -> new int[]{k, celulas - 1, SUL};
-            case OESTE -> new int[]{0, k, OESTE};
-            default -> new int[]{celulas - 1, k, LESTE};
-        };
+    public static int[] portaLonge(int celulas, boolean[] ligado, int sala,
+                                   long semente) {
+        return portaLonge(celulas, ligado, sala, semente, 3);
     }
 
-    /**
-     * A semente do dia, re-sorteada até a caminhada valer a pena.
-     *
-     * Um labirinto sorteado dá dias em que a porta cai a cinco passos da
-     * sala: é um dia inteiro de partidas de dez segundos. E dá dias de
-     * oitenta passos, que é um dia inteiro de partidas que estouram o
-     * relógio. A re-sortagem é barata — a mediana é uma tentativa — e é o
-     * que faz o jogo ter o mesmo tamanho todo dia.
-     */
-    public static long sementeDoDia(int celulas, long base, long dia, int extras,
-                                    int sala, int minimo, int maximo,
-                                    int tentativas) {
-        long ultima = 0;
-        for (int k = 0; k < Math.max(1, tentativas); k++) {
-            long semente = base * 1000003L + (dia * 64L + k) * 31L;
-            ultima = semente;
-            boolean[] ligado = cavar(celulas, semente, extras, sala);
-            int[] dist = distancias(celulas, ligado, sala);
-            int[] saida = saidaDoDia(celulas, semente);
-            int passos = dist[indice(celulas, saida[0], saida[1])];
-            if (passos >= minimo && passos <= maximo) {
-                return semente;
-            }
+    /** O mesmo, dizendo em quantas fatias a borda se divide. */
+    public static int[] portaLonge(int celulas, boolean[] ligado, int sala,
+                                   long semente, int fatia) {
+        int[] dist = distancias(celulas, ligado, sala);
+        List<int[]> borda = new ArrayList<>();
+        for (int k = 1; k < celulas - 1; k++) {
+            borda.add(new int[]{k, 0, NORTE});
+            borda.add(new int[]{k, celulas - 1, SUL});
+            borda.add(new int[]{0, k, OESTE});
+            borda.add(new int[]{celulas - 1, k, LESTE});
         }
-        return ultima;
+        borda.removeIf(casa -> dist[indice(celulas, casa[0], casa[1])] < 0);
+        if (borda.isEmpty()) {
+            return new int[]{celulas / 2, 0, NORTE};
+        }
+        borda.sort((a, b) -> Integer.compare(dist[indice(celulas, b[0], b[1])],
+                dist[indice(celulas, a[0], a[1])]));
+        int quantas = Math.max(1, borda.size() / Math.max(1, fatia));
+        Random sorte = new Random(semente ^ 0x5A1DAL);
+        return borda.get(sorte.nextInt(quantas));
     }
 
     // ------------------------------------------------------------------

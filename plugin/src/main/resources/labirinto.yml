@@ -5,25 +5,57 @@
 #  para a única porta que existe na borda. O facho de luz mostra
 #  ONDE a porta está; o labirinto é que decide COMO se chega lá.
 #
-#  O mapa é outro todo dia. A semente sai da data, então o
-#  labirinto de hoje é o mesmo para todo mundo o dia inteiro —
-#  dá para decorar, dá para contar para um amigo, dá para
-#  disputar o recorde do dia — e amanhã não vale mais nada.
+#  O LABIRINTO É OUTRO A CADA RODADA. Não é mapa novo com a
+#  mesma cara: a cada largada o jogo sorteia o TRAÇADO (qual dos
+#  cinco algoritmos cava), o TAMANHO, o ESTILO (a paleta) e
+#  quantas VOLTAS o labirinto tem — e depois a semente do mapa.
+#  Cinco traçados x cinco tamanhos x cinco estilos x três níveis
+#  de volta são 375 combinações, cada uma com um mapa inédito por
+#  cima. A obra se recusa a construir se essa conta cair abaixo
+#  de vinte: um labirinto que se decora foi o problema que este
+#  jogo tinha, e abaixo de vinte ele volta.
+#
+#  E o que muda não é só o desenho — é a TEXTURA. Cada traçado
+#  tem uma assinatura que o jogador sente antes de saber nomear:
+#
+#    FUNDO     corredores longos e sinuosos, quase sem beco
+#              (um décimo das casas). É o labirinto de se perder
+#              andando, e era o único que este jogo tinha.
+#    GALHOS    o oposto: mais de um terço das casas são becos
+#              curtos. É o labirinto de se perder ESCOLHENDO.
+#    VENTANIA  avenidas retas de leste a oeste, uma delas aberta
+#              de ponta a ponta na fiada do norte — e NENHUM
+#              beco abre para o sul. Quem souber disso anda o
+#              labirinto de cabeça.
+#    JUSTO     sorteado sem viés nenhum entre todos os
+#              labirintos possíveis. Não há truque a aprender.
+#    SALOES    não cava corredor: parte o terreno com um muro
+#              reto e abre uma porta. Sai prédio, não toca.
+#
+#  O nome do traçado é anunciado na largada de propósito: dez
+#  rodadas jogadas viram vantagem na décima primeira, e essa é a
+#  única habilidade que o sorteio não apaga.
 #
 #  Três decisões que vêm do gênero e que são o jogo inteiro:
 #
-#  - LABIRINTO COM VOLTAS, e não labirinto perfeito. O algoritmo
-#    clássico faz um caminho só entre dois pontos quaisquer: num
-#    labirinto assim, errar a curva custa a partida e os quinze
-#    de trás só seguem o primeiro. Abrimos 'aberturas-extras'
-#    paredes depois de cavar, e aí existem rotas, e aí existe
-#    escolha.
+#  - LABIRINTO COM VOLTAS, e não labirinto perfeito. Os cinco
+#    algoritmos devolvem um caminho só entre dois pontos
+#    quaisquer: num labirinto assim, errar a curva custa a
+#    partida e os quinze de trás só seguem o primeiro. Abrem-se
+#    algumas paredes DEPOIS de cavar; cada parede aberta é um
+#    ciclo, e ciclo é rota alternativa.
 #  - A PORTA SE VÊ, O CAMINHO NÃO. O facho entrega a direção de
 #    graça. Sem ele o jogo seria sorteio; com ele é labirinto.
-#  - A CAMINHADA TEM DE VALER A PENA. Sorteio de labirinto dá
-#    dias em que a porta cai a cinco passos do meio. A planta
-#    re-sorteia a semente do dia até a caminhada ficar dentro da
-#    janela de 'passos-minimos' a 'passos-maximos'.
+#  - A PORTA É ESCOLHIDA, NÃO SORTEADA. Antes ela caía em
+#    qualquer casa da borda e a semente era re-sorteada quando a
+#    caminhada saía curta. Isso funcionava com um traçado só; com
+#    cinco não funciona, porque o GALHOS é feito de becos curtos
+#    e as caminhadas dele são naturalmente mais curtas que as do
+#    FUNDO. Agora o jogo mede a distância do meio até cada casa
+#    da borda e sorteia entre o terço mais longe: funciona em
+#    qualquer traçado, nunca precisa de segunda tentativa, e a
+#    caminhada passa a ser das mais longas QUE AQUELE labirinto
+#    tinha para oferecer.
 #
 #  Não há dano, não há eliminação e não há como quebrar o muro:
 #  o que existe é giz, e giz é memória. Doze marcas no chão, da
@@ -37,13 +69,39 @@ arena:
   # A fiada do piso do labirinto.
   y: 100
 
-  # O labirinto em CÉLULAS. Tem de ser ímpar: é o que põe a sala
-  # do meio exatamente em cima do (0,0) do mundo, que é onde fica
-  # o saguão.
-  celulas: 13
+  # Os tamanhos que o sorteio pode tirar, em CÉLULAS.
+  #
+  # Ímpares, sempre: é o que põe a sala do meio exatamente em
+  # cima do (0,0) do mundo, que é onde fica o saguão e onde todo
+  # mundo larga. Um tamanho par é recusado pela obra em vez de
+  # sair meio bloco torto em silêncio.
+  #
+  # 9 células dão 37 blocos de lado e uma corrida de meio
+  # minuto; 25 dão 101 blocos e uma de três minutos. A área da
+  # obra é sempre a do MAIOR da lista, porque depois de uma
+  # rodada de 25 vem uma de 9 e o que sobrou da grande tem de
+  # ser apagado.
+  tamanhos: [9, 13, 17, 21, 25]
+
+  # Os traçados ligados, por nome. Acento e caixa não importam.
+  # Tirar um da lista o desliga; nome que não existe é recusado
+  # pela obra, para um erro de digitação não virar silêncio.
+  tracados: [FUNDO, GALHOS, VENTANIA, JUSTO, SALOES]
+
+  # Quantas paredes internas se abrem DEPOIS de cavar, em
+  # PORCENTAGEM das casas. Porcentagem e não número fixo: doze
+  # voltas num labirinto de 9 células é um descampado e num de
+  # 25 é quase nada. Em ordem crescente — a planta chama o
+  # primeiro de "poucas voltas" e o último de "muitas voltas".
+  voltas-por-cento: [4, 7, 12]
+
+  # Prende o sorteio num valor: toda rodada tira o mesmo
+  # labirinto. É a maneira certa de travar o jogo para torneio,
+  # gravação ou evento. -1 sorteia de verdade.
+  sorteio-fixo: -1
 
   # Largura do corredor e espessura do muro, em blocos. As duas
-  # têm de ser ímpares pelo mesmo motivo.
+  # têm de ser ímpares pelo mesmo motivo dos tamanhos.
   celula: 3
   parede: 1
 
@@ -59,23 +117,6 @@ arena:
   # de fora, onde fica o facho.
   saida-fundo: 5
   saida-largura: 7
-
-  # Quantas paredes internas se abrem DEPOIS de cavar. É o que
-  # transforma um labirinto perfeito num labirinto com voltas.
-  aberturas-extras: 12
-
-  # A janela de caminhada aceitável, em células, do meio até a
-  # porta. Fora dela a semente do dia é re-sorteada.
-  passos-minimos: 12
-  passos-maximos: 30
-  tentativas: 64
-
-  # A semente base. Some-se a ela o número do dia.
-  semente: 4712
-
-  # Para prender o mapa num dia específico (eventos, testes).
-  # -1 usa o dia de hoje.
-  dia-fixo: -1
 
   saguao-altura: 24
   saguao-raio: 9
@@ -111,6 +152,98 @@ paleta:
   # que é da mesma família do resto da paleta e brilha.
   nucleo: CONDUIT
 
+# -------------------------------------------------------------
+#  OS ESTILOS
+#
+#  Estilo é SÓ PALETA — nenhuma regra, nenhuma medida. É de
+#  propósito: um estilo novo nunca pode quebrar o jogo. É a
+#  variação mais barata que existe e é a que o jogador mais vê,
+#  porque ele corre olhando para o muro.
+#
+#  Cada estilo troca o que quiser e herda o resto da 'paleta'
+#  acima. A obra recusa dois estilos com piso, muro e topo
+#  iguais (é um estilo copiado com dois nomes) e recusa piso da
+#  cor do muro (o labirinto sairia invisível, e o jogador só
+#  descobriria batendo o nariz nele).
+# -------------------------------------------------------------
+estilos:
+  # O original: pedra e prismarinho, claro e frio.
+  prismarinho:
+    piso: STONE_BRICKS
+    piso-xadrez: ANDESITE
+    muro: PRISMARINE_BRICKS
+    muro-base: PRISMARINE
+    muro-topo: DARK_PRISMARINE
+    coracao-beira: CHISELED_STONE_BRICKS
+    coracao-coluna: POLISHED_DIORITE
+    patamar: POLISHED_DIORITE
+    patamar-beira: DARK_PRISMARINE
+    torre: DARK_PRISMARINE
+    torre-luz: SEA_LANTERN
+
+  # Catacumba: ardósia escura e cobre oxidado. O labirinto fica
+  # mais fechado do que é, porque muro escuro come a distância.
+  catacumba:
+    piso: POLISHED_DEEPSLATE
+    piso-xadrez: DEEPSLATE_TILES
+    muro: DEEPSLATE_BRICKS
+    muro-base: COBBLED_DEEPSLATE
+    muro-topo: OXIDIZED_COPPER
+    coracao-beira: CHISELED_DEEPSLATE
+    coracao-coluna: POLISHED_BASALT
+    patamar: POLISHED_BLACKSTONE
+    patamar-beira: CHISELED_POLISHED_BLACKSTONE
+    torre: POLISHED_DEEPSLATE
+    torre-luz: SHROOMLIGHT
+
+  # Jardim: arenito e folhagem. O mais claro dos cinco, e o
+  # único em que o muro é de bloco macio — a leitura à distância
+  # fica mais difícil justo por isso.
+  jardim:
+    piso: SMOOTH_SANDSTONE
+    piso-xadrez: SANDSTONE
+    muro: MOSSY_STONE_BRICKS
+    muro-base: MOSSY_COBBLESTONE
+    muro-topo: AZALEA_LEAVES
+    coracao-beira: CHISELED_SANDSTONE
+    coracao-coluna: STRIPPED_OAK_LOG
+    patamar: CUT_SANDSTONE
+    patamar-beira: SMOOTH_SANDSTONE
+    torre: STRIPPED_BIRCH_LOG
+    torre-luz: OCHRE_FROGLIGHT
+
+  # Forja: nether e basalto. O estilo quente, e o único com o
+  # topo do muro brilhando — dá para ver a linha dos muros de
+  # cima da torre.
+  forja:
+    piso: POLISHED_BLACKSTONE
+    piso-xadrez: BLACKSTONE
+    muro: NETHER_BRICKS
+    muro-base: RED_NETHER_BRICKS
+    muro-topo: MAGMA_BLOCK
+    coracao-beira: CHISELED_NETHER_BRICKS
+    coracao-coluna: POLISHED_BASALT
+    patamar: SMOOTH_BASALT
+    patamar-beira: BASALT
+    torre: NETHER_BRICKS
+    torre-luz: SHROOMLIGHT
+
+  # Gelo: a paleta mais clara e a mais desorientadora. Piso e
+  # muro quase da mesma luminosidade, então o labirinto tem de
+  # ser lido pela SOMBRA do muro e não pela cor dele.
+  gelo:
+    piso: SNOW_BLOCK
+    piso-xadrez: WHITE_CONCRETE
+    muro: PACKED_ICE
+    muro-base: BLUE_ICE
+    muro-topo: LIGHT_BLUE_CONCRETE
+    coracao-beira: CALCITE
+    coracao-coluna: QUARTZ_PILLAR
+    patamar: SMOOTH_QUARTZ
+    patamar-beira: LIGHT_BLUE_TERRACOTTA
+    torre: BLUE_ICE
+    torre-luz: SEA_LANTERN
+
 regras:
   minimo: 2
   maximo: 16
@@ -124,10 +257,24 @@ regras:
   # Quantas fiadas abaixo do piso já conta como ter caído.
   queda-abaixo: 6
 
-  # O teto da partida. Se ninguém achar a porta, ganha quem
-  # estiver mais perto dela pelo caminho do labirinto — e não em
-  # linha reta, que premiaria quem parou atrás do muro certo.
-  tempo-limite: 300
+  # O RELÓGIO É MEDIDO NO LABIRINTO QUE SAIU, e não escolhido.
+  #
+  # Um teto fixo não serve mais: a mesma arena tira rodadas de
+  # dez esquinas e rodadas de noventa, e um número que caiba nas
+  # duas ou dá uma eternidade de espera na curta ou corta a
+  # longa no meio. O teto é 'tempo-base' mais
+  # 'segundos-por-passo' por esquina do caminho mais curto, com
+  # 'tempo-limite' por cima — porque nenhuma rodada pode durar
+  # para sempre.
+  #
+  # Medido: correndo a 5,6 blocos por segundo e vasculhando
+  # quatro vezes o caminho ótimo (que é o que custa não saber o
+  # caminho), uma rodada de 9 células precisa de ~15s e tem 70;
+  # a maior medida, 93 esquinas em 21 células, precisa de ~266s
+  # e tem 420. O teste confere as duas pontas.
+  tempo-base: 45
+  segundos-por-passo: 5
+  tempo-limite: 420
 
 textos:
   titulo: "LABIRINTO"
@@ -135,7 +282,8 @@ textos:
   subtitulo: "ache a saída antes deles"
   regras:
     - "clique em [ENTRAR] para entrar na fila"
-    - "o mapa é outro todo dia"
+    - "o labirinto é outro a cada rodada"
+    - "cinco traçados: cada um tem a sua manha"
     - "todos nascem no meio; a porta é uma só"
     - "o facho de luz mostra onde ela fica"
     - "o giz marca o chão por onde você passou"

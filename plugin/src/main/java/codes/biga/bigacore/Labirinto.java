@@ -26,13 +26,21 @@ import java.util.UUID;
 /**
  * O Labirinto: ache a saída antes deles.
  *
- * <h2>O mapa é outro todo dia, e é o mesmo o dia inteiro</h2>
+ * <h2>O labirinto é outro a cada rodada</h2>
  *
- * A semente sai da data. Não é enfeite: é o que permite "o labirinto de hoje
- * tem a porta no norte", "eu fiz em quarenta segundos", "me ensina o caminho"
- * — conversas que um labirinto diferente a cada partida não deixa ninguém
- * ter, e que um labirinto fixo mata depois de uma semana. O dia é a unidade
- * certa: longa o bastante para decorar, curta o bastante para não cansar.
+ * Traçado, tamanho, estilo e voltas saem de um sorteio novo em cada largada:
+ * centenas de labirintos diferentes, cada um com um mapa inédito por cima.
+ * Um labirinto só se decora, e decorado ele deixa de ser labirinto — vira uma
+ * corrida de quem já sabe o caminho contra quem não sabe, que é a pior
+ * corrida que existe.
+ *
+ * <p>Mas o que muda não é só o desenho, e é aí que está o jogo: cada um dos
+ * cinco traçados tem uma TEXTURA própria — o FUNDO dá corredores compridos e
+ * sinuosos, o GALHOS dá becos curtos, a VENTANIA dá uma avenida reta que
+ * atravessa o mapa inteiro, o JUSTO não tem vício nenhum, os SALÕES dão
+ * câmaras com muros longos. O nome do traçado é anunciado na largada de
+ * propósito: quem jogou dez rodadas sabe o que esse nome significa, e esse
+ * saber é vantagem de verdade — a única que sobrevive ao sorteio.
  *
  * <h2>A porta se vê, o caminho não</h2>
  *
@@ -96,12 +104,16 @@ public final class Labirinto extends JogoDeArena {
     // ------------------------------------------------------------------
 
     /**
-     * Refaz o labirinto antes de cada rodada.
+     * Sorteia um labirinto novo e o levanta, antes de cada rodada.
      *
-     * Não é para limpar o giz, que o refazimento limpa de graça: é que o mapa
-     * muda à meia-noite, e um servidor de pé desde terça mostraria o
-     * labirinto de terça a quem joga na quinta. O construtor só escreve os
-     * blocos que mudaram, então num mesmo dia isto custa quase nada.
+     * A ordem é essa e não pode ser outra: sortear PRIMEIRO, construir depois.
+     * Invertido, a obra levantaria o labirinto da rodada anterior e o sorteio
+     * novo só valeria para o anúncio — o jogo diria "SALÕES de vinte e uma
+     * células" e os jogadores estariam dentro do GALHOS de nove.
+     *
+     * <p>O construtor só escreve bloco que mudou, mas agora quase tudo muda:
+     * o tamanho muda, o traçado muda, a paleta muda. É o preço de não ter
+     * labirinto decorado, e é um preço de uma vez por rodada.
      */
     @Override
     protected void prepararArena(World mundo) {
@@ -111,6 +123,7 @@ public final class Labirinto extends JogoDeArena {
         campeao = null;
         tiquesDoCampeao = 0;
 
+        plugin.labirintoCatalog().sortearRodada();
         plugin.labirintoBuilder().refazerLabirinto(mundo);
 
         LabirintoCatalog planta = planta2();
@@ -136,10 +149,26 @@ public final class Labirinto extends JogoDeArena {
         }
     }
 
+    /**
+     * Dois anúncios na largada, e os dois são informação de jogo.
+     *
+     * O primeiro é o labirinto que saiu: traçado, tamanho e voltas. Não é
+     * enfeite — é o que transforma dez rodadas jogadas em vantagem na décima
+     * primeira. Ouvir "VENTANIA" e já saber que existe uma avenida reta a
+     * procurar é a única habilidade que o sorteio não apaga.
+     *
+     * <p>O segundo é a porta e a caminhada. A direção já está no facho; o
+     * número de esquinas é o que diz se esta é uma corrida de trinta segundos
+     * ou de três minutos, e saber disso antes de largar muda como se corre.
+     */
     @Override
     protected void aoComecarRodada(World mundo) {
         LabirintoCatalog planta = planta2();
-        anunciar("<gray>a porta de hoje é a <white>"
+        anunciar("<color:#4FD1C5>" + planta.nomeDoTracado() + "</color> <gray>de "
+                + "<white>" + planta.celulas() + "x" + planta.celulas()
+                + "</white> células, <white>" + planta.nomeDasVoltas()
+                + "</white> — " + planta.caraterDoTracado() + "</gray>");
+        anunciar("<gray>a porta é a <white>"
                 + LabirintoBuilder.nomeDoLado(planta.saida()[2])
                 + "</white> — o facho mostra onde. São <white>"
                 + planta.passosAteASaida() + " esquinas</white> pelo caminho "
