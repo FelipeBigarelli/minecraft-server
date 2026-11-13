@@ -1,0 +1,202 @@
+# -------------------------------------------------------------
+#  SKY WARS — uma ilha, uma chance
+#
+#  Dezesseis ilhas num anel sobre o vazio e uma ilha no meio, com
+#  baús. Todos largam na sua ilha, atravessam em ponte e o último
+#  de pé ganha. Não há chão: o vazio é o jogo.
+#
+#  OS TRÊS DEFEITOS DA REFERÊNCIA, E O QUE FAZEMOS DIFERENTE
+#
+#  O estudo rendeu três reclamações que os jogadores do gênero
+#  fazem há anos, com nome e proposta:
+#
+#  - "O BAÚ DECIDE A PARTIDA". Um abre espada de ferro e armadura
+#    e o outro abre picareta de madeira. Há até proposta de nome
+#    próprio nos fóruns — SEE, Skywars Equipment Equality — e um
+#    servidor grande já aceitou garantir armadura em todo baú.
+#    Aqui a ideia vai até o fim: NÃO HÁ BAÚ NAS ILHAS. O kit é
+#    entregue na mão de todo mundo na largada, igual para todos,
+#    sorteado uma vez por PARTIDA — a variedade entre partidas
+#    fica, a loteria entre jogadores não. De lambuja, acaba a
+#    reclamação de que quem joga no celular saqueia mais devagar.
+#
+#  - "QUEM FAZ PONTE RÁPIDO PEGA O BAÚ DO MEIO". A proposta do
+#    fórum é uma barreira em volta do meio, que cai na hora
+#    marcada — e é o que fazemos: o meio nasce fechado por uma
+#    cúpula de vidro e ela cai em `segundos-para-o-meio`. Chegar
+#    primeiro passa a ganhar POSIÇÃO e não o baú. A réplica dos
+#    fóruns continua valendo e é boa: fazer ponte se aprende, e
+#    ficar sem bloco no meio da ponte é aperto honesto.
+#
+#  - "O BAÚ DO MEIO É INÚTIL E CHATO" / "o do meio já dá
+#    vantagem demais". As duas reclamações existem, e elas são a
+#    mesma pergunta: quanto o meio vale? Aqui o meio vale
+#    EXATAMENTE um nível acima do kit da partida, e
+#    `conferirNiveis` prende as duas pontas — o melhor nível
+#    ainda precisa de três golpes cheios para derrubar alguém de
+#    vida cheia, e o melhor não pode bater mais que o dobro do
+#    pior. Vantagem que se vira jogando.
+#
+#  SÓ SE QUEBRA O QUE ALGUÉM COLOCOU. As ilhas não se mineram:
+#  sem essa regra, a primeira jogada de todo mundo é cavar a
+#  própria ilha para virar bloco de ponte, e o anel acaba sumindo
+#  antes de a partida começar. O bloco de ponte é de outra cor
+#  justamente para a regra ser visível.
+#
+#  O VAZIO TEM AUTOR. Quem foi empurrado e caiu some da partida e
+#  ninguém levava o crédito na referência. Aqui o último golpe
+#  vale por `credito-segundos`: quem empurrou leva o nome.
+#
+#  O ANEL CAI NO FIM, EM ORDEM. Depois de `segundos-de-cerco`, as
+#  ilhas do anel somem uma a uma dando a volta, de um ponto
+#  sorteado. Em ORDEM e não sorteado: assim dá para contar quando
+#  a sua vai, e sair da ilha passa a ser decisão em vez de
+#  reflexo.
+# -------------------------------------------------------------
+
+mundo: sky_wars
+
+arena:
+  y: 100
+
+  # O anel de ilhas: quantas, em que raio, de que raio cada uma e
+  # de que fundura. O vão entre duas ilhas vizinhas tem de dar
+  # uma ponte curta — com 16 ilhas no raio 44 sobram uns dez
+  # blocos entre vizinhas.
+  ilhas: 16
+  ilha-anel: 44
+  ilha-raio: 3
+  ilha-altura: 2
+
+  # A ilha do meio, que é o que se disputa.
+  meio-raio: 9
+  meio-altura: 3
+  meio-baus: 4
+
+  # A cúpula que fecha o meio até a hora marcada.
+  cupula-altura: 7
+
+  saguao-altura: 24
+  saguao-raio: 10
+  saguao-parapeito: 4
+  marco-altura: 18
+  painel-altura: 12
+
+paleta:
+  placa: PALE_OAK_WALL_SIGN
+
+  ilha-topo: SNOW_BLOCK
+  ilha-corpo: CALCITE
+  ilha-beira: SMOOTH_QUARTZ
+  ilha-marco: QUARTZ_PILLAR
+
+  meio-topo: QUARTZ_BLOCK
+  meio-corpo: SMOOTH_QUARTZ
+  meio-beira: CHISELED_QUARTZ_BLOCK
+  meio-luz: SEA_LANTERN
+
+  cupula: LIGHT_BLUE_STAINED_GLASS
+  bau: CHEST
+
+  # O bloco de ponte: de outra cor de propósito, para a regra de
+  # "só se quebra o que alguém colocou" ser visível no chão.
+  bloco-de-ponte: LIGHT_BLUE_CONCRETE
+
+  estrutura: SMOOTH_QUARTZ
+  escuro: CALCITE
+  borda: WHITE_TERRACOTTA
+  metal: IRON_BLOCK
+  vidro: LIGHT_BLUE_STAINED_GLASS
+  luz: SEA_LANTERN
+  luz-fria: END_ROD
+  nucleo: AMETHYST_BLOCK
+  poste: QUARTZ_PILLAR
+  poste-luz: SEA_LANTERN
+  torre: SMOOTH_QUARTZ
+  torre-luz: SEA_LANTERN
+  folhagem: AZALEA_LEAVES
+
+# Os níveis de kit, do pior para o melhor. O kit da partida é
+# sorteado entre os de baixo e o baú do meio é sempre UM nível
+# acima — ver `conferirNiveis`, que exige que as quatro listas
+# tenham o mesmo tamanho e que dano, blocos e flechas nunca
+# desçam de um nível para o próximo. Sem isso, "nível mais alto"
+# poderia ser pior que o mais baixo e nada no yml pareceria
+# errado.
+niveis:
+  espada: [WOODEN_SWORD, STONE_SWORD, IRON_SWORD, DIAMOND_SWORD]
+  dano: [14, 18, 22, 26]
+  blocos: [24, 28, 32, 40]
+  flechas: [0, 6, 10, 16]
+
+regras:
+  minimo: 2
+  maximo: 16
+  contagem-segundos: 15
+  fim-segundos: 10
+  treino-sozinho: true
+
+  # A vida é do plugin, como na ARENA PVP: o dano de vanilla
+  # continua cancelado e os corações na tela são o mostrador
+  # desta conta.
+  vida-cheia: 100
+
+  # O período de recarga da espada, em tiques, e a carência do
+  # alvo, que é igual a ele. A conta do golpe é a mesma da ARENA
+  # PVP e o código é compartilhado: a espada deste servidor
+  # funciona igual em toda arena.
+  periodo-do-golpe: 13
+
+  # A flecha: o tiro cheio é forte, e o fraco é quase nada. Mesma
+  # física do ARCO E FLECHA.
+  dano-da-flecha: 30
+  forca-minima: 0.3
+
+  # O item de cura do baú do meio e quanto ele devolve.
+  item-de-cura: GOLDEN_APPLE
+  cura-do-item: 35
+  curas-no-bau: 2
+
+  empurrao: 0.5
+  empurrao-altura: 0.3
+
+  # Por quantos segundos o último golpe ainda dá o crédito da
+  # queda no vazio a quem bateu.
+  credito-segundos: 8
+
+  # Quando a cúpula do meio cai.
+  segundos-para-o-meio: 45
+
+  # Quando o anel começa a cair, e de quanto em quanto tempo cada
+  # ilha some. O aviso de cada ilha sai alguns segundos antes.
+  segundos-de-cerco: 90
+  segundos-por-ilha: 6
+  aviso-segundos: 4
+
+  pontos-por-queda: 50
+
+  queda-abaixo: 25
+  tempo-limite: 360
+
+textos:
+  titulo: "SKY WARS"
+  cor: "#EAF4FF"
+  subtitulo: "uma ilha, uma chance"
+  regras:
+    - "clique em [ENTRAR] para entrar na fila"
+    - "o kit é o mesmo para todos e sorteado por partida"
+    - "não há baú nas ilhas: o baú é só no meio"
+    - "a cúpula do meio cai na hora marcada"
+    - "só se quebra o bloco que alguém colocou"
+    - "o anel cai no fim, uma ilha de cada vez, em ordem"
+    - "o vazio não perdoa, e tem autor"
+  escala-titulo: 2.8
+  escala-placa: 1.6
+  fundo-alpha: 0
+
+  placa-entrar: "[ENTRAR]"
+  placa-sair: "[SAIR]"
+  placa-fila: "na fila"
+  placa-esperando: "esperando"
+  placa-jogando: "NO AR"
+  placa-refazendo: "refazendo"

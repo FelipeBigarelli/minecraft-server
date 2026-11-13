@@ -148,8 +148,8 @@ portais:
     vao: 1
     titulo: "SKY WARS"
     descricao: "uma ilha, uma chance"
-    detalhe: "o void não perdoa"
-    mundo: ""
+    detalhe: "kit igual, sem baú na ilha"
+    mundo: "sky_wars"
     cor: "#EAF4FF"
     moldura: WHITE_TERRACOTTA
     destaque: WHITE_CONCRETE
