@@ -167,6 +167,24 @@ public final class ArenaComum {
         return (float) Math.toDegrees(Math.atan2(x, -z));
     }
 
+    /**
+     * O ângulo de um ponto contado a partir do NORTE, girando como o relógio.
+     *
+     * <p>É a conta inversa da que distribui ilhas num anel: lá, a ilha k nasce
+     * no ângulo {@code -PI/2 + 2*PI*k/quantas}, que começa no norte e segue
+     * para o leste. Aqui, dado o ponto, volta-se o k — e é isso que permite
+     * ORDENAR pontos medidos de um mapa pronto na mesma ordem em que a arena
+     * gerada numera as ilhas dela. Sem essa ordem comum, trocar uma arena
+     * gerada por um mapa feito à mão embaralharia quem nasce onde.
+     *
+     * @return de 0 (norte) a 2π, crescendo para o leste
+     */
+    public static double anguloDoNorte(double x, double z) {
+        double bruto = Math.atan2(z, x) + Math.PI / 2;
+        double volta = 2 * Math.PI;
+        return ((bruto % volta) + volta) % volta;
+    }
+
     // ------------------------------------------------------------------
     //  Regras de rodada que não são de nenhum jogo em particular
     // ------------------------------------------------------------------
