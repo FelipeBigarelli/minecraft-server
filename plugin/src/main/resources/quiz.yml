@@ -139,6 +139,21 @@ regras:
   # da rodada — é o tempo da queda, e ela é o espetáculo.
   queda-tiques: 30
 
+  # Quantas VIDAS cada um começa.
+  #
+  # Sem isso o quiz tinha um defeito que só aparece jogando: com duas
+  # pessoas, a PRIMEIRA pergunta errada já acabava a partida — um
+  # errava, sobrava um de pé, e a rodada fechava em quinze segundos
+  # com doze perguntas por fazer. Um jogo de perguntas que faz uma
+  # pergunta não é um jogo de perguntas.
+  #
+  # Com vidas, errar custa uma e devolve ao átrio; só a última
+  # elimina. Duas vidas é o número: a partida aguenta dois tropeços
+  # (e no nível 3 todo mundo tropeça) sem virar eterna.
+  #
+  # Zero volta ao jogo antigo: o primeiro erro elimina.
+  vidas: 2
+
   # Quantas perguntas a rodada tem, no máximo, e quantas de cada
   # nível. A soma dos três tem de dar o total.
   perguntas-por-rodada: 12
@@ -378,3 +393,609 @@ perguntas:
     pergunta: "Qual encantamento conserta com experiência?"
     opcoes: ["REMENDO", "FORTUNA", "EFICIÊNCIA", "AFIAÇÃO"]
     certa: 0
+
+  # -------- nível 1 — fáceis (pesquisadas) --------
+  - nivel: 1
+    pergunta: "Qual bloco explode quando aceso?"
+    opcoes: ["LÃ", "TNT", "AREIA", "VIDRO"]
+    certa: 1
+  - nivel: 1
+    pergunta: "Que animal dá leite?"
+    opcoes: ["PORCO", "VACA", "OVELHA", "GALINHA"]
+    certa: 1
+  - nivel: 1
+    pergunta: "O que a galinha bota?"
+    opcoes: ["LEITE", "MEL", "OVO", "LÃ"]
+    certa: 2
+  - nivel: 1
+    pergunta: "Qual mob atira flechas?"
+    opcoes: ["CREEPER", "ESQUELETO", "SLIME", "ZUMBI"]
+    certa: 1
+  - nivel: 1
+    pergunta: "Onde se derrete minério?"
+    opcoes: ["MESA", "BANCADA", "FORNALHA", "BAÚ"]
+    certa: 2
+  - nivel: 1
+    pergunta: "O que a abelha faz?"
+    opcoes: ["MEL", "CERA PRETA", "LEITE", "SEDA"]
+    certa: 0
+  - nivel: 1
+    pergunta: "Qual ferramenta tosquia a ovelha?"
+    opcoes: ["ENXADA", "MACHADO", "PÁ", "TESOURA"]
+    certa: 3
+  - nivel: 1
+    pergunta: "O que se usa para pescar?"
+    opcoes: ["BALDE", "VARA", "REDE", "ISCA"]
+    certa: 1
+  - nivel: 1
+    pergunta: "Que item se usa para acender fogo?"
+    opcoes: ["TOCHA", "VELA", "PEDRA", "ISQUEIRO"]
+    certa: 3
+  - nivel: 1
+    pergunta: "Qual destes dá luz?"
+    opcoes: ["TOCHA", "AREIA", "CASCALHO", "TERRA"]
+    certa: 0
+  - nivel: 1
+    pergunta: "Do que é feito o pão?"
+    opcoes: ["ARROZ", "BATATA", "MILHO", "TRIGO"]
+    certa: 3
+  - nivel: 1
+    pergunta: "Qual destes é o mais raro?"
+    opcoes: ["CARVÃO", "FERRO", "DIAMANTE", "PEDRA"]
+    certa: 2
+  - nivel: 1
+    pergunta: "O que o lobo aceita para ser domado?"
+    opcoes: ["OSSO", "PEIXE", "MAÇÃ", "CARNE"]
+    certa: 0
+  - nivel: 1
+    pergunta: "Que animal você monta?"
+    opcoes: ["CAVALO", "OVELHA", "LOBO", "VACA"]
+    certa: 0
+  - nivel: 1
+    pergunta: "Qual bloco a pá quebra mais rápido?"
+    opcoes: ["FERRO", "PEDRA", "MADEIRA", "AREIA"]
+    certa: 3
+  - nivel: 1
+    pergunta: "Que cor é o Creeper?"
+    opcoes: ["VERMELHO", "VERDE", "ROXO", "AZUL"]
+    certa: 1
+  - nivel: 1
+    pergunta: "O que o Enderman costuma carregar?"
+    opcoes: ["ESPADA", "BALDE", "BLOCO", "TOCHA"]
+    certa: 2
+  - nivel: 1
+    pergunta: "Quantas tábuas saem de um tronco?"
+    opcoes: ["6", "8", "2", "4"]
+    certa: 3
+  - nivel: 1
+    pergunta: "O que se tosquia da ovelha?"
+    opcoes: ["COURO", "LÃ", "PENA", "SEDA"]
+    certa: 1
+  - nivel: 1
+    pergunta: "O que o gato espanta?"
+    opcoes: ["ZUMBI", "CREEPER", "VACA", "ALDEÃO"]
+    certa: 1
+  - nivel: 1
+    pergunta: "O que acontece com areia sem apoio?"
+    opcoes: ["CAI", "SOME", "VIRA VIDRO", "FICA"]
+    certa: 0
+  - nivel: 1
+    pergunta: "Do que se faz vidro?"
+    opcoes: ["PEDRA", "ARGILA", "GELO", "AREIA"]
+    certa: 3
+  - nivel: 1
+    pergunta: "Qual mob se divide ao morrer?"
+    opcoes: ["GOLEM", "SLIME", "GHAST", "BLAZE"]
+    certa: 1
+  - nivel: 1
+    pergunta: "O que o porco come?"
+    opcoes: ["CENOURA", "OSSO", "CARVÃO", "TRIGO"]
+    certa: 0
+  - nivel: 1
+    pergunta: "Qual destes NÃO é ferramenta?"
+    opcoes: ["MACHADO", "PICARETA", "ENXADA", "ESCUDO"]
+    certa: 3
+  - nivel: 1
+    pergunta: "Onde o jogador guarda itens?"
+    opcoes: ["CAMA", "FORNALHA", "BAÚ", "MESA"]
+    certa: 2
+  - nivel: 1
+    pergunta: "A cama serve para quê?"
+    opcoes: ["COZINHAR", "DORMIR", "GUARDAR", "PESCAR"]
+    certa: 1
+  - nivel: 1
+    pergunta: "Qual bioma é cheio de areia?"
+    opcoes: ["DESERTO", "SELVA", "OCEANO", "TAIGA"]
+    certa: 0
+  - nivel: 1
+    pergunta: "O que o esqueleto deixa cair?"
+    opcoes: ["OSSO", "PENA", "LÃ", "COURO"]
+    certa: 0
+  - nivel: 1
+    pergunta: "Que ferramenta ara a terra?"
+    opcoes: ["ENXADA", "MACHADO", "PICARETA", "PÁ"]
+    certa: 0
+  - nivel: 1
+    pergunta: "Qual mob voa e cospe fogo?"
+    opcoes: ["ZUMBI", "BLAZE", "GHAST", "SLIME"]
+    certa: 2
+  - nivel: 1
+    pergunta: "Que bloco não se quebra de jeito nenhum?"
+    opcoes: ["VIDRO", "OBSIDIANA", "BEDROCK", "FERRO"]
+    certa: 2
+  - nivel: 1
+    pergunta: "Para que serve a bancada?"
+    opcoes: ["GUARDAR", "DORMIR", "COZINHAR", "FABRICAR"]
+    certa: 3
+  - nivel: 1
+    pergunta: "O que se perde ao cair de muito alto?"
+    opcoes: ["ITENS", "VIDA", "FOME", "XP"]
+    certa: 1
+  - nivel: 1
+    pergunta: "Qual destes é um peixe do jogo?"
+    opcoes: ["BAIACU", "GOLFINHO", "POLVO", "TUBARÃO"]
+    certa: 0
+  - nivel: 1
+    pergunta: "Onde nasce o cogumelo?"
+    opcoes: ["NA ÁGUA", "NA LAVA", "NO SOL", "NO ESCURO"]
+    certa: 3
+  - nivel: 1
+    pergunta: "O que a lula deixa cair?"
+    opcoes: ["PENA", "OSSO", "TINTA", "COURO"]
+    certa: 2
+  - nivel: 1
+    pergunta: "Qual destes derrete a neve?"
+    opcoes: ["VIDRO", "ÁGUA", "TOCHA", "AREIA"]
+    certa: 2
+  - nivel: 1
+    pergunta: "Através de qual bloco se enxerga?"
+    opcoes: ["FERRO", "TERRA", "PEDRA", "VIDRO"]
+    certa: 3
+  - nivel: 1
+    pergunta: "Qual mob anda de noite e queima de dia?"
+    opcoes: ["LULA", "SLIME", "ZUMBI", "CREEPER"]
+    certa: 2
+
+  # -------- nível 2 — médias (pesquisadas) --------
+  - nivel: 2
+    pergunta: "De que bloco é o portal do Nether?"
+    opcoes: ["QUARTZO", "FERRO", "OBSIDIANA", "OURO"]
+    certa: 2
+  - nivel: 2
+    pergunta: "Quantas obsidianas no mínimo para o portal?"
+    opcoes: ["12", "14", "8", "10"]
+    certa: 3
+  - nivel: 2
+    pergunta: "O que machuca o Enderman?"
+    opcoes: ["LUZ", "FOGO", "ÁGUA", "AREIA"]
+    certa: 2
+  - nivel: 2
+    pergunta: "O que o aldeão aceita como moeda?"
+    opcoes: ["ESMERALDA", "FERRO", "OURO", "DIAMANTE"]
+    certa: 0
+  - nivel: 2
+    pergunta: "Do que é feito o Golem de Ferro?"
+    opcoes: ["FERRO+ABÓBORA", "FERRO+MELÃO", "FERRO+CABEÇA", "OURO+ABÓBORA"]
+    certa: 0
+  - nivel: 2
+    pergunta: "O aldeão atingido por raio vira o quê?"
+    opcoes: ["ALDEÃO", "GOLEM", "BRUXA", "ZUMBI"]
+    certa: 2
+  - nivel: 2
+    pergunta: "O porco atingido por raio vira o quê?"
+    opcoes: ["BACON", "ZUMBIFICADO", "GOLEM", "NADA"]
+    certa: 1
+  - nivel: 2
+    pergunta: "Onde mora o Guardião?"
+    opcoes: ["MONUMENTO", "MANSÃO", "CIDADE", "FORTALEZA"]
+    certa: 0
+  - nivel: 2
+    pergunta: "O que o Blaze deixa cair?"
+    opcoes: ["CARVÃO", "OSSO", "PÓLVORA", "VARA"]
+    certa: 3
+  - nivel: 2
+    pergunta: "O Olho do Fim leva pérola e o quê?"
+    opcoes: ["PÓ DE BLAZE", "AÇÚCAR", "REDSTONE", "PÓLVORA"]
+    certa: 0
+  - nivel: 2
+    pergunta: "O Olho do Fim aponta para onde?"
+    opcoes: ["A VILA", "O OCEANO", "O NETHER", "A FORTALEZA"]
+    certa: 3
+  - nivel: 2
+    pergunta: "Quem guarda o Fim?"
+    opcoes: ["WITHER", "DRAGÃO", "WARDEN", "GUARDIÃO"]
+    certa: 1
+  - nivel: 2
+    pergunta: "O que derruba os cristais do Fim?"
+    opcoes: ["ESPADA", "FLECHA", "TNT", "BALDE"]
+    certa: 1
+  - nivel: 2
+    pergunta: "Quantos blocos a redstone viaja sozinha?"
+    opcoes: ["15", "20", "8", "12"]
+    certa: 0
+  - nivel: 2
+    pergunta: "Qual bloco o pistão NÃO empurra?"
+    opcoes: ["OBSIDIANA", "LÃ", "PEDRA", "AREIA"]
+    certa: 0
+  - nivel: 2
+    pergunta: "A mesa de encantamento melhora com o quê?"
+    opcoes: ["ESTANTES", "TOCHAS", "FORNALHAS", "BAÚS"]
+    certa: 0
+  - nivel: 2
+    pergunta: "Quantas estantes para o nível 30?"
+    opcoes: ["18", "9", "12", "15"]
+    certa: 3
+  - nivel: 2
+    pergunta: "O que a Shulker causa?"
+    opcoes: ["CEGUEIRA", "FOME", "VENENO", "LEVITAÇÃO"]
+    certa: 3
+  - nivel: 2
+    pergunta: "Onde se acha a Elitra?"
+    opcoes: ["NETHER", "FORTALEZA", "NAVIO DO FIM", "MANSÃO"]
+    certa: 2
+  - nivel: 2
+    pergunta: "Para que serve a Elitra?"
+    opcoes: ["NADAR", "PLANAR", "CAVAR", "CURAR"]
+    certa: 1
+  - nivel: 2
+    pergunta: "Quantos crânios o Wither precisa?"
+    opcoes: ["5", "2", "3", "4"]
+    certa: 2
+  - nivel: 2
+    pergunta: "O Wither derrotado deixa o quê?"
+    opcoes: ["DIAMANTE", "NETHER STAR", "ELITRA", "PÉROLA"]
+    certa: 1
+  - nivel: 2
+    pergunta: "A Nether Star serve para fazer o quê?"
+    opcoes: ["ELITRA", "ESPADA", "FAROL", "PORTAL"]
+    certa: 2
+  - nivel: 2
+    pergunta: "O farol precisa de quê embaixo?"
+    opcoes: ["ÁGUA", "PIRÂMIDE", "LAVA", "BAÚ"]
+    certa: 1
+  - nivel: 2
+    pergunta: "O que o Warden percebe?"
+    opcoes: ["CHEIRO", "CALOR", "LUZ", "SOM"]
+    certa: 3
+  - nivel: 2
+    pergunta: "Onde mora o Warden?"
+    opcoes: ["CIDADE ANTIGA", "FIM", "OCEANO", "NETHER"]
+    certa: 0
+  - nivel: 2
+    pergunta: "O que o Allay faz?"
+    opcoes: ["CURA", "CAVA", "ATACA", "PEGA ITENS"]
+    certa: 3
+  - nivel: 2
+    pergunta: "O Ancião do Oceano causa qual efeito?"
+    opcoes: ["FADIGA", "FORÇA", "PRESSA", "VENENO"]
+    certa: 0
+  - nivel: 2
+    pergunta: "Qual bloco só cede à picareta de diamante?"
+    opcoes: ["FERRO", "OURO", "OBSIDIANA", "CARVÃO"]
+    certa: 2
+  - nivel: 2
+    pergunta: "Qual destes NÃO dá XP ao minerar?"
+    opcoes: ["LÁPIS-LAZÚLI", "CARVÃO", "DIAMANTE", "FERRO"]
+    certa: 3
+  - nivel: 2
+    pergunta: "A cenoura dourada leva o quê?"
+    opcoes: ["BLOCO", "PÓ", "PEPITAS", "LINGOTE"]
+    certa: 2
+  - nivel: 2
+    pergunta: "O que a maçã dourada dá?"
+    opcoes: ["SORTE", "VOO", "ABSORÇÃO", "PRESSA"]
+    certa: 2
+  - nivel: 2
+    pergunta: "O olho de aranha comido causa o quê?"
+    opcoes: ["CEGUEIRA", "NADA", "FOME", "VENENO"]
+    certa: 3
+  - nivel: 2
+    pergunta: "Qual comida pode intoxicar?"
+    opcoes: ["PÃO", "BATATA PODRE", "MAÇÃ", "BIFE"]
+    certa: 1
+  - nivel: 2
+    pergunta: "Qual mob some com a luz do dia?"
+    opcoes: ["SLIME", "PHANTOM", "ENDERMAN", "CREEPER"]
+    certa: 1
+  - nivel: 2
+    pergunta: "O que chama o Phantom?"
+    opcoes: ["NÃO DORMIR", "NÃO COMER", "CAVAR", "NADAR"]
+    certa: 0
+  - nivel: 2
+    pergunta: "Onde o Slime grande aparece mais?"
+    opcoes: ["NETHER", "DESERTO", "PÂNTANO", "TAIGA"]
+    certa: 2
+  - nivel: 2
+    pergunta: "O que a lhama cospe?"
+    opcoes: ["ÁGUA", "CUSPE", "FOGO", "VENENO"]
+    certa: 1
+  - nivel: 2
+    pergunta: "Quem troca com você no Nether?"
+    opcoes: ["ALDEÃO", "PIGLIN", "BLAZE", "GHAST"]
+    certa: 1
+  - nivel: 2
+    pergunta: "O Piglin troca por qual metal?"
+    opcoes: ["FERRO", "OURO", "COBRE", "NETHERITE"]
+    certa: 1
+  - nivel: 2
+    pergunta: "O que o Strider atravessa sem se queimar?"
+    opcoes: ["GELO", "ÁGUA", "LAVA", "FOGO"]
+    certa: 2
+  - nivel: 2
+    pergunta: "O que guia o Strider na vara?"
+    opcoes: ["TRIGO", "MEL", "CENOURA", "FUNGO AZUL"]
+    certa: 3
+  - nivel: 2
+    pergunta: "Qual bloco o Ghast não derruba?"
+    opcoes: ["MADEIRA", "TERRA", "OBSIDIANA", "AREIA"]
+    certa: 2
+  - nivel: 2
+    pergunta: "Água sobre lava parada faz o quê?"
+    opcoes: ["NADA", "OBSIDIANA", "FERRO", "VIDRO"]
+    certa: 1
+  - nivel: 2
+    pergunta: "Água sobre lava corrente faz o quê?"
+    opcoes: ["CASCALHO", "AREIA", "OBSIDIANA", "PEDRA"]
+    certa: 3
+  - nivel: 2
+    pergunta: "O que o balde de leite tira?"
+    opcoes: ["VIDA", "XP", "FOME", "EFEITOS"]
+    certa: 3
+  - nivel: 2
+    pergunta: "Qual mob copia o som que ouve?"
+    opcoes: ["RAPOSA", "PAPAGAIO", "LOBO", "GATO"]
+    certa: 1
+  - nivel: 2
+    pergunta: "Correnteza no tridente precisa de quê?"
+    opcoes: ["CHUVA", "NEVE", "FOGO", "LAVA"]
+    certa: 0
+  - nivel: 2
+    pergunta: "Qual bloco faz o jogador quicar?"
+    opcoes: ["MEL", "FENO", "LÃ", "SLIME"]
+    certa: 3
+  - nivel: 2
+    pergunta: "Qual bloco amortece a queda sem quicar?"
+    opcoes: ["FENO", "PEDRA", "AREIA", "LÃ"]
+    certa: 0
+
+  # -------- nível 3 — difíceis (pesquisadas) --------
+  - nivel: 3
+    pergunta: "Qual era o nome original do Minecraft?"
+    opcoes: ["MINE GAME", "CUBE WORLD", "CAVE GAME", "BLOCK LAND"]
+    certa: 2
+  - nivel: 3
+    pergunta: "Quem criou o Minecraft?"
+    opcoes: ["JEB", "NOTCH", "DINNERBONE", "C418"]
+    certa: 1
+  - nivel: 3
+    pergunta: "Qual empresa comprou a Mojang?"
+    opcoes: ["VALVE", "SONY", "MICROSOFT", "GOOGLE"]
+    certa: 2
+  - nivel: 3
+    pergunta: "Por quanto a Mojang foi comprada?"
+    opcoes: ["2,5 BILHÕES", "10 BILHÕES", "500 MILHÕES", "1 BILHÃO"]
+    certa: 0
+  - nivel: 3
+    pergunta: "Em que ano saiu a versão 1.0?"
+    opcoes: ["2011", "2013", "2009", "2010"]
+    certa: 0
+  - nivel: 3
+    pergunta: "Quem lidera o jogo desde 2011?"
+    opcoes: ["C418", "NOTCH", "JEB", "GRUM"]
+    certa: 2
+  - nivel: 3
+    pergunta: "Quem compôs a trilha clássica?"
+    opcoes: ["DEADMAU5", "NOTCH", "JEB", "C418"]
+    certa: 3
+  - nivel: 3
+    pergunta: "O Creeper saiu de um erro ao criar qual bicho?"
+    opcoes: ["OVELHA", "GALINHA", "VACA", "PORCO"]
+    certa: 3
+  - nivel: 3
+    pergunta: "Qual é o personagem padrão?"
+    opcoes: ["STAN", "ALEX", "STEVE", "HEROBRINE"]
+    certa: 2
+  - nivel: 3
+    pergunta: "Qual é a personagem padrão feminina?"
+    opcoes: ["ELLA", "ANNA", "ZOE", "ALEX"]
+    certa: 3
+  - nivel: 3
+    pergunta: "Quantos ticks tem um segundo?"
+    opcoes: ["30", "60", "10", "20"]
+    certa: 3
+  - nivel: 3
+    pergunta: "Quanto dura um dia inteiro no jogo?"
+    opcoes: ["20 MIN", "30 MIN", "60 MIN", "10 MIN"]
+    certa: 0
+  - nivel: 3
+    pergunta: "Quantos blocos tem o lado de um chunk?"
+    opcoes: ["8", "16", "32", "64"]
+    certa: 1
+  - nivel: 3
+    pergunta: "Qual é o teto de construção hoje?"
+    opcoes: ["384", "128", "256", "320"]
+    certa: 3
+  - nivel: 3
+    pergunta: "Qual é o fundo do mundo hoje?"
+    opcoes: ["-32", "-64", "-128", "0"]
+    certa: 1
+  - nivel: 3
+    pergunta: "Em qual altura o diamante é mais comum?"
+    opcoes: ["Y 11", "Y -59", "Y 0", "Y 64"]
+    certa: 1
+  - nivel: 3
+    pergunta: "Quantas cores de lã existem?"
+    opcoes: ["8", "12", "16", "20"]
+    certa: 2
+  - nivel: 3
+    pergunta: "Quantos itens cabem numa pilha normal?"
+    opcoes: ["16", "32", "64", "99"]
+    certa: 2
+  - nivel: 3
+    pergunta: "Quantas bolas de neve cabem numa pilha?"
+    opcoes: ["64", "8", "16", "32"]
+    certa: 2
+  - nivel: 3
+    pergunta: "Quantos espaços tem um baú simples?"
+    opcoes: ["27", "36", "54", "18"]
+    certa: 0
+  - nivel: 3
+    pergunta: "Quantos espaços tem um baú duplo?"
+    opcoes: ["45", "54", "64", "36"]
+    certa: 1
+  - nivel: 3
+    pergunta: "Quantos espaços tem a barra de itens?"
+    opcoes: ["8", "9", "10", "7"]
+    certa: 1
+  - nivel: 3
+    pergunta: "Qual encantamento devolve o bloco inteiro?"
+    opcoes: ["EFICIÊNCIA", "REMENDO", "FORTUNA", "TOQUE SUAVE"]
+    certa: 3
+  - nivel: 3
+    pergunta: "Qual encantamento rende mais minério?"
+    opcoes: ["FORTUNA", "SAQUE", "TOQUE SUAVE", "CHAMA"]
+    certa: 0
+  - nivel: 3
+    pergunta: "Qual encantamento conserta com XP?"
+    opcoes: ["REMENDO", "RESISTÊNCIA", "FORTUNA", "REPARO"]
+    certa: 0
+  - nivel: 3
+    pergunta: "Qual encantamento NÃO combina com Fortuna?"
+    opcoes: ["EFICIÊNCIA", "TOQUE SUAVE", "RESISTÊNCIA", "REMENDO"]
+    certa: 1
+  - nivel: 3
+    pergunta: "Qual é o nível máximo de Eficiência?"
+    opcoes: ["IV", "V", "X", "III"]
+    certa: 1
+  - nivel: 3
+    pergunta: "Qual encantamento congela a água ao pisar?"
+    opcoes: ["PASSOS GELADOS", "AGILIDADE", "LEVEZA", "PÉS LEVES"]
+    certa: 0
+  - nivel: 3
+    pergunta: "Qual é o nível máximo na mesa de encantar?"
+    opcoes: ["50", "20", "25", "30"]
+    certa: 3
+  - nivel: 3
+    pergunta: "Qual material é mais resistente?"
+    opcoes: ["NETHERITE", "OURO", "FERRO", "DIAMANTE"]
+    certa: 0
+  - nivel: 3
+    pergunta: "O que o netherite faz que o diamante não faz?"
+    opcoes: ["NÃO QUEIMA", "VOA", "CURA", "BRILHA"]
+    certa: 0
+  - nivel: 3
+    pergunta: "Onde se acha o Escombro Antigo?"
+    opcoes: ["CAVERNA", "FIM", "NETHER", "OCEANO"]
+    certa: 2
+  - nivel: 3
+    pergunta: "Quantos escombros dão um lingote de netherite?"
+    opcoes: ["6", "2", "3", "4"]
+    certa: 3
+  - nivel: 3
+    pergunta: "Qual bloco muda de cor com o tempo?"
+    opcoes: ["QUARTZO", "FERRO", "COBRE", "OURO"]
+    certa: 2
+  - nivel: 3
+    pergunta: "O que impede o cobre de oxidar?"
+    opcoes: ["CERA", "FOGO", "NEVE", "ÁGUA"]
+    certa: 0
+  - nivel: 3
+    pergunta: "Qual destes NÃO existe no Minecraft?"
+    opcoes: ["PANDA", "PINGUIM", "CAPIVARA", "RAPOSA"]
+    certa: 1
+  - nivel: 3
+    pergunta: "Em qual bioma fica a Mansão?"
+    opcoes: ["PÂNTANO", "TAIGA", "FLOREST.ESCURA", "SELVA"]
+    certa: 2
+  - nivel: 3
+    pergunta: "Quem mora na Mansão da Floresta?"
+    opcoes: ["ALDEÕES", "ILAGERS", "PIGLINS", "GUARDIÕES"]
+    certa: 1
+  - nivel: 3
+    pergunta: "O que o Evoker invoca?"
+    opcoes: ["VEXES", "GOLEMS", "LOBOS", "ZUMBIS"]
+    certa: 0
+  - nivel: 3
+    pergunta: "O que o Totem da Imortalidade faz?"
+    opcoes: ["CURA", "SALVA DA MORTE", "DÁ VOO", "DÁ XP"]
+    certa: 1
+  - nivel: 3
+    pergunta: "Quem deixa cair o Totem?"
+    opcoes: ["RAVAGER", "VINDICATOR", "EVOKER", "PILLAGER"]
+    certa: 2
+  - nivel: 3
+    pergunta: "O que começa uma Invasão?"
+    opcoes: ["CHUVA", "CAVAR", "DORMIR", "MAU AGOURO"]
+    certa: 3
+  - nivel: 3
+    pergunta: "Qual estrutura guarda o Mapa do Tesouro?"
+    opcoes: ["FORTALEZA", "MANSÃO", "MINA", "NAUFRÁGIO"]
+    certa: 3
+  - nivel: 3
+    pergunta: "O Coração do Mar serve para fazer o quê?"
+    opcoes: ["FAROL", "CURA", "CONDUTOR", "PORTAL"]
+    certa: 2
+  - nivel: 3
+    pergunta: "O Condutor pede qual bloco em volta?"
+    opcoes: ["FERRO", "PRISMARINHO", "QUARTZO", "COBRE"]
+    certa: 1
+  - nivel: 3
+    pergunta: "O que torna um Creeper carregado?"
+    opcoes: ["RAIO", "POÇÃO", "FOGO", "LAVA"]
+    certa: 0
+  - nivel: 3
+    pergunta: "Qual destes NÃO é mob do Fim?"
+    opcoes: ["DRAGÃO", "BLAZE", "ENDERMAN", "SHULKER"]
+    certa: 1
+  - nivel: 3
+    pergunta: "O que o Dragão abre ao morrer?"
+    opcoes: ["UMA MINA", "NADA", "UM BAÚ", "O PORTAL"]
+    certa: 3
+  - nivel: 3
+    pergunta: "O Ovo do Dragão se pega com o quê?"
+    opcoes: ["PICARETA", "BALDE", "A MÃO", "PISTÃO"]
+    certa: 3
+  - nivel: 3
+    pergunta: "Quantos olhos do fim o portal pede?"
+    opcoes: ["8", "10", "12", "16"]
+    certa: 2
+  - nivel: 3
+    pergunta: "O que a cama faz no Nether?"
+    opcoes: ["EXPLODE", "SOME", "NADA", "DORME"]
+    certa: 0
+  - nivel: 3
+    pergunta: "Quantos blocos de altura o cacto cresce?"
+    opcoes: ["3", "4", "5", "2"]
+    certa: 0
+  - nivel: 3
+    pergunta: "A cana-de-açúcar precisa de quê ao lado?"
+    opcoes: ["LUZ", "TERRA", "AREIA", "ÁGUA"]
+    certa: 3
+  - nivel: 3
+    pergunta: "Do que se faz o papel?"
+    opcoes: ["COURO", "MADEIRA", "CANA", "TRIGO"]
+    certa: 2
+  - nivel: 3
+    pergunta: "Do que se faz o livro?"
+    opcoes: ["PAPEL+LÃ", "MADEIRA", "PAPEL+TINTA", "PAPEL+COURO"]
+    certa: 3
+  - nivel: 3
+    pergunta: "A tocha de redstone num bloco faz o quê?"
+    opcoes: ["NADA", "EXPLODE", "DESLIGA", "LIGA"]
+    certa: 3
+  - nivel: 3
+    pergunta: "Qual é o alcance do Observador?"
+    opcoes: ["8 BLOCOS", "15 BLOCOS", "1 BLOCO", "3 BLOCOS"]
+    certa: 2
+  - nivel: 3
+    pergunta: "O que o Funil faz?"
+    opcoes: ["MOVE ITENS", "DÁ LUZ", "CURA", "EXPLODE"]
+    certa: 0
+  - nivel: 3
+    pergunta: "Quantos blocos o pistão empurra no máximo?"
+    opcoes: ["10", "12", "16", "6"]
+    certa: 1
+  - nivel: 3
+    pergunta: "Qual metal NÃO existe no Minecraft?"
+    opcoes: ["COBRE", "PRATA", "FERRO", "OURO"]
+    certa: 1

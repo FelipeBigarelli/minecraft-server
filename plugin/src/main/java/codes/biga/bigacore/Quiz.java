@@ -74,6 +74,14 @@ public final class Quiz extends JogoDeArena {
     private final Set<UUID> condenados = new HashSet<>();
 
     /**
+     * Quantos erros cada um ainda aguenta.
+     *
+     * Com zero, o próximo erro elimina — que é a regra clássica do gênero e
+     * a razão de a partida de duas pessoas acabar na primeira pergunta.
+     */
+    private final Map<UUID, Integer> vidas = new HashMap<>();
+
+    /**
      * O baralho, que atravessa as rodadas de propósito.
      *
      * Reembaralhar a cada rodada daria a mesma pergunta na rodada seguinte com
@@ -138,6 +146,7 @@ public final class Quiz extends JogoDeArena {
         resposta.clear();
         quandoTrancou.clear();
         condenados.clear();
+        vidas.clear();
         revelando = false;
         quedaFeita = false;
         anulada = false;
@@ -163,6 +172,7 @@ public final class Quiz extends JogoDeArena {
             jogador.setFallDistance(0f);
             jogador.getInventory().clear();
             placar.entrar(jogador.getUniqueId());
+            vidas.put(jogador.getUniqueId(), planta.vidas());
         }
     }
 
@@ -175,6 +185,16 @@ public final class Quiz extends JogoDeArena {
                 + "fácil ao difícil. <white>" + planta.tempoResposta()
                 + " segundos</white> para pisar na resposta — e ficar no átrio "
                 + "conta como <white>errar</white></gray>");
+        if (planta.vidas() > 0) {
+            linhas.add("<gray>errar custa <white>uma vida</white> e devolve "
+                    + "ao átrio; você começa com <white>" + planta.vidas()
+                    + "</white>. Quem acerta mais <white>rápido</white> ganha "
+                    + "mais ponto, e é o ponto que desempata no fim</gray>");
+        } else {
+            linhas.add("<gray>o primeiro erro <white>elimina</white>. Quem "
+                    + "acerta mais <white>rápido</white> ganha mais ponto, e é "
+                    + "o ponto que desempata no fim</gray>");
+        }
         return linhas;
     }
 
@@ -196,6 +216,7 @@ public final class Quiz extends JogoDeArena {
         resposta.remove(id);
         quandoTrancou.remove(id);
         condenados.remove(id);
+        vidas.remove(id);
     }
 
     @Override
@@ -389,8 +410,21 @@ public final class Quiz extends JogoDeArena {
             jogador.playSound(jogador.getLocation(),
                     Sound.ENTITY_PLAYER_LEVELUP, 0.6f, 1.6f);
         }
+        int caem = 0;
         for (Player jogador : errados) {
-            condenados.add(jogador.getUniqueId());
+            UUID id = jogador.getUniqueId();
+            int tem = vidas.getOrDefault(id, 0);
+            if (!erroElimina(tem)) {
+                vidas.put(id, tem - 1);
+                jogador.playSound(jogador.getLocation(),
+                        Sound.ENTITY_ITEM_BREAK, 0.8f, 0.8f);
+                jogador.sendActionBar(plugin.mini().deserialize(
+                        "<color:#FF6B6B>errou</color> <gray>— restam </gray>"
+                                + coracoes(tem - 1)));
+                continue;
+            }
+            condenados.add(id);
+            caem++;
             jogador.playSound(jogador.getLocation(),
                     Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 0.7f);
         }
@@ -410,11 +444,74 @@ public final class Quiz extends JogoDeArena {
                 "<white>" + HubBuilder.escapar(pergunta.resposta()) + "</white>");
         painelDaRevelacao(mundo, planta, pergunta);
         if (!errados.isEmpty()) {
-            anunciar("<gray>era <white>"
+            int tropecaram = errados.size() - caem;
+            StringBuilder recado = new StringBuilder("<gray>era <white>"
                     + HubBuilder.escapar(pergunta.resposta()) + "</white> — "
-                    + "<white>" + certos.size() + "</white> acertaram e "
-                    + "<color:#FF6B6B>" + errados.size() + "</color> caem</gray>");
+                    + "<white>" + certos.size() + "</white> acertaram");
+            if (tropecaram > 0) {
+                recado.append(", <color:#FFD93D>").append(tropecaram)
+                        .append("</color> perderam uma vida");
+            }
+            if (caem > 0) {
+                recado.append(" e <color:#FF6B6B>").append(caem)
+                        .append("</color> caem");
+            }
+            anunciar(recado.append("</gray>").toString());
         }
+    }
+
+    /**
+     * Errar agora elimina, ou só custa uma vida?
+     *
+     * A regra inteira cabe nesta linha, e ela está separada por isso: é a
+     * diferença entre uma partida de doze perguntas e uma de uma. Com vida
+     * sobrando, o erro devolve ao átrio; sem, ele tira da rodada.
+     */
+    static boolean erroElimina(int vidasQueTem) {
+        return vidasQueTem <= 0;
+    }
+
+    /** As vidas desenhadas, para caber numa barra de ação. */
+    private String coracoes(int quantas) {
+        if (quantas <= 0) {
+            return "<color:#6E7681>última chance</color>";
+        }
+        if (quantas > 5) {
+            return "<color:#FF6B6B>\u2764</color><gray>\u00d7" + quantas
+                    + "</gray>";
+        }
+        return "<color:#FF6B6B>" + "\u2764".repeat(quantas) + "</color>";
+    }
+
+    /**
+     * A lista lateral: ponto e vida, nessa ordem.
+     *
+     * O ponto ordena, porque é ele que decide a partida; a vida vai ao lado
+     * porque é ela que diz quem está prestes a sair, e num quiz essas duas
+     * perguntas — quem está ganhando e quem está por um fio — são as únicas
+     * que o jogador faz olhando para o canto da tela.
+     */
+    @Override
+    protected List<PlacarLateral.Linha> linhasDaLateral() {
+        List<PlacarLateral.Linha> linhas = new ArrayList<>();
+        for (UUID id : placar.ranking()) {
+            Player quem = Bukkit.getPlayer(id);
+            if (quem == null) {
+                continue;
+            }
+            String valor = placar.de(id) + " pts";
+            if (estaVivo(quem)) {
+                int tem = vidas.getOrDefault(id, 0);
+                valor += tem > 0
+                        ? " <color:#FF6B6B>" + "\u2764".repeat(Math.min(3, tem))
+                                + "</color>"
+                        : " <color:#6E7681>\u2715</color>";
+            } else {
+                valor += " <color:#6E7681>fora</color>";
+            }
+            linhas.add(new PlacarLateral.Linha(quem.getName(), valor));
+        }
+        return linhas;
     }
 
     /**
@@ -529,7 +626,7 @@ public final class Quiz extends JogoDeArena {
             jogador.sendActionBar(plugin.mini().deserialize(trancado
                     + " <gray>· " + placar.de(id) + " pts · "
                     + placar.posicaoDe(id) + "º de " + placar.quantos()
-                    + "</gray>"));
+                    + " · </gray>" + coracoes(vidas.getOrDefault(id, 0))));
         }
     }
 

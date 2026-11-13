@@ -63,6 +63,7 @@ class QuizTest {
     private static final int PONTOS_ACERTO = 10;
     private static final int PONTOS_RAPIDEZ = 10;
     private static final int MAXIMO = 16;
+    private static final int VIDAS = 2;
     private static final int TEMPO_LIMITE = 300;
 
     @BeforeAll
@@ -73,7 +74,7 @@ class QuizTest {
                     new InputStreamReader(in, StandardCharsets.UTF_8));
         }
         banco = QuizCatalog.lerBanco(arena);
-        assertEquals(48, banco.size(), "o banco do yml mudou de tamanho");
+        assertEquals(198, banco.size(), "o banco do yml mudou de tamanho");
     }
 
     // ------------------------------------------------------------------
@@ -98,6 +99,7 @@ class QuizTest {
         assertEquals(PONTOS_ACERTO, arena.getInt("regras.pontos-acerto"));
         assertEquals(PONTOS_RAPIDEZ, arena.getInt("regras.pontos-rapidez"));
         assertEquals(MAXIMO, arena.getInt("regras.maximo"));
+        assertEquals(VIDAS, arena.getInt("regras.vidas"));
         assertEquals(TEMPO_LIMITE, arena.getInt("regras.tempo-limite"));
     }
 
@@ -153,6 +155,53 @@ class QuizTest {
                         + " (" + total + " perguntas no nível)");
             }
         }
+    }
+
+    @Test
+    @DisplayName("o banco tem fôlego para muitas partidas seguidas")
+    void oBancoTemFolego() {
+        // O defeito que isto pega não é de código, é de conteúdo: um banco
+        // curto faz a terceira partida da noite ser a repetição da primeira.
+        // Com o banco de agora, uma noite inteira de rodadas não fecha o
+        // ciclo de nenhum dos três níveis.
+        for (int nivel = 1; nivel <= 3; nivel++) {
+            int tem = QuizCatalog.quantasNoNivel(banco, nivel);
+            int pede = POR_NIVEL.get(nivel - 1);
+            assertTrue(tem >= pede * 10, "o nível " + nivel + " tem " + tem
+                    + " perguntas e a rodada pede " + pede + ": dá para "
+                    + (tem / pede) + " rodadas antes de repetir, e dez é o "
+                    + "mínimo para uma noite não virar revisão.");
+        }
+    }
+
+    @Test
+    @DisplayName("errar custa uma vida, e só a última elimina")
+    void aVidaSeguraOErro() {
+        // Era o defeito mais caro do jogo e não aparecia em teste nenhum:
+        // com dois jogadores, a primeira pergunta errada eliminava um,
+        // sobrava um de pé, e a rodada fechava com onze perguntas por
+        // fazer. Com vidas, o erro devolve ao átrio até elas acabarem.
+        assertFalse(Quiz.erroElimina(VIDAS), "com " + VIDAS + " vidas o "
+                + "primeiro erro não pode eliminar");
+        assertFalse(Quiz.erroElimina(1), "com a última vida na mão o erro "
+                + "ainda devolve ao átrio");
+        assertTrue(Quiz.erroElimina(0), "sem vida, errar tira da rodada");
+
+        // E o caminho inteiro: VIDAS erros perdoados, o seguinte não.
+        int tem = VIDAS;
+        for (int erro = 1; erro <= VIDAS; erro++) {
+            assertFalse(Quiz.erroElimina(tem), "o erro " + erro + " de "
+                    + VIDAS + " não podia eliminar");
+            tem--;
+        }
+        assertTrue(Quiz.erroElimina(tem), "o erro " + (VIDAS + 1)
+                + " tinha de eliminar");
+    }
+
+    @Test
+    @DisplayName("com vidas zero volta a regra antiga: o primeiro erro elimina")
+    void vidaZeroEhARegraAntiga() {
+        assertTrue(Quiz.erroElimina(0));
     }
 
     @Test

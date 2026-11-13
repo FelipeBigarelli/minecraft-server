@@ -172,6 +172,20 @@ public final class QuizCatalog extends CatalogoDeArena {
         return Math.max(10, config.getInt("regras.queda-tiques", 30));
     }
 
+    /**
+     * Quantas vidas cada um começa — quantos erros ele aguenta.
+     *
+     * A eliminação no primeiro erro é a regra dos quizzes de servidor, e ela
+     * só funciona com sala cheia. Com dois jogadores, a primeira pergunta
+     * errada fecha a partida: um cai, sobra um de pé, e as outras onze
+     * perguntas nunca são feitas. Com vidas, errar devolve ao átrio e cobra
+     * uma; a eliminação chega quando acabam, e a partida tem tamanho de
+     * partida. Zero devolve a regra antiga.
+     */
+    public int vidas() {
+        return Math.max(0, config.getInt("regras.vidas", 2));
+    }
+
     public int perguntasPorRodada() {
         return Math.max(1, config.getInt("regras.perguntas-por-rodada", 12));
     }
