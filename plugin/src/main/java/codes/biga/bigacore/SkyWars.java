@@ -334,8 +334,8 @@ public final class SkyWars extends JogoDeArena {
         SkyWarsCatalog planta = planta2();
         UUID quem = agressor.get(id);
         long quando = tiqueDoGolpe.getOrDefault(id, Long.MIN_VALUE);
-        boolean recente = tiquesDeJogo() - quando
-                <= planta.creditoSegundos() * 20L;
+        boolean recente = !ArenaComum.jaPassou(tiquesDeJogo(), quando,
+                planta.creditoSegundos() * 20L);
 
         if (quem != null && recente && vida.containsKey(id)) {
             creditar(quem, jogador, planta, true);
@@ -1281,8 +1281,8 @@ public final class SkyWars extends JogoDeArena {
     private void avisarDoAr(SkyWarsCatalog planta, int agora) {
         for (Player jogador : jogadoresVivos()) {
             UUID id = jogador.getUniqueId();
-            if (tiquesDeJogo() - tiqueDoGolpe.getOrDefault(id, Long.MIN_VALUE)
-                    < 30) {
+            if (!ArenaComum.jaPassou(tiquesDeJogo(),
+                    tiqueDoGolpe.getOrDefault(id, Long.MIN_VALUE), 30)) {
                 continue;
             }
             int sua = vida.getOrDefault(id, planta.vidaCheia());

@@ -168,6 +168,34 @@ public final class ArenaComum {
     }
 
     /**
+     * Se já passou {@code espera} tiques desde {@code marca}.
+     *
+     * <p>Parece conta de primeira série, e é — menos num ponto. A marca de
+     * "isto nunca aconteceu" nestes jogos é {@link Long#MIN_VALUE}, e
+     * {@code agora - Long.MIN_VALUE} ESTOURA o long: o resultado volta
+     * negativo, a comparação crua responde "ainda não passou" e responde
+     * isso para sempre, porque a marca só é anotada DEPOIS do primeiro
+     * acontecimento que nunca é liberado.
+     *
+     * <p>Foi assim que a cama do Bed Wars ficou impossível de quebrar — mais
+     * de dez golpes sem um som, sem um recado, sem um bloco a menos — e foi
+     * assim que o tear nunca entregou a primeira lã, que o aviso da guerra
+     * nunca apareceu e que o aviso do ar do Sky Wars ficou mudo. Um defeito,
+     * quatro coisas quebradas, nenhuma delas com erro no console.
+     *
+     * <p>Qualquer diferença negativa é tratada como "faz tempo de sobra":
+     * ou estourou, ou o relógio da rodada voltou atrás, e nos dois casos
+     * segurar o jogador seria o pior dos dois erros.
+     */
+    public static boolean jaPassou(long agora, long marca, long espera) {
+        long desde = agora - marca;
+        if (desde < 0) {
+            return true;
+        }
+        return desde >= espera;
+    }
+
+    /**
      * O ângulo de um ponto contado a partir do NORTE, girando como o relógio.
      *
      * <p>É a conta inversa da que distribui ilhas num anel: lá, a ilha k nasce

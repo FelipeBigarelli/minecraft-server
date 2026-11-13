@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -508,5 +509,57 @@ class BedWarsTest {
         assertEquals(DANO, cheio);
         assertTrue(martelado * 3 < cheio, "martelar tirou " + martelado
                 + " contra " + cheio + " no tempo");
+    }
+
+    @Test
+    @DisplayName("o primeiro golpe na cama passa, e isso é um bug de verdade")
+    void oPrimeiroGolpeNaCamaPassa() {
+        // O RELATO: "bedwars quebro a cama varias vezes (tentei mais de 10) e
+        // nao acontece nada. a cama do inimigo, claro."
+        //
+        // A causa: a cama nasce com ultimoGolpeNaCama = Long.MIN_VALUE para
+        // dizer "ninguém bateu ainda", e o portão do período era a subtração
+        // crua `tiquesDeJogo() - ultimo < periodo`. Essa subtração ESTOURA o
+        // long e volta NEGATIVA, então o portão respondia "ainda está no
+        // descanso" — e respondia para sempre, porque a marca só é anotada
+        // depois de um golpe liberado. Nenhum som, nenhum recado, nenhum erro
+        // no console: dez golpes numa cama que não tinha como cair.
+        long marcaDeNunca = Long.MIN_VALUE;
+        assertTrue(marcaDeNunca < 0 && 0L - marcaDeNunca < 0,
+                "se o long parar de estourar aqui, este teste perdeu o "
+                        + "sentido e o portão pode voltar a ser a subtração");
+        assertTrue(ArenaComum.jaPassou(0L, marcaDeNunca, PERIODO_DA_CAMA));
+        assertTrue(ArenaComum.jaPassou(20L, marcaDeNunca, 600L),
+                "a lã do tear morreu do mesmo jeito: o tear só anota a hora "
+                        + "DEPOIS de entregar, e nunca entregou a primeira");
+    }
+
+    @Test
+    @DisplayName("o descanso entre golpes continua valendo")
+    void oDescansoEntreGolpesVale() {
+        // O conserto não pode abrir a cama ao martelo: o período é o que
+        // segura o rush, e conferirCama exige de cinco a quinze segundos de
+        // quebra justamente contando com ele.
+        long golpe = 1_000L;
+        assertFalse(ArenaComum.jaPassou(golpe, golpe, PERIODO_DA_CAMA),
+                "golpe no mesmo tique");
+        assertFalse(ArenaComum.jaPassou(golpe + PERIODO_DA_CAMA - 1, golpe,
+                PERIODO_DA_CAMA), "um tique antes da hora");
+        assertTrue(ArenaComum.jaPassou(golpe + PERIODO_DA_CAMA, golpe,
+                PERIODO_DA_CAMA), "na hora exata o golpe conta");
+        assertTrue(ArenaComum.jaPassou(golpe + PERIODO_DA_CAMA * 5, golpe,
+                PERIODO_DA_CAMA));
+
+        // espera zero é "sem descanso", e não pode virar um portão fechado
+        assertTrue(ArenaComum.jaPassou(golpe, golpe, 0));
+    }
+
+    @Test
+    @DisplayName("o relógio que volta atrás não tranca o jogador")
+    void oRelogioQueVoltaAtras() {
+        // Entre rodadas o contador de tiques zera. Uma marca da rodada
+        // anterior ficaria no futuro, e com a subtração crua isso trancaria o
+        // golpe pelo resto da partida. Diferença negativa é "faz tempo".
+        assertTrue(ArenaComum.jaPassou(5L, 9_000L, PERIODO_DA_CAMA));
     }
 }

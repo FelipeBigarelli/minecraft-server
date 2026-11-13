@@ -650,7 +650,8 @@ public final class BedWars extends JogoDeArena {
     private void creditar(UUID id, Player alvo, BedWarsCatalog planta) {
         UUID quem = agressor.get(id);
         long quando = tiqueDoGolpe.getOrDefault(id, Long.MIN_VALUE);
-        if (quem == null || tiquesDeJogo() - quando > 8L * 20) {
+        if (quem == null
+                || ArenaComum.jaPassou(tiquesDeJogo(), quando, 8L * 20)) {
             return;
         }
         placar.somar(quem, planta.pontosPorEliminacao());
@@ -793,8 +794,8 @@ public final class BedWars extends JogoDeArena {
                             + "<gray>— é o tempo da travessia</gray>"));
             return;
         }
-        if (tiquesDeJogo() - ultimoGolpeNaCama[qual]
-                < planta.periodoDaCama()) {
+        if (!ArenaComum.jaPassou(tiquesDeJogo(), ultimoGolpeNaCama[qual],
+                planta.periodoDaCama())) {
             return;
         }
         ultimoGolpeNaCama[qual] = tiquesDeJogo();
@@ -1018,8 +1019,8 @@ public final class BedWars extends JogoDeArena {
             if (!camaDePe[k] || golpesDaCama[k] >= planta.golpesDaCama()) {
                 continue;
             }
-            if (tiquesDeJogo() - ultimoGolpeNaCama[k]
-                    < planta.curaDaCama() * 20L) {
+            if (!ArenaComum.jaPassou(tiquesDeJogo(), ultimoGolpeNaCama[k],
+                    planta.curaDaCama() * 20L)) {
                 continue;
             }
             ultimoGolpeNaCama[k] = tiquesDeJogo();
@@ -1048,8 +1049,9 @@ public final class BedWars extends JogoDeArena {
                     jogador.getLocation().getZ())) {
                 continue;
             }
-            if (tiquesDeJogo() - ultimaLa.getOrDefault(id, Long.MIN_VALUE)
-                    < planta.tearSegundos() * 20L) {
+            if (!ArenaComum.jaPassou(tiquesDeJogo(),
+                    ultimaLa.getOrDefault(id, Long.MIN_VALUE),
+                    planta.tearSegundos() * 20L)) {
                 continue;
             }
             int time = timeDe.getOrDefault(id, -1);
@@ -1091,8 +1093,8 @@ public final class BedWars extends JogoDeArena {
             if (esperando.contains(id)) {
                 continue;
             }
-            if (tiquesDeJogo() - tiqueDoGolpe.getOrDefault(id, Long.MIN_VALUE)
-                    < CALMA) {
+            if (!ArenaComum.jaPassou(tiquesDeJogo(),
+                    tiqueDoGolpe.getOrDefault(id, Long.MIN_VALUE), CALMA)) {
                 continue;
             }
             int time = timeDe.getOrDefault(id, -1);
