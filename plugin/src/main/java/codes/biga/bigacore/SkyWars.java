@@ -391,7 +391,6 @@ public final class SkyWars extends JogoDeArena {
         if (marca != null) {
             marca.displayName(plugin.mini().deserialize("<color:"
                     + planta.corDoTexto() + ">" + nome + "</color>"));
-            marca.setUnbreakable(true);
             item.setItemMeta(marca);
         }
         return item;

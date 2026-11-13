@@ -206,7 +206,6 @@ public final class ArenaPvp extends JogoDeArena {
         if (marca != null) {
             marca.displayName(plugin.mini().deserialize("<color:"
                     + planta.corDoTexto() + ">Espada da Arena</color>"));
-            marca.setUnbreakable(true);
             espada.setItemMeta(marca);
         }
         jogador.getInventory().setItem(0, espada);

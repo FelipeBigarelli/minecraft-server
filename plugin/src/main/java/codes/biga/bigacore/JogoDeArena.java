@@ -26,6 +26,7 @@ import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -1179,6 +1180,27 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
     /** Jogo de luta liga isto. Por padrão, nada machuca. */
     protected boolean permiteDano(EntityDamageEvent evento) {
         return false;
+    }
+
+    /**
+     * O kit da arena não se gasta.
+     *
+     * Antes isto era um item "inquebrável", e inquebrável é NBT que todo
+     * plugin de anti-exploit trata como sinal de item duplicado ou forjado —
+     * o CreativePlots deste servidor apagava a espada da mão do jogador no
+     * meio da partida, com um aviso no console e nenhum no jogo. Cancelar o
+     * desgaste faz a mesma coisa pelo lado de cá: o item é comum, nenhum
+     * plugin estranha, e o arcabouço é quem garante que ele dura a rodada.
+     *
+     * <p>No arcabouço e não em cada jogo, porque a arena que esquecesse de
+     * fazer isto só mostraria o defeito na partida em que a espada quebrasse
+     * — que é tarde, e é raro, e por isso ninguém acharia o motivo.
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void aoGastarItem(PlayerItemDamageEvent evento) {
+        if (naArena(evento.getPlayer())) {
+            evento.setCancelled(true);
+        }
     }
 
     @EventHandler(ignoreCancelled = true)

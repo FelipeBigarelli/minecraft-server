@@ -415,7 +415,6 @@ public final class Pescaria extends JogoDeArena {
             nome.displayName(plugin.mini().deserialize(
                     "<color:#5B8DEF>Vara</color>").decoration(
                     net.kyori.adventure.text.format.TextDecoration.ITALIC, false));
-            nome.setUnbreakable(true);
             vara.setItemMeta(nome);
         }
         jogador.getInventory().setItem(0, vara);

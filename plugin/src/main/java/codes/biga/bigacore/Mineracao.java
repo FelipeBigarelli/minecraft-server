@@ -284,7 +284,6 @@ public final class Mineracao extends JogoDeArena {
             meta.displayName(plugin.mini().deserialize(
                     "<color:#B5835A>Picareta da Mina</color>").decoration(
                     net.kyori.adventure.text.format.TextDecoration.ITALIC, false));
-            meta.setUnbreakable(true);
             picareta.setItemMeta(meta);
         }
         jogador.getInventory().setItem(0, picareta);

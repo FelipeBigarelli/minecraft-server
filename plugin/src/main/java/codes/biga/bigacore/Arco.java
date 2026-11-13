@@ -161,7 +161,6 @@ public final class Arco extends JogoDeArena {
         if (marca != null) {
             marca.displayName(plugin.mini().deserialize("<color:"
                     + planta2().corDoTexto() + ">Arco do Campo</color>"));
-            marca.setUnbreakable(true);
             arco.setItemMeta(marca);
         }
         jogador.getInventory().setItem(0, arco);
