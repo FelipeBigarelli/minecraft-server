@@ -105,7 +105,17 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
                     planta.vaoEntreIlhas(), planta.danoDoSoco(),
                     planta.nivelDano());
         }
-        if (problema == null) {
+        // A conferência das ilhas mede uma arena GERADA: ela reprova um
+        // anel apertado demais para a config poder ser corrigida. Num mapa
+        // pronto não há config para corrigir — o desenho é o que é —, então
+        // ela vira aviso em vez de recusa. Reprovar aqui deixaria o servidor
+        // sem arena nenhuma por causa de um mapa com as ilhas perto.
+        String avisoDoMapa = null;
+        if (planta.mapa() != null) {
+            avisoDoMapa = conferirIlhas(planta.ilhas(), planta.ilhaAnel(),
+                    planta.ilhaRaio(), planta.meioRaio(),
+                    planta.blocosGarantidos(), planta.bausDaIlha());
+        } else if (problema == null) {
             problema = conferirIlhas(planta.ilhas(), planta.ilhaAnel(),
                     planta.ilhaRaio(), planta.meioRaio(),
                     planta.blocosGarantidos(), planta.bausDaIlha());
@@ -158,12 +168,18 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
         contador = 0;
         ArenaComum.limparPaineis(mundo, TAG_PAINEL);
         ArenaComum.limparPaineis(mundo, TAG_AR);
-        for (int k = 0; k < planta.ilhas(); k++) {
-            ilha(mundo, planta, k);
+        MapaDaArena pronto = planta.mapa();
+        if (pronto != null) {
+            contador += pronto.colar(mundo, plugin.getLogger());
+            bausDoMapa(mundo, planta);
+        } else {
+            for (int k = 0; k < planta.ilhas(); k++) {
+                ilha(mundo, planta, k);
+            }
+            meio(mundo, planta);
+            cupula(mundo, planta);
+            baus(mundo, planta);
         }
-        meio(mundo, planta);
-        cupula(mundo, planta);
-        baus(mundo, planta);
         torres(mundo, planta);
         contador += SaguaoPadrao.construir(plugin, mundo, planta, TAG_PAINEL);
         placasDoMeio(mundo, planta);
@@ -171,6 +187,19 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
         Location pouso = SaguaoPadrao.pontoDoSaguao(mundo, planta);
         mundo.setSpawnLocation(pouso.getBlockX(), pouso.getBlockY(), pouso.getBlockZ());
 
+        if (pronto != null) {
+            return new Resultado(true, "SKY WARS levantado do mapa '"
+                    + pronto.nome() + "': " + contador + " blocos, "
+                    + pronto.ilhas() + " ilhas no anel " + pronto.anel()
+                    + ", raio " + pronto.raioDaIlha() + ", meio de raio "
+                    + pronto.raioDoMeio() + ", jaulas na fiada "
+                    + pronto.yDaJaula() + "."
+                    + (pronto.naoTraduzidos() > 0 ? " " + pronto.naoTraduzidos()
+                    + " bloco(s) desta versão do Minecraft não conhece e "
+                    + "ficaram de fora." : "")
+                    + (avisoDoMapa != null ? " AVISO: " + avisoDoMapa : ""),
+                    contador);
+        }
         return new Resultado(true, "SKY WARS levantado: " + contador
                 + " blocos em " + planta.ilhas() + " ilhas mais o meio. O "
                 + "spawn do mundo foi posto no saguão.", contador);
@@ -564,6 +593,10 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
 
     /** Apaga uma ilha do anel: é isso que o cerco faz. */
     public int derrubarIlha(World mundo, SkyWarsCatalog planta, int k) {
+        MapaDaArena pronto = planta.mapa();
+        if (pronto != null) {
+            return pronto.apagarIlha(mundo, k);
+        }
         int[] centro = planta.centroDaIlha(k);
         if (centro == null) {
             return 0;
@@ -589,6 +622,15 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
 
     /** Levanta de volta uma ilha do anel, para a rodada seguinte. */
     public int refazerIlha(World mundo, SkyWarsCatalog planta, int k) {
+        MapaDaArena pronto = planta.mapa();
+        if (pronto != null) {
+            int postos = pronto.refazerIlha(mundo, k, plugin.getLogger());
+            Material bau = planta.cor("bau", Material.CHEST);
+            for (int[] onde : planta.bausDaIlhaEmTresD(k)) {
+                mundo.getBlockAt(onde[0], onde[1], onde[2]).setType(bau, false);
+            }
+            return postos;
+        }
         contador = 0;
         ilha(mundo, planta, k);
         return contador;
@@ -639,6 +681,12 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
      * ponte alta.
      */
     private void cupula(World mundo, SkyWarsCatalog planta) {
+        if (planta.mapa() != null) {
+            // Num mapa pronto o meio tem a forma que o autor deu, e uma
+            // cúpula nossa por cima dele atravessaria a torre do meio. O
+            // que a hora marcada passa a abrir não é o vidro: é o BAÚ.
+            return;
+        }
         Material vidro = planta.cor("cupula",
                 Material.LIGHT_BLUE_STAINED_GLASS);
         int y = planta.topoY();
@@ -663,6 +711,9 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
 
     /** Tira a cúpula: é a hora marcada do meio. */
     public int abrirOMeio(World mundo, SkyWarsCatalog planta) {
+        if (planta.mapa() != null) {
+            return 0;
+        }
         Material vidro = planta.cor("cupula",
                 Material.LIGHT_BLUE_STAINED_GLASS);
         int y = planta.topoY();
@@ -695,6 +746,26 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
         int y = planta.topoY() + 1;
         for (int[] onde : planta.pontosDosBaus()) {
             por(mundo, onde[0], y, onde[1], bau);
+        }
+    }
+
+    /**
+     * Os baús de um mapa pronto, onde os marcadores dele mandam.
+     *
+     * <p>O mapa não traz baú: traz marcador de baú. É a diferença entre um
+     * mapa e uma partida — o autor diz ONDE o saque aparece, e quem diz o
+     * QUE aparece continua sendo o nosso sorteio, com o piso garantido que o
+     * gênero inteiro pede e quase nenhum servidor dá.
+     */
+    private void bausDoMapa(World mundo, SkyWarsCatalog planta) {
+        Material bau = planta.cor("bau", Material.CHEST);
+        for (int k = 0; k < planta.ilhas(); k++) {
+            for (int[] onde : planta.bausDaIlhaEmTresD(k)) {
+                por(mundo, onde[0], onde[1], onde[2], bau);
+            }
+        }
+        for (int[] onde : planta.bausDoMeioEmTresD()) {
+            por(mundo, onde[0], onde[1], onde[2], bau);
         }
     }
 
@@ -743,7 +814,13 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
         Material luz = planta.cor("torre-luz", Material.SEA_LANTERN);
         Material rod = planta.cor("luz-fria", Material.END_ROD);
         int y = planta.topoY();
-        int raio = planta.ilhaAnel() + 7;
+        // Num mapa pronto o anel é medido pelas JAULAS, e a ilha da diagonal
+        // se estende para fora dele: uma torre a anel+7 nasceria dentro da
+        // ilha. Por isso a medida aqui é o alcance do mapa inteiro.
+        MapaDaArena pronto = planta.mapa();
+        int raio = pronto != null
+                ? Math.max(planta.ilhaAnel() + 7, pronto.alcance() + 8)
+                : planta.ilhaAnel() + 7;
 
         for (int k = 0; k < 4; k++) {
             double angulo = Math.PI / 4 + k * Math.PI / 2;

@@ -214,7 +214,15 @@ public final class SkyWars extends JogoDeArena {
         nivel = SkyWarsCatalog.nivelDaPartida(planta.quantosNiveis(), sorteio);
         nivelDoMeio = SkyWarsCatalog.nivelDoMeio(nivel, planta.quantosNiveis());
         encherAsIlhas(mundo, planta);
-        encherOsBaus(mundo, planta);
+        // Com mapa pronto não há cúpula para cair, então o que a hora
+        // marcada abre é o próprio saque: os baús do meio ficam VAZIOS até
+        // lá. É a mesma regra dita de outro jeito — chegar cedo demais ao
+        // meio não adianta — e é a única que um mapa de forma livre aceita.
+        if (planta.mapa() == null) {
+            encherOsBaus(mundo, planta);
+        } else {
+            esvaziarOsBaus(mundo, planta);
+        }
 
         ordemDaQueda = SkyWarsCatalog.ordemDaQueda(planta.ilhas(),
                 sorteio.nextInt(Math.max(1, planta.ilhas())));
@@ -464,10 +472,9 @@ public final class SkyWars extends JogoDeArena {
      * de correr.
      */
     private void encherAsIlhas(World mundo, SkyWarsCatalog planta) {
-        int y = planta.topoY() + 1;
         for (int k = 0; k < planta.ilhas(); k++) {
-            for (int[] onde : planta.pontosDosBausDaIlha(k)) {
-                Block bloco = mundo.getBlockAt(onde[0], y, onde[1]);
+            for (int[] onde : planta.bausDaIlhaEmTresD(k)) {
+                Block bloco = mundo.getBlockAt(onde[0], onde[1], onde[2]);
                 if (!(bloco.getState() instanceof Chest arca)) {
                     continue;
                 }
@@ -522,9 +529,8 @@ public final class SkyWars extends JogoDeArena {
      * abriu um baú de sorte não teria por que atravessar.
      */
     private void encherOsBaus(World mundo, SkyWarsCatalog planta) {
-        int y = planta.topoY() + 1;
-        for (int[] onde : planta.pontosDosBaus()) {
-            Block bloco = mundo.getBlockAt(onde[0], y, onde[1]);
+        for (int[] onde : planta.bausDoMeioEmTresD()) {
+            Block bloco = mundo.getBlockAt(onde[0], onde[1], onde[2]);
             if (!(bloco.getState() instanceof Chest arca)) {
                 continue;
             }
@@ -1198,14 +1204,32 @@ public final class SkyWars extends JogoDeArena {
         avisarDoAr(planta, agora);
     }
 
+    /** Deixa os baús do meio vazios até a hora marcada. */
+    private void esvaziarOsBaus(World mundo, SkyWarsCatalog planta) {
+        for (int[] onde : planta.bausDoMeioEmTresD()) {
+            Block bloco = mundo.getBlockAt(onde[0], onde[1], onde[2]);
+            if (bloco.getState() instanceof Chest arca) {
+                arca.getBlockInventory().clear();
+            }
+        }
+    }
+
     private void abrirOMeio(World mundo, SkyWarsCatalog planta) {
         meioAberto = true;
+        boolean comMapa = planta.mapa() != null;
         plugin.skyWarsBuilder().abrirOMeio(mundo, planta);
+        int quantos = comMapa ? planta.bausDoMeioEmTresD().size()
+                : planta.meioBaus();
+        if (comMapa) {
+            encherOsBaus(mundo, planta);
+        }
         tituloEmTodos("<color:" + planta.corDoTexto() + ">O MEIO ABRIU"
-                + "</color>", "<gray>" + planta.meioBaus() + " baús iguais, "
+                + "</color>", "<gray>" + quantos + " baús iguais, "
                         + nomeBonito(planta.espadaDoNivel(nivelDoMeio))
                         + "</gray>");
-        anunciar("<gray>a cúpula caiu: os <white>" + planta.meioBaus()
+        anunciar("<gray>" + (comMapa
+                ? "o saque do meio chegou: os <white>"
+                : "a cúpula caiu: os <white>") + quantos
                 + " baús</white> do meio são <white>iguais entre si</white> — "
                 + "chegar primeiro não dá baú melhor, dá posição melhor.</gray>");
         for (Player jogador : jogadoresDaArena()) {

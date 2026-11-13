@@ -2,6 +2,8 @@ package codes.biga.bigacore;
 
 import org.bukkit.Material;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -56,18 +58,118 @@ public final class SkyWarsCatalog extends CatalogoDeArena {
     }
 
     // ------------------------------------------------------------------
+    //  O mapa pronto
+    //
+    //  Quando há um, ele MANDA na geometria: quantas ilhas, onde fica cada
+    //  uma, em que fiada, onde vão os baús. As chaves de arena.* continuam
+    //  no yml e param de valer — é de propósito que elas não são apagadas,
+    //  porque desligar o mapa num `ativo: false` tem de devolver a arena
+    //  gerada inteira, do jeito que ela era.
+    // ------------------------------------------------------------------
+
+    private MapaDaArena mapa;
+    private boolean jaProcurou;
+
+    @Override
+    protected void aoRecarregar() {
+        mapa = null;
+        jaProcurou = false;
+    }
+
+    public boolean querMapaPronto() {
+        return config.getBoolean("mapa-pronto.ativo", false);
+    }
+
+    public String nomeDoMapa() {
+        return config.getString("mapa-pronto.mapa", "map1");
+    }
+
+    public String pastaDoMapa() {
+        return config.getString("mapa-pronto.pasta", "mapas/sky-wars");
+    }
+
+    /** A fiada do YML, sem passar pelo mapa — senão a leitura se morde. */
+    private int yDoYml() {
+        return config.getInt("arena.y", 100);
+    }
+
+    /**
+     * O mapa pronto, lido uma vez e guardado.
+     *
+     * <p>Devolve nulo quando não há mapa, quando o arquivo não abre e quando
+     * o que abriu não serve. Nulo aqui não é defeito: é a arena gerada
+     * seguindo em frente, que é o que tem de acontecer num servidor cujo
+     * dono apagou a pasta de mapas sem desligar a chave.
+     */
+    public MapaDaArena mapa() {
+        if (jaProcurou) {
+            return mapa;
+        }
+        jaProcurou = true;
+        if (!querMapaPronto()) {
+            return null;
+        }
+        File pasta = new File(plugin.getDataFolder(), pastaDoMapa());
+        try {
+            MapaDaArena lido = MapaDaArena.abrir(pasta, nomeDoMapa(),
+                    Math.max(1, config.getInt("mapa-pronto.grade", 3)),
+                    Math.max(1, config.getInt("mapa-pronto.passo", 47)),
+                    config.getInt("mapa-pronto.y-da-jaula", yDoYml() + 1),
+                    config.getString("mapa-pronto.etiqueta-jaula", "cage"),
+                    etiquetas("mapa-pronto.etiquetas-bau-da-ilha",
+                            List.of("normalChest")),
+                    etiquetas("mapa-pronto.etiquetas-bau-do-meio",
+                            List.of("middleChest", "centralChest")));
+            if (!lido.serve()) {
+                plugin.getLogger().warning("[sky] o mapa '" + nomeDoMapa()
+                        + "' abriu com " + lido.ilhas() + " jaula(s) e "
+                        + lido.quantosBlocos() + " bloco(s): não dá arena. A "
+                        + "arena gerada vai no lugar.");
+                return null;
+            }
+            mapa = lido;
+            plugin.getLogger().info("[sky] mapa '" + nomeDoMapa() + "': "
+                    + lido.ilhas() + " ilhas, anel " + lido.anel()
+                    + ", raio " + lido.raioDaIlha() + ", "
+                    + lido.quantosBlocos() + " blocos.");
+        } catch (IOException falhou) {
+            plugin.getLogger().warning("[sky] o mapa '" + nomeDoMapa()
+                    + "' não abriu (" + falhou.getMessage() + "). A arena "
+                    + "gerada vai no lugar.");
+        }
+        return mapa;
+    }
+
+    private List<String> etiquetas(String chave, List<String> padrao) {
+        List<String> lido = config.getStringList(chave);
+        return lido.isEmpty() ? padrao : List.copyOf(lido);
+    }
+
+    // ------------------------------------------------------------------
     //  Geometria
     // ------------------------------------------------------------------
 
     public int ilhas() {
+        MapaDaArena pronto = mapa();
+        if (pronto != null) {
+            return pronto.ilhas();
+        }
         return Math.max(2, config.getInt("arena.ilhas", 16));
     }
 
     public int ilhaAnel() {
+        MapaDaArena pronto = mapa();
+        if (pronto != null) {
+            return pronto.anel();
+        }
         return Math.max(12, config.getInt("arena.ilha-anel", 44));
     }
 
     public int ilhaRaio() {
+        MapaDaArena pronto = mapa();
+        if (pronto != null) {
+            return pronto.raioDaIlha();
+        }
         return Math.max(2, config.getInt("arena.ilha-raio", 3));
     }
 
@@ -81,6 +183,10 @@ public final class SkyWarsCatalog extends CatalogoDeArena {
     }
 
     public int meioRaio() {
+        MapaDaArena pronto = mapa();
+        if (pronto != null) {
+            return pronto.raioDoMeio();
+        }
         return Math.max(4, config.getInt("arena.meio-raio", 9));
     }
 
@@ -109,13 +215,36 @@ public final class SkyWarsCatalog extends CatalogoDeArena {
         return topoY() - Math.max(10, config.getInt("regras.queda-abaixo", 25));
     }
 
+    /**
+     * A fiada do chão das ilhas.
+     *
+     * <p>Com mapa pronto ela vem da JAULA, e não do yml: é na jaula que o
+     * jogador nasce, e o resto da arena — a largada, o baú, a altura da
+     * queda, o saguão — se pendura nesta fiada. Uma arena gerada põe a jaula
+     * um bloco acima do chão; o mapa pronto faz o contrário, e diz onde a
+     * jaula está para o chão ser deduzido dela.
+     */
+    @Override
+    public int topoY() {
+        MapaDaArena pronto = mapa();
+        return pronto != null ? pronto.yDaJaula() - 1 : yDoYml();
+    }
+
     @Override
     public int alcanceDaObra() {
+        MapaDaArena pronto = mapa();
+        if (pronto != null) {
+            return pronto.alcance() + 12;
+        }
         return ilhaAnel() + ilhaRaio() + 10;
     }
 
     @Override
     public int fundoDaObra() {
+        MapaDaArena pronto = mapa();
+        if (pronto != null) {
+            return Math.min(pronto.alturas()[0], topoY()) - 3;
+        }
         return topoY() - Math.max(ilhaAltura(), meioAltura()) - 3;
     }
 
@@ -140,6 +269,11 @@ public final class SkyWarsCatalog extends CatalogoDeArena {
     }
 
     public int[] centroDaIlha(int k) {
+        MapaDaArena pronto = mapa();
+        if (pronto != null) {
+            int[] jaula = pronto.jaula(k);
+            return jaula == null ? null : new int[]{jaula[0], jaula[2]};
+        }
         return centroDaIlha(k, ilhas(), ilhaAnel());
     }
 
@@ -155,6 +289,15 @@ public final class SkyWarsCatalog extends CatalogoDeArena {
 
     /** Em que ilha do anel o ponto está, ou -1. */
     public int ilhaDoPonto(double x, double z) {
+        MapaDaArena pronto = mapa();
+        if (pronto != null) {
+            List<int[]> jaulas = new ArrayList<>();
+            for (int k = 0; k < pronto.ilhas(); k++) {
+                jaulas.add(pronto.jaula(k));
+            }
+            return MapaDaArena.ilhaMaisPerto((int) Math.round(x),
+                    (int) Math.round(z), jaulas, pronto.raioDaIlha() + 1);
+        }
         return ilhaDoPonto(x, z, ilhas(), ilhaAnel(), ilhaRaio());
     }
 
@@ -185,6 +328,40 @@ public final class SkyWarsCatalog extends CatalogoDeArena {
                     / Math.max(1, quantos);
             saida.add(new int[]{(int) Math.round(Math.cos(angulo) * anel),
                     (int) Math.round(Math.sin(angulo) * anel)});
+        }
+        return List.copyOf(saida);
+    }
+
+    /**
+     * Os baús da ilha k em TRÊS dimensões: {x, y, z}.
+     *
+     * <p>A arena gerada põe todo baú na mesma fiada, então duas coordenadas
+     * bastavam e a terceira era sempre {@code topoY() + 1}. Um mapa feito à
+     * mão põe baú em terraço, em porão e em cima da torre — no mapa baixado
+     * eles estão em duas fiadas diferentes na mesma ilha. Quem precisa achar
+     * o baú no mundo tem de perguntar por aqui.
+     */
+    public List<int[]> bausDaIlhaEmTresD(int k) {
+        MapaDaArena pronto = mapa();
+        if (pronto != null) {
+            return pronto.bausDaIlha(k);
+        }
+        List<int[]> saida = new ArrayList<>();
+        for (int[] onde : pontosDosBausDaIlha(k)) {
+            saida.add(new int[]{onde[0], topoY() + 1, onde[1]});
+        }
+        return List.copyOf(saida);
+    }
+
+    /** Os baús do meio em três dimensões: {x, y, z}. */
+    public List<int[]> bausDoMeioEmTresD() {
+        MapaDaArena pronto = mapa();
+        if (pronto != null) {
+            return pronto.bausDoMeio();
+        }
+        List<int[]> saida = new ArrayList<>();
+        for (int[] onde : pontosDosBaus()) {
+            saida.add(new int[]{onde[0], topoY() + 1, onde[1]});
         }
         return List.copyOf(saida);
     }

@@ -120,8 +120,40 @@ public final class ParkourCatalog extends CatalogoDeArena {
     //  O percurso
     // ------------------------------------------------------------------
 
+    private List<int[]> percursoGuardado;
+    private int[] chaveDoPercurso;
+
+    /**
+     * O percurso inteiro, calculado uma vez por configuração.
+     *
+     * <h2>Por que guardar</h2>
+     *
+     * Porque este cálculo estava no caminho de um GETTER DE GEOMETRIA, e
+     * ninguém via. {@code tetoDaObra()} chama {@code saguaoY()}, que chama
+     * {@code cumeY()}, que chama este percurso — e cada percurso procura, em
+     * sessenta tentativas por salto, o ângulo cujo arredondamento para bloco
+     * cai na distância certa. O construtor pergunta o teto da obra dentro do
+     * laço que varre a torre, então o percurso inteiro era refeito uma vez
+     * por BLOCO.
+     *
+     * <p>O servidor registrou o resultado: {@code /biga refazer CONFIRMAR}
+     * travou a thread principal por mais de vinte segundos, e o cão de
+     * guarda do Paper despejou três relatórios com {@code Math.hypot} no
+     * topo da pilha, dentro deste método.
+     *
+     * <p>A chave é a configuração, e não um simples "já calculei": assim um
+     * {@code /biga reload} com outro número de saltos recalcula sozinho, sem
+     * precisar que alguém se lembre de limpar nada.
+     */
     public List<int[]> percurso() {
-        return percurso(saltos(), raio(), topoY(), checkpointACada());
+        int[] chave = {saltos(), raio(), topoY(), checkpointACada()};
+        if (percursoGuardado == null
+                || !java.util.Arrays.equals(chave, chaveDoPercurso)) {
+            percursoGuardado = List.copyOf(
+                    percurso(chave[0], chave[1], chave[2], chave[3]));
+            chaveDoPercurso = chave;
+        }
+        return percursoGuardado;
     }
 
     /**

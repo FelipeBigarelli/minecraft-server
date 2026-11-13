@@ -243,12 +243,24 @@ public final class MapaDaArena {
         return Math.max(1, maior);
     }
 
-    /** O maior alcance do que não é ilha: o meio e o que o cerca. */
+    /**
+     * O raio do MEIO, medido só no que está claramente dentro do anel.
+     *
+     * <p>O corte importa. Um mapa bom tem coisa espalhada entre as ilhas —
+     * uma pontezinha, uma rocha, a torre do canto —, e tudo isso também não
+     * é de ilha nenhuma. Medir o meio pelo bloco solto mais distante daria o
+     * raio do mapa inteiro, e quem usa esta medida para cobrir o meio com uma
+     * cúpula acabaria cobrindo a arena.
+     */
     public int raioDoMeio() {
+        int corte = Math.max(4, anel() - raioDaIlha());
         int maior = 0;
         for (EstruturaDeMapa.Bloco bloco : blocosSoltos) {
-            maior = Math.max(maior, (int) Math.ceil(
-                    Math.hypot(bloco.x(), bloco.z())));
+            double longe = Math.hypot(bloco.x(), bloco.z());
+            if (longe > corte) {
+                continue;
+            }
+            maior = Math.max(maior, (int) Math.ceil(longe));
         }
         return Math.max(1, maior);
     }

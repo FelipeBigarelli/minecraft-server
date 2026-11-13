@@ -289,6 +289,12 @@ public final class BigaCore extends JavaPlugin {
             saveResource("rei.yml", false);
         }
 
+        // E agora a volta que os saveResource acima não dão: eles escrevem
+        // na primeira subida e nunca mais, então toda chave que o plugin
+        // passou a entender depois disso ficava presa dentro do jar. Ver
+        // ConfigsDoDisco — o defeito era silencioso e custou noites de jogo.
+        conferirOsConfigs();
+
         this.economyCatalog = new EconomyCatalog(this);
         this.economyBridge = new VaultEconomyBridge();
         this.spawnShopBuilder = new SpawnShopBuilder(this);
@@ -631,6 +637,62 @@ public final class BigaCore extends JavaPlugin {
     @Override
     public org.bukkit.generator.ChunkGenerator getDefaultWorldGenerator(String mundo, String id) {
         return new VazioGenerator();
+    }
+
+    /**
+     * Os ymls que o plugin entrega, na ordem em que eles são escritos.
+     *
+     * <p>O config.yml NÃO está aqui de propósito: ele é o único que todo
+     * servidor edita de verdade, e trocá-lo por completo — mesmo com cópia —
+     * é o tipo de ajuda que ninguém pediu. Para ele vale o aviso e a cópia
+     * de chaves à mão.
+     */
+    public static final java.util.List<String> CONFIGS_DO_JAR =
+            java.util.List.of("economy.yml", "ajuda.yml", "terrenos.yml",
+                    "encomendas.yml", "tags.yml", "hub.yml", "minigames.yml",
+                    "tnt-run.yml", "spleef.yml", "parkour.yml", "corrida.yml",
+                    "pega-pega.yml", "neve.yml", "lava.yml", "mineracao.yml",
+                    "pescaria.yml", "musica.yml", "quiz.yml", "sorte.yml",
+                    "esconde.yml", "arco.yml", "arena-pvp.yml",
+                    "build-battle.yml", "sky-wars.yml", "bed-wars.yml",
+                    "labirinto.yml", "rei.yml");
+
+    /**
+     * Põe os ymls do disco em dia com os do jar, sem pisar em edição.
+     *
+     * @param forcar  troca também o que foi editado à mão (só pelo comando)
+     * @param soEste  um arquivo só, ou nulo para todos
+     */
+    public java.util.List<ConfigsDoDisco.Passagem> conferirOsConfigs(
+            boolean forcar, String soEste) {
+        java.util.List<ConfigsDoDisco.Passagem> passagens =
+                ConfigsDoDisco.sincronizar(this, CONFIGS_DO_JAR, forcar, soEste);
+        int atualizados = 0;
+        for (ConfigsDoDisco.Passagem passagem : passagens) {
+            switch (passagem.acao()) {
+                case ATUALIZAR -> {
+                    atualizados++;
+                    getLogger().info("[configs] " + passagem.arquivo()
+                            + " estava atrasado e ninguém o tinha editado: "
+                            + "trocado pelo novo, com cópia .bak ao lado.");
+                }
+                case AVISAR -> getLogger().warning(
+                        ConfigsDoDisco.recado(passagem.arquivo(),
+                                passagem.faltando()));
+                default -> {
+                }
+            }
+        }
+        if (atualizados > 0) {
+            getLogger().info("[configs] " + atualizados + " arquivo(s) "
+                    + "atualizados. As arenas afetadas só mudam de verdade "
+                    + "depois de /biga refazer CONFIRMAR.");
+        }
+        return passagens;
+    }
+
+    private void conferirOsConfigs() {
+        conferirOsConfigs(false, null);
     }
 
     @Override

@@ -128,6 +128,54 @@ arena:
   marco-altura: 18
   painel-altura: 12
 
+# -------------------------------------------------------------
+#  O MAPA PRONTO
+#
+#  Com isto ligado, a arena deixa de ser gerada e passa a ser um
+#  mapa feito à mão, lido de arquivos de ESTRUTURA — os mesmos
+#  que o bloco de estrutura do jogo salva, e os que vêm dentro de
+#  um mapa de Sky Wars baixado.
+#
+#  O que o mapa manda: quantas ilhas, onde fica cada uma, em que
+#  fiada, onde vai cada baú, e o desenho inteiro.
+#  O que CONTINUA nosso: o saque com piso garantido, o cerco que
+#  derruba uma ilha por vez, o kit por nível, o empurrão do golpe,
+#  o placar lateral, o saguão de rua e as placas.
+#
+#  As chaves de arena.* acima param de valer enquanto isto estiver
+#  ligado, e voltam a valer inteiras num `ativo: false` — por isso
+#  elas não foram apagadas.
+#
+#  ONDE PÔR OS ARQUIVOS
+#
+#  Em plugins/BigaCore/mapas/sky-wars/, fora do repositório: o
+#  repositório é público e o mapa é de outra pessoa. Um mapa grande
+#  vem partido numa grade de 3x3 peças de 48 blocos, encaixando de
+#  47 em 47, e os arquivos se chamam <mapa>-1.nbt até <mapa>-9.nbt.
+#
+#  OS MARCADORES
+#
+#  O mapa traz entidades invisíveis dizendo onde fica cada coisa. O
+#  nome da etiqueta muda de autor para autor; estes são os do mapa
+#  que está instalado. Sem a etiqueta de jaula não há arena, e o
+#  jogo volta sozinho para a arena gerada avisando no console.
+# -------------------------------------------------------------
+mapa-pronto:
+  ativo: true
+  pasta: mapas/sky-wars
+  mapa: map1
+  grade: 3
+  passo: 47
+
+  # Em que fiada do mundo a jaula tem de cair. O chão das ilhas
+  # passa a ser esta fiada menos um, e todo o resto da arena —
+  # saguão, altura da queda, painéis — se pendura nela.
+  y-da-jaula: 101
+
+  etiqueta-jaula: cage
+  etiquetas-bau-da-ilha: [normalChest]
+  etiquetas-bau-do-meio: [middleChest, centralChest]
+
 paleta:
   placa: PALE_OAK_WALL_SIGN
 

@@ -28,7 +28,7 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBCOMANDOS_FIXOS =
             List.of("info", "eco", "loja", "hub", "lobby",
-                    "painel", "reload", "voar", "refazer");
+                    "painel", "reload", "voar", "refazer", "configs");
     private static final List<String> PAINEL_SUBCOMANDOS = List.of("construir", "limpar");
     private static final List<String> ECO_SUBCOMANDOS =
             List.of("status", "saldo", "preco", "vender", "regras");
@@ -73,6 +73,7 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             case "reload" -> recarregar(sender);
             case "voar" -> alternarVoo(sender);
             case "refazer" -> refazerTodas(sender, label, args);
+            case "configs" -> cuidarDosConfigs(sender, label, args);
             default -> jogoOuAjuda(sender, label, args);
         }
 
@@ -713,6 +714,92 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
      * como não travar — mas travar vinte vezes seguidas por engano, com o
      * servidor cheio, é pior do que travar uma vez de propósito.
      */
+    /**
+     * {@code /biga configs} — os ymls do disco contra os do jar.
+     *
+     * <p>Existe por causa de um defeito que não aparecia em lugar nenhum: o
+     * plugin escreve cada yml na primeira subida e nunca mais, então toda
+     * chave nova ficava presa dentro do jar enquanto o servidor lia o arquivo
+     * do primeiro dia. Agora a subida conserta sozinha o que ninguém editou e
+     * avisa sobre o resto; este comando é o que resolve "o resto".
+     */
+    private void cuidarDosConfigs(CommandSender sender, String label,
+                                  String[] args) {
+        if (!sender.hasPermission("bigacore.admin")) {
+            semPermissao(sender);
+            return;
+        }
+        boolean atualizar = args.length >= 2
+                && args[1].equalsIgnoreCase("atualizar");
+        if (!atualizar) {
+            List<ConfigsDoDisco.Passagem> passagens =
+                    plugin.conferirOsConfigs(false, null);
+            List<String> atrasados = new ArrayList<>();
+            for (ConfigsDoDisco.Passagem passagem : passagens) {
+                if (passagem.acao() == ConfigsDoDisco.Acao.AVISAR) {
+                    atrasados.add(passagem.arquivo() + " ("
+                            + passagem.faltando().size() + " chave(s) nova(s))");
+                }
+            }
+            if (atrasados.isEmpty()) {
+                sender.sendMessage(Component.text("Os "
+                        + BigaCore.CONFIGS_DO_JAR.size() + " ymls do disco "
+                        + "estão em dia com os do jar.",
+                        NamedTextColor.GREEN));
+                return;
+            }
+            sender.sendMessage(Component.text(atrasados.size()
+                    + " yml(s) atrasados e editados à mão:",
+                    NamedTextColor.YELLOW));
+            for (String qual : atrasados) {
+                sender.sendMessage(Component.text("  " + qual,
+                        NamedTextColor.GRAY));
+            }
+            sender.sendMessage(Component.text("/" + label + " configs "
+                    + "atualizar <arquivo|tudo> CONFIRMAR",
+                    NamedTextColor.YELLOW));
+            return;
+        }
+
+        String alvo = args.length >= 3 ? args[2] : null;
+        boolean confirmou = args.length >= 4 && args[3].equals("CONFIRMAR");
+        if (alvo == null || !confirmou) {
+            sender.sendMessage(Component.text("Isto TROCA o yml do disco pelo "
+                    + "do jar, apagando o que você tiver editado nele. Uma "
+                    + "cópia .bak fica ao lado.", NamedTextColor.RED));
+            sender.sendMessage(Component.text("/" + label + " configs "
+                    + "atualizar <arquivo.yml|tudo> CONFIRMAR",
+                    NamedTextColor.YELLOW));
+            return;
+        }
+
+        String soEste = alvo.equalsIgnoreCase("tudo") ? null : alvo;
+        if (soEste != null && !BigaCore.CONFIGS_DO_JAR.contains(soEste)) {
+            sender.sendMessage(Component.text("O plugin não entrega um "
+                    + soEste + ". Os que ele entrega: "
+                    + String.join(", ", BigaCore.CONFIGS_DO_JAR),
+                    NamedTextColor.RED));
+            return;
+        }
+
+        List<ConfigsDoDisco.Passagem> passagens =
+                plugin.conferirOsConfigs(true, soEste);
+        int trocados = 0;
+        for (ConfigsDoDisco.Passagem passagem : passagens) {
+            if (passagem.acao() == ConfigsDoDisco.Acao.ATUALIZAR) {
+                trocados++;
+            }
+        }
+        sender.sendMessage(Component.text(trocados + " yml(s) trocados pelo "
+                + "do jar, com cópia .bak ao lado.", NamedTextColor.GREEN));
+        if (trocados > 0) {
+            plugin.reloadBigaConfigs();
+            sender.sendMessage(Component.text("Catálogos relidos. As arenas "
+                    + "afetadas só mudam de verdade depois de /" + label
+                    + " refazer CONFIRMAR.", NamedTextColor.GRAY));
+        }
+    }
+
     private void refazerTodas(CommandSender sender, String label, String[] args) {
         if (!sender.hasPermission("bigacore.admin")) {
             semPermissao(sender);
