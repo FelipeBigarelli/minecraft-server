@@ -1,0 +1,228 @@
+# -------------------------------------------------------------
+#  BUILD BATTLE — construa melhor que todos
+#
+#  Dezesseis lotes numa grade de quatro por quatro sobre o vazio.
+#  Sai um tema, todos constroem ao mesmo tempo, e depois todos
+#  votam nas obras dos outros. Quem tem a melhor nota ganha.
+#
+#  OS TRÊS DEFEITOS DA REFERÊNCIA, E O QUE FAZEMOS DIFERENTE
+#
+#  Os jogadores de Build Battle reclamam das mesmas três coisas
+#  em todo servidor, e nenhuma delas é sobre construir:
+#
+#  - "TODO MUNDO VOTA MEH". Dar a nota mínima para os outros
+#    levanta a sua própria colocação, então é a jogada certa — e
+#    com isso jogador novo nunca sobe ao pódio. A nota aqui NÃO é
+#    a média crua: a cédula de cada votante é convertida em
+#    ORDEM antes de entrar na conta. Quem dá 1 para todos produz
+#    uma cédula sem ordem nenhuma e não desempata nada; quem
+#    combina com um amigo tem exatamente um primeiro lugar para
+#    dar, igual a todo mundo. É um votante, uma voz.
+#
+#  - "A PRIMEIRA OBRA SEMPRE TOMA NOTA BAIXA". Quem vota sem ter
+#    visto as outras vota com medo, e as últimas obras se
+#    beneficiam. Por isso há DUAS VOLTAS: a primeira é um
+#    PASSEIO, rápido e sem voto nenhum; a segunda é a volta do
+#    voto. Quando você vota no lote 1, já viu os dezesseis.
+#
+#  - "O MENU CRIATIVO É O JOGO". Com mil blocos e cinco minutos,
+#    ganha quem sabe onde as coisas ficam no menu, não quem
+#    constrói melhor. Aqui a paleta é curada e cabe INTEIRA no
+#    inventário: 36 blocos, sem menu, sem busca, sem página. Os
+#    mesmos 36 blocos fazem um castelo ou uma baleia dependendo
+#    de quem os segura, e é por isso que a paleta é uma só para
+#    todos os temas — paleta por tema decidiria a obra no lugar
+#    do construtor.
+#
+#  O LOTE É UMA CAIXA. Durante a obra, quem sai do próprio lote
+#  volta para ele. Não é castigo: é a única maneira honesta de
+#  ninguém copiar o vizinho, e ela custa zero ao jogador que não
+#  ia copiar.
+#
+#  NINGUÉM É ELIMINADO. Não há queda, não há dano e não há vazio
+#  que mate: as fases mandam no relógio do começo ao fim.
+# -------------------------------------------------------------
+
+mundo: build_battle
+
+arena:
+  y: 100
+
+  # A grade de lotes: quantos e quantos por fiada. O número de
+  # lotes é sempre o máximo de jogadores — lote vazio continua
+  # lá, como no gênero.
+  #
+  # DUAS FIADAS DE OITO, E NÃO QUATRO DE QUATRO. A plateia de
+  # cada lote fica a doze blocos da beira dele, e com quatro
+  # fiadas a plateia da segunda fiada cairia DENTRO do lote da
+  # primeira — o vão entre lotes tem seis blocos e nenhuma
+  # plateia caberia nele a uma distância que mostre a obra. Com
+  # duas fiadas, a de cima é vista do norte e a de baixo do sul,
+  # as duas plateias ficam fora da grade, e toda obra é vista da
+  # MESMA distância e do MESMO ângulo.
+  plots: 16
+  plots-por-fiada: 8
+  # Lado ÍMPAR de propósito: um quadrado de lado par não tem
+  # bloco no meio, e aí o lote não fica centrado em bloco nenhum
+  # e a conta de "este bloco é de quem?" ganha meio bloco de
+  # erro em duas das quatro bordas. Com 13 e vão 7 o passo é 20,
+  # e os meios dos lotes caem em números inteiros.
+  plot-lado: 13
+  plot-vao: 7
+
+  # Até que altura dá para construir. Teto porque, sem ele, uma
+  # torre até o céu tampa a obra do vizinho na hora de votar.
+  altura-de-obra: 16
+
+  # Quanto o construtor pode se afastar do meio do próprio lote
+  # antes de ser trazido de volta.
+  limite-do-lote: 11
+
+  # A plateia de cada lote: uma caixa de vidro fora da grade, a
+  # tantos blocos da beira do lote e a tanta altura. A fiada do
+  # norte é vista do norte e a do sul é vista do sul, sempre de
+  # frente para a grade — e o lote marca a sua frente no chão,
+  # para o construtor saber de que lado a obra vai ser julgada.
+  plateia-recuo: 12
+  plateia-altura: 5
+  plateia-lado: 5
+  plateia-fundo: 3
+
+  saguao-altura: 22
+  saguao-raio: 10
+  saguao-parapeito: 4
+  marco-altura: 20
+  painel-altura: 10
+
+paleta:
+  placa: JUNGLE_WALL_SIGN
+
+  plot-piso: SMOOTH_STONE
+  plot-borda: ORANGE_TERRACOTTA
+  plot-canto: ORANGE_CONCRETE
+
+  plateia-piso: POLISHED_ANDESITE
+  plateia-vidro: LIGHT_GRAY_STAINED_GLASS
+  plateia-luz: SEA_LANTERN
+
+  estrutura: ORANGE_TERRACOTTA
+  escuro: POLISHED_DEEPSLATE
+  borda: ORANGE_CONCRETE
+  metal: IRON_BLOCK
+  vidro: ORANGE_STAINED_GLASS
+  luz: SHROOMLIGHT
+  luz-fria: END_ROD
+  nucleo: ORANGE_CONCRETE
+  poste: SPRUCE_FENCE
+  poste-luz: LANTERN
+  torre: ORANGE_TERRACOTTA
+  torre-luz: SHROOMLIGHT
+
+# A paleta da obra: 36 blocos, que é exatamente o que cabe no
+# inventário de um jogador. Ver o cabeçalho. Nada de líquido,
+# TNT, redstone, spawner ou bloco de comando: não é moralismo, é
+# que todos eles agem no mundo em vez de só ficarem parados, e
+# obra que age no mundo estraga a obra do vizinho.
+blocos:
+  - OAK_PLANKS
+  - SPRUCE_PLANKS
+  - OAK_LOG
+  - STRIPPED_OAK_LOG
+  - OAK_STAIRS
+  - OAK_SLAB
+  - OAK_FENCE
+  - OAK_LEAVES
+  - STONE
+  - STONE_BRICKS
+  - STONE_BRICK_STAIRS
+  - STONE_SLAB
+  - SMOOTH_STONE
+  - COBBLESTONE
+  - DEEPSLATE_TILES
+  - BLACKSTONE
+  - BRICKS
+  - SANDSTONE
+  - QUARTZ_BLOCK
+  - WHITE_CONCRETE
+  - LIGHT_GRAY_CONCRETE
+  - GRAY_CONCRETE
+  - BLACK_CONCRETE
+  - RED_CONCRETE
+  - ORANGE_CONCRETE
+  - YELLOW_CONCRETE
+  - LIME_CONCRETE
+  - LIGHT_BLUE_CONCRETE
+  - BLUE_CONCRETE
+  - PURPLE_CONCRETE
+  - GRASS_BLOCK
+  - MOSS_BLOCK
+  - SAND
+  - SNOW_BLOCK
+  - GLASS
+  - GLOWSTONE
+
+temas:
+  - "castelo flutuante"
+  - "farol no penhasco"
+  - "a casa da bruxa"
+  - "estação espacial"
+  - "fundo do mar"
+  - "vulcão"
+  - "mercado da cidade"
+  - "ponte quebrada"
+  - "jardim secreto"
+  - "navio pirata"
+  - "torre do relógio"
+  - "gelo e fogo"
+  - "ruína na selva"
+  - "cogumelo gigante"
+
+regras:
+  minimo: 2
+  maximo: 16
+  contagem-segundos: 15
+  fim-segundos: 12
+  treino-sozinho: true
+
+  # Quanto tempo o tema fica na tela antes de a obra começar.
+  segundos-de-tema: 6
+
+  # Quanto tempo de obra.
+  segundos-de-obra: 180
+
+  # O passeio: quantos segundos em cada lote, sem voto.
+  segundos-de-passeio: 3
+
+  # A volta do voto: quantos segundos em cada lote.
+  segundos-de-voto: 8
+
+  # De 1 a quantos vai a nota. Cinco porque é o que cabe na mão
+  # do jogador sem ele ter de contar os dedos.
+  notas: 5
+
+  queda-abaixo: 40
+  tempo-limite: 420
+
+textos:
+  titulo: "BUILD BATTLE"
+  cor: "#FFA64D"
+  subtitulo: "construa melhor que todos"
+  regras:
+    - "clique em [ENTRAR] para entrar na fila"
+    - "o tema sai na hora e é o mesmo para todos"
+    - "a paleta é de 36 blocos e cabe no inventário"
+    - "durante a obra você não sai do seu lote"
+    - "há um passeio sem voto antes da volta do voto"
+    - "vote com a mão: a nota é o item que você segura"
+    - "a frente do seu lote é o lado marcado no chão"
+    - "dar nota baixa para todos não levanta a sua"
+  escala-titulo: 2.8
+  escala-placa: 1.6
+  fundo-alpha: 0
+
+  placa-entrar: "[ENTRAR]"
+  placa-sair: "[SAIR]"
+  placa-fila: "na fila"
+  placa-esperando: "esperando"
+  placa-jogando: "CONSTRUINDO"
+  placa-refazendo: "refazendo"

@@ -99,6 +99,9 @@ public final class BigaCore extends JavaPlugin {
     private ArenaPvpCatalog arenaPvpCatalog;
     private ArenaPvpBuilder arenaPvpBuilder;
     private ArenaPvp arenaPvp;
+    private BuildBattleCatalog buildBattleCatalog;
+    private BuildBattleBuilder buildBattleBuilder;
+    private BuildBattle buildBattle;
 
     /**
      * Os minigames registrados, por etiqueta.
@@ -250,6 +253,11 @@ public final class BigaCore extends JavaPlugin {
             saveResource("arena-pvp.yml", false);
         }
 
+        File buildBattleFile = new File(getDataFolder(), "build-battle.yml");
+        if (!buildBattleFile.exists()) {
+            saveResource("build-battle.yml", false);
+        }
+
         File mineracaoFile = new File(getDataFolder(), "mineracao.yml");
         if (!mineracaoFile.exists()) {
             saveResource("mineracao.yml", false);
@@ -397,6 +405,11 @@ public final class BigaCore extends JavaPlugin {
         this.arenaPvpBuilder = new ArenaPvpBuilder(this);
         this.arenaPvp = new ArenaPvp(this);
         registrarJogo(arenaPvpCatalog, arenaPvpBuilder, arenaPvp);
+
+        this.buildBattleCatalog = new BuildBattleCatalog(this);
+        this.buildBattleBuilder = new BuildBattleBuilder(this);
+        this.buildBattle = new BuildBattle(this);
+        registrarJogo(buildBattleCatalog, buildBattleBuilder, buildBattle);
 
         // As regras valem para o hub E para o lobby, então entram depois dos
         // dois: elas leem a configuração dos dois mundos para saber onde agir.
@@ -959,6 +972,18 @@ public final class BigaCore extends JavaPlugin {
 
     public ArenaPvp arenaPvp() {
         return arenaPvp;
+    }
+
+    public BuildBattleCatalog buildBattleCatalog() {
+        return buildBattleCatalog;
+    }
+
+    public BuildBattleBuilder buildBattleBuilder() {
+        return buildBattleBuilder;
+    }
+
+    public BuildBattle buildBattle() {
+        return buildBattle;
     }
 
     /** Os minigames registrados, por etiqueta, na ordem em que entraram. */

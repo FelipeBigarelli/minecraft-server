@@ -160,8 +160,8 @@ portais:
     vao: 2
     titulo: "BUILD BATTLE"
     descricao: "construa melhor que todos"
-    detalhe: "o tema sai na hora"
-    mundo: ""
+    detalhe: "36 blocos, sem menu"
+    mundo: "build_battle"
     cor: "#FFA64D"
     moldura: ORANGE_TERRACOTTA
     destaque: ORANGE_CONCRETE

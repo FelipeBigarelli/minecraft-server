@@ -50,7 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PaletasTest {
 
     /** Quantos yml de arena o plugin tem hoje, para a lista não vir vazia. */
-    private static final int MINIMO_DE_ARENAS = 17;
+    private static final int MINIMO_DE_ARENAS = 18;
 
     private record Arquivo(String nome, YamlConfiguration yml) { }
 
