@@ -1104,6 +1104,26 @@ public final class BigaCore extends JavaPlugin {
     }
 
     /**
+     * Se este mundo é a arena de algum minigame.
+     *
+     * <p>Serve para a pergunta "este é um lugar onde alguém pode NASCER?", e
+     * a resposta é não: a arena é apagada e levantada de novo a cada rodada,
+     * nada que esteja nela é de ninguém, e as coordenadas de ontem podem ser
+     * pedra hoje. Quem desloga aqui volta pelo hub.
+     */
+    public boolean ehMundoDeJogo(org.bukkit.World mundo) {
+        if (mundo == null) {
+            return false;
+        }
+        for (JogoRegistrado registrado : jogos.values()) {
+            if (mundo.getName().equals(registrado.catalogo().mundo())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Registra um minigame: ouvinte, laço, mundo e tabela.
      *
      * O mundo nasce DEPOIS do start() de propósito: se a criação falhar, o

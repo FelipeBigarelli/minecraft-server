@@ -13,10 +13,13 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.scheduler.BukkitTask;
+import org.spigotmc.event.player.PlayerSpawnLocationEvent;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -42,6 +45,9 @@ public final class HubPortais implements Listener {
 
     private final BigaCore plugin;
     private final Map<UUID, Long> ultimoSalto = new HashMap<>();
+
+    /** Quem foi desviado de uma arena para o hub, para avisar no join. */
+    private final Set<UUID> resgatados = new HashSet<>();
     private BukkitTask tarefa;
 
     public HubPortais(BigaCore plugin) {
@@ -228,7 +234,13 @@ public final class HubPortais implements Listener {
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void aoEntrar(PlayerJoinEvent evento) {
-        if (!plugin.hubCatalog().spawnDeEntrada() || evento.getPlayer().hasPlayedBefore()) {
+        Player jogador = evento.getPlayer();
+        if (resgatados.remove(jogador.getUniqueId())) {
+            jogador.sendMessage(plugin.mini().deserialize(
+                    "<gray>você tinha deslogado <white>dentro de uma "
+                            + "arena</white> — entrou pelo hub.</gray>"));
+        }
+        if (!plugin.hubCatalog().spawnDeEntrada() || jogador.hasPlayedBefore()) {
             return;
         }
 
@@ -236,7 +248,53 @@ public final class HubPortais implements Listener {
         if (hub == null) {
             return;
         }
-        evento.getPlayer().teleportAsync(
+        jogador.teleportAsync(
                 HubBuilder.pontoDeSpawn(hub, plugin.hubCatalog()));
+    }
+
+    /**
+     * Ninguém entra no servidor dentro de uma arena.
+     *
+     * <h2>O defeito que isto conserta</h2>
+     *
+     * <p>O relato foi "entrei no server e entrei na área do bedwars, não foi
+     * no lobby nem no spawn". E é o que o Minecraft faz: o jogador volta
+     * onde deslogou, por mundo. Quem sai no meio de um Bed Wars volta em
+     * cima de uma base, com a barra do jogo na tela, sem kit, sem time e com
+     * a rodada que nem começou.
+     *
+     * <p>É grave por mais do que o susto. A arena é apagada e levantada de
+     * novo a cada rodada: as coordenadas em que ele deslogou podem ser pedra
+     * maciça agora, ou ar a quarenta blocos do chão. E, enquanto ele estiver
+     * ali, o jogo o conta como gente no saguão — a rodada começa com um
+     * jogador que não pediu para jogar.
+     *
+     * <h2>Por que aqui e não no PlayerJoinEvent</h2>
+     *
+     * <p>{@link PlayerSpawnLocationEvent} roda ANTES de o jogador ser posto
+     * no mundo. Trocar o lugar aqui faz dele nunca ter estado na arena:
+     * nenhum pedaço de arena é carregado, nenhum quadro da base aparece na
+     * tela e nenhum ouvinte de minigame chega a ver o jogador. Fazer isso no
+     * join seria um teletransporte depois do fato — com o susto já dado, e
+     * com uma janela de alguns tiques em que ele está mesmo lá.
+     *
+     * <p>Sem hub carregado não há para onde mandar, e aí vale mais deixar
+     * entrar onde estava do que recusar a entrada no servidor.
+     */
+    @EventHandler(priority = EventPriority.HIGH)
+    public void aoNascerNoServidor(PlayerSpawnLocationEvent evento) {
+        if (!plugin.ehMundoDeJogo(evento.getSpawnLocation().getWorld())) {
+            return;
+        }
+        World hub = mundoDoHub();
+        if (hub == null) {
+            plugin.getLogger().warning("[hub] " + evento.getPlayer().getName()
+                    + " ia entrar dentro de uma arena e o mundo do hub não "
+                    + "está carregado: ele entrou onde estava.");
+            return;
+        }
+        evento.setSpawnLocation(
+                HubBuilder.pontoDeSpawn(hub, plugin.hubCatalog()));
+        resgatados.add(evento.getPlayer().getUniqueId());
     }
 }

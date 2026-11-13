@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -342,5 +343,41 @@ class HubTest {
         assertTrue(resgate > -64, "o resgate em y=" + resgate + " é tarde demais");
         assertTrue(resgate < piso - 10,
                 "o resgate em y=" + resgate + " está perto demais do piso " + piso);
+    }
+
+    @Test
+    @DisplayName("nenhuma arena mora no hub nem no mundo do survival")
+    void nenhumaArenaMoraNoHub() throws Exception {
+        // O que isto segura: desde o relato "entrei no server e entrei na
+        // área do bedwars", quem desloga num mundo de minigame volta pelo
+        // hub. A regra é boa porque a arena é apagada e refeita a cada
+        // rodada — mas seria desastrosa se um minigame apontasse para o
+        // mundo do hub ou para o 'world' do survival: todo login arrancaria
+        // o jogador de casa, para sempre, e ninguém ligaria uma coisa à
+        // outra.
+        List<String> proibidos = List.of("hub", "world", "world_nether",
+                "world_the_end");
+        List<String> mundos = new ArrayList<>();
+        for (String arquivo : BigaCore.CONFIGS_DO_JAR) {
+            try (InputStream in = HubTest.class
+                    .getResourceAsStream("/" + arquivo)) {
+                assertNotNull(in, arquivo + " não foi empacotado");
+                YamlConfiguration yml = YamlConfiguration.loadConfiguration(
+                        new InputStreamReader(in, StandardCharsets.UTF_8));
+                String mundo = yml.getString("mundo");
+                if (mundo == null) {
+                    continue;
+                }
+                assertFalse(proibidos.contains(mundo), arquivo + " aponta "
+                        + "para o mundo '" + mundo + "': todo login tiraria "
+                        + "o jogador de lá");
+                mundos.add(mundo);
+            }
+        }
+        assertTrue(mundos.size() >= 20, "só " + mundos.size() + " jogo(s) "
+                + "com mundo próprio: faltou yml na lista");
+        assertEquals(mundos.size(), Set.copyOf(mundos).size(),
+                "dois jogos dividindo o mesmo mundo se apagam na obra um do "
+                        + "outro: " + mundos);
     }
 }
