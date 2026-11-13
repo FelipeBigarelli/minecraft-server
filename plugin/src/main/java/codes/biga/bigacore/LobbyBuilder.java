@@ -1157,10 +1157,10 @@ public final class LobbyBuilder {
             return new Resultado(false,
                     "O minigames.yml não tem nenhum portal em 'portais'.", 0);
         }
-        limparPaineis(mundo);
+        int velhos = limparPaineis(mundo);
         int quantos = escreverTextos(mundo, planta, portais, planta.pisoY());
-        return new Resultado(true, "Textos do lobby refeitos: " + quantos + " letreiros.",
-                quantos);
+        return new Resultado(true, "Textos do lobby refeitos: " + quantos
+                + " letreiros (" + velhos + " velho(s) tirado(s)).", quantos);
     }
 
     private int escreverTextos(World mundo, MinigamesCatalog planta,
@@ -1362,12 +1362,11 @@ public final class LobbyBuilder {
         });
     }
 
-    private void limparPaineis(World mundo) {
-        for (Entity entidade : mundo.getEntities()) {
-            if (entidade.getScoreboardTags().contains(TAG_PAINEL)) {
-                entidade.remove();
-            }
-        }
+    /** Ver {@link ArenaComum#limparPaineis(World, String, int)}: os nichos
+     * ficam fora dos pedaços que o servidor mantém carregados. */
+    private int limparPaineis(World mundo) {
+        return ArenaComum.limparPaineis(mundo, TAG_PAINEL,
+                plugin.minigamesCatalog().alcanceDaObra());
     }
 
     /** Quantos blocos já existem onde o lobby iria. Zero é o esperado. */

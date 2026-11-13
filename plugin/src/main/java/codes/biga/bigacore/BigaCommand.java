@@ -869,7 +869,7 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             colunas += ObraEmFatias.colunasDaCaixa(alcance);
 
             obraDeTodas.juntarPassoUnico(
-                    () -> ArenaComum.limparTodosOsPaineis(mundo));
+                    () -> ArenaComum.limparTodosOsPaineis(mundo, alcance));
             obraDeTodas.juntar(ObraEmFatias.varrerCaixa(mundo, alcance,
                     planta.fundoDaObra(), planta.tetoDaObra(), apagados));
             obraDeTodas.juntarPassoUnico(() -> {

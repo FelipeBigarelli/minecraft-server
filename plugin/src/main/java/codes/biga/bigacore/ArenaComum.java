@@ -449,6 +449,55 @@ public final class ArenaComum {
         });
     }
 
+    /**
+     * Apaga os painéis de uma etiqueta numa caixa, CARREGANDO os pedaços.
+     *
+     * <h3>O caso que deu origem a isto</h3>
+     *
+     * <p>Na subida do servidor, o letreiro do Bed Wars apareceu DUAS VEZES,
+     * um por cima do outro: o velho dizendo "EM OBRA" e o novo dizendo a
+     * regra do jogo. A varredura por {@link World#getEntities()} só enxerga
+     * entidade de pedaço CARREGADO, e os nichos das galerias ficam fora do
+     * raio de pedaços que o servidor mantém carregado em volta do nascedouro.
+     * A varredura passou por eles sem ver nada; logo depois,
+     * {@code mundo.spawn} do letreiro novo carregou o pedaço — e aí os dois
+     * estavam lá.
+     *
+     * <p>Aqui cada pedaço da caixa é carregado antes de ser olhado. Para uma
+     * praça de alcance sessenta são sessenta e quatro pedaços, uma vez por
+     * reinício, num mundo quase todo vazio.
+     *
+     * @return quantos painéis velhos foram tirados
+     */
+    public static int limparPaineis(World mundo, String etiqueta, int alcance) {
+        int tirados = 0;
+        int de = -Math.abs(alcance) >> 4;
+        int ate = Math.abs(alcance) >> 4;
+        for (int cx = de; cx <= ate; cx++) {
+            for (int cz = de; cz <= ate; cz++) {
+                for (Entity entidade : mundo.getChunkAt(cx, cz).getEntities()) {
+                    if (entidade.getScoreboardTags().contains(etiqueta)) {
+                        entidade.remove();
+                        tirados++;
+                    }
+                }
+            }
+        }
+        // Segunda passada, agora que os pedaços estão carregados. Sai de
+        // graça e cobre a possibilidade de o servidor carregar as entidades
+        // de um pedaço um instante depois do próprio pedaço — que é
+        // exatamente o tipo de detalhe de implementação que não dá para
+        // garantir pela API, e que custaria outro letreiro duplicado para
+        // descobrir.
+        for (Entity entidade : mundo.getEntities()) {
+            if (entidade.getScoreboardTags().contains(etiqueta)) {
+                entidade.remove();
+                tirados++;
+            }
+        }
+        return tirados;
+    }
+
     public static void limparPaineis(World mundo, String etiqueta) {
         for (Entity entidade : mundo.getEntities()) {
             if (entidade.getScoreboardTags().contains(etiqueta)) {
@@ -537,14 +586,24 @@ public final class ArenaComum {
      * pelo prefixo, a limpeza vale para os vinte jogos e para o vigésimo
      * primeiro.
      */
-    public static int limparTodosOsPaineis(World mundo) {
+    public static int limparTodosOsPaineis(World mundo, int alcance) {
         int tirados = 0;
-        for (Entity entidade : mundo.getEntities()) {
-            for (String etiqueta : entidade.getScoreboardTags()) {
-                if (etiqueta.startsWith(PREFIXO_DAS_ETIQUETAS)) {
-                    entidade.remove();
-                    tirados++;
-                    break;
+        int de = -Math.abs(alcance) >> 4;
+        int ate = Math.abs(alcance) >> 4;
+        for (int cx = de; cx <= ate; cx++) {
+            for (int cz = de; cz <= ate; cz++) {
+                // Carrega o pedaço antes de olhar: ver o javadoc do irmão de
+                // três parâmetros lá em cima. Aqui vale duas vezes, porque a
+                // obra das vinte arenas roda com todo mundo no hub e portanto
+                // com os pedaços das arenas descarregados.
+                for (Entity entidade : mundo.getChunkAt(cx, cz).getEntities()) {
+                    for (String etiqueta : entidade.getScoreboardTags()) {
+                        if (etiqueta.startsWith(PREFIXO_DAS_ETIQUETAS)) {
+                            entidade.remove();
+                            tirados++;
+                            break;
+                        }
+                    }
                 }
             }
         }

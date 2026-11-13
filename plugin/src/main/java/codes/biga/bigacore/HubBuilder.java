@@ -993,7 +993,7 @@ public final class HubBuilder {
         }
 
         int piso = planta.pisoY();
-        limparPaineis(mundo);
+        int velhos = limparPaineis(mundo);
 
         letreiroDoMonumento(mundo, planta, piso + monumentoAltura(planta) + 3);
         for (HubCatalog.Portal portal : portais) {
@@ -1002,7 +1002,8 @@ public final class HubBuilder {
         boasVindas(mundo, planta, HubCatalog.faceLivre(portais), piso);
 
         return new Resultado(true, "Textos do hub refeitos: "
-                + (portais.size() + 2) + " letreiros.", portais.size() + 2);
+                + (portais.size() + 2) + " letreiros (" + velhos
+                + " velho(s) tirado(s)).", portais.size() + 2);
     }
 
     /** Onde o jogador nasce: no estrado do terraço de chegada. */
@@ -1147,12 +1148,10 @@ public final class HubBuilder {
         });
     }
 
-    private void limparPaineis(World mundo) {
-        for (Entity entidade : mundo.getEntities()) {
-            if (entidade.getScoreboardTags().contains(TAG_PAINEL)) {
-                entidade.remove();
-            }
-        }
+    /** Ver {@link ArenaComum#limparPaineis(World, String, int)}. */
+    private int limparPaineis(World mundo) {
+        return ArenaComum.limparPaineis(mundo, TAG_PAINEL,
+                plugin.hubCatalog().alcanceDaObra());
     }
 
     /** Quantos blocos já existem onde o hub iria. Zero é o esperado. */
