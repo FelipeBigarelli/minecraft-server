@@ -144,6 +144,32 @@ public final class ArenaComum {
     }
 
     /**
+     * Os três de volta, pelo nome — e não por um deslocamento de bits.
+     *
+     * <h3>Por que não bastava o daChave</h3>
+     *
+     * <p>Ele pede DESLOCAMENTO (40, 20, 0) e parece pedir ÍNDICE (0, 1, 2). O
+     * Bed Wars passava 0, 1 e 2 — e a chamada compila, roda e devolve três
+     * números sem sentido: a lã posta na rodada era procurada do outro lado do
+     * mundo, e portanto nunca apagada. Nada acusava, porque o apagador só
+     * apaga o que já é lã e lá não havia nada.
+     *
+     * <p>Com estes três nomes a confusão não tem como acontecer de novo, e é
+     * por eles que todo mundo passa a desempacotar.
+     */
+    public static int xDaChave(long chave) {
+        return daChave(chave, 40);
+    }
+
+    public static int yDaChave(long chave) {
+        return daChave(chave, 20);
+    }
+
+    public static int zDaChave(long chave) {
+        return daChave(chave, 0);
+    }
+
+    /**
      * O yaw de quem olha para a direção (dx, dz).
      *
      * Yaw zero é o sul (z crescente) e cresce para o oeste, que é o contrário

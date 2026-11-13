@@ -87,6 +87,18 @@ public abstract class CatalogoDeArena implements PlantaDeArena {
         return nome == null || nome.isBlank() ? mundoPadrao : nome;
     }
 
+    /**
+     * Se o mundo deste jogo é um MAPA PRONTO baixado, com relevo próprio.
+     *
+     * <p>Falso para dezenove dos vinte: o mundo deles nasce vazio e tem de
+     * continuar vazio. Só a corrida, quando roda sobre o Monte Akina, diz que
+     * sim — e é o que impede o servidor de impor o gerador vazio a uma
+     * montanha de quatrocentos megabytes.
+     */
+    public boolean mapaPronto() {
+        return false;
+    }
+
     // ------------------------------------------------------------------
     //  Geometria comum
     // ------------------------------------------------------------------

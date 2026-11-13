@@ -37,6 +37,29 @@ public final class MundoDeJogo {
      * @return o mundo, ou null se não existia e não deu para criar.
      */
     public static World garantir(BigaCore plugin, String nome) {
+        return garantir(plugin, nome, false);
+    }
+
+    /**
+     * O mesmo, sabendo se o mundo é um MAPA PRONTO baixado.
+     *
+     * <h3>Por que a distinção importa</h3>
+     *
+     * <p>Dezenove dos vinte mundos de jogo nascem aqui, vazios, e precisam
+     * continuar vazios: se um pedaço nas bordas da arena for gerado pelo
+     * gerador normal, aparece montanha de pedra encostada no Sky Wars. Para
+     * esses o gerador vazio é passado SEMPRE, mesmo com o mundo já em disco
+     * — é o gerador deles desde o primeiro dia.
+     *
+     * <p>A corrida sobre o Monte Akina é o contrário: o mundo é um mapa
+     * baixado de quatrocentos megabytes, com relevo de verdade, e impor o
+     * gerador vazio a ele faria o servidor discordar do que está no próprio
+     * mapa. Só esse passa {@code true}.
+     *
+     * @param mapaPronto se o mundo vem de um mapa baixado, com relevo próprio
+     */
+    public static World garantir(BigaCore plugin, String nome,
+                                 boolean mapaPronto) {
         World achado = Bukkit.getWorld(nome);
         if (achado != null) {
             return achado;
@@ -48,9 +71,7 @@ public final class MundoDeJogo {
         // servidor gerar vazio em volta da estrada e, pior, discordar do que
         // está escrito no level.dat do próprio mapa. Só mundo que nasce aqui
         // nasce vazio.
-        java.io.File pasta = new java.io.File(org.bukkit.Bukkit.getWorldContainer(),
-                nome);
-        boolean jaEstaEmDisco = new java.io.File(pasta, "level.dat").isFile();
+        boolean jaEstaEmDisco = mapaPronto && estaEmDisco(nome);
         plugin.getLogger().info("[mundos] " + (jaEstaEmDisco
                 ? "Carregando o mundo '" + nome + "' que já está em disco."
                 : "Criando o mundo vazio '" + nome + "'."));
@@ -79,5 +100,39 @@ public final class MundoDeJogo {
                     + " normal -g BigaCore");
             return null;
         }
+    }
+
+    /**
+     * Se o mundo de nome {@code nome} já tem dados em disco.
+     *
+     * <h3>Dois lugares, e o segundo não é o óbvio</h3>
+     *
+     * <p>A pasta clássica é {@code <container>/<nome>/level.dat}. Mas o Paper
+     * moderno ARRUMA o servidor na subida: um mundo que não seja o principal
+     * é mudado para {@code <mundo-principal>/dimensions/minecraft/<nome>}, e
+     * lá dentro não há {@code level.dat} nenhum — só {@code region/},
+     * {@code entities/} e {@code data/}, porque o level.dat do servidor
+     * passou a ser um só.
+     *
+     * <p>Olhando só o primeiro lugar, o plugin anunciava
+     * "Criando o mundo vazio 'corrida_akina'" com os quatrocentos megabytes
+     * do Monte Akina intactos no segundo — e, pior, mandava o gerador vazio
+     * junto. Hoje basta haver {@code region/} com alguma coisa dentro.
+     */
+    static boolean estaEmDisco(String nome) {
+        java.io.File container = Bukkit.getWorldContainer();
+        if (new java.io.File(new java.io.File(container, nome),
+                "level.dat").isFile()) {
+            return true;
+        }
+        java.util.List<World> mundos = Bukkit.getWorlds();
+        if (mundos.isEmpty()) {
+            return false;
+        }
+        java.io.File mudado = new java.io.File(
+                mundos.get(0).getWorldFolder(),
+                "dimensions/minecraft/" + nome + "/region");
+        String[] regioes = mudado.list();
+        return regioes != null && regioes.length > 0;
     }
 }

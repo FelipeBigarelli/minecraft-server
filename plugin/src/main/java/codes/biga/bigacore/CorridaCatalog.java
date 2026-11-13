@@ -329,6 +329,11 @@ public final class CorridaCatalog extends CatalogoDeArena {
         return config.getBoolean("mapa-pronto.ativo", false);
     }
 
+    @Override
+    public boolean mapaPronto() {
+        return querMapaPronto();
+    }
+
     public String pastaDosPercursos() {
         return config.getString("mapa-pronto.pasta", "mapas/corrida");
     }

@@ -1,5 +1,6 @@
 package codes.biga.bigacore;
 
+import org.bukkit.GameMode;
 import org.bukkit.Bukkit;
 import org.bukkit.GameRule;
 import org.bukkit.World;
@@ -216,6 +217,33 @@ public final class RegrasDoHub implements Listener {
         } else {
             evento.getPlayer().removePotionEffect(PotionEffectType.SPEED);
         }
+        tirarDoSurvival(evento.getPlayer());
+    }
+
+    /**
+     * Quem chega num mundo de minigame chega em AVENTURA, nunca em survival.
+     *
+     * <h3>O que isto conserta</h3>
+     *
+     * <p>O portal do lobby teleporta e pronto: o modo de jogo só era trocado
+     * quando o jogador clicava em [ENTRAR]. Até lá ele ficava com o que
+     * trouxe do survival — e survival numa arena quer dizer picareta na mão
+     * no meio da obra do jogo, fome correndo e dano de queda. O relato foi no
+     * Build Battle ("ainda no modo survival"), mas valia para os vinte.
+     *
+     * <p>Só mexe em quem está em SURVIVAL. Criativo e espectador ficam como
+     * estão de propósito: é o que o administrador usa para conferir arena, e
+     * arrancar o criativo dele a cada troca de mundo tornaria /biga refazer
+     * impossível de acompanhar.
+     */
+    private void tirarDoSurvival(Player jogador) {
+        if (jogador.getGameMode() != GameMode.SURVIVAL) {
+            return;
+        }
+        if (!plugin.ehMundoDeJogo(jogador.getWorld())) {
+            return;
+        }
+        jogador.setGameMode(GameMode.ADVENTURE);
     }
 
     @EventHandler(ignoreCancelled = true)

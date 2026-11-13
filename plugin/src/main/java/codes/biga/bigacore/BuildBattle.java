@@ -784,10 +784,14 @@ public final class BuildBattle extends JogoDeArena {
     /** Quem sai do lote volta para ele. */
     @Override
     protected void aCadaTique(World mundo) {
-        if (!jogando() || fase != Fase.OBRA) {
+        if (!jogando()) {
             return;
         }
         BuildBattleCatalog planta = planta2();
+        pegarQuemCai(mundo, planta);
+        if (fase != Fase.OBRA) {
+            return;
+        }
         for (Player jogador : jogadoresVivos()) {
             Integer meu = loteDe.get(jogador.getUniqueId());
             if (meu == null) {
@@ -807,6 +811,57 @@ public final class BuildBattle extends JogoDeArena {
             jogador.playSound(jogador.getLocation(),
                     Sound.BLOCK_NOTE_BLOCK_BASS, 0.5f, 0.7f);
         }
+    }
+
+    /**
+     * Pega quem se jogou do lote ou da plateia — em QUALQUER fase.
+     *
+     * <h3>O buraco que isto tapa</h3>
+     *
+     * <p>Este é o único dos vinte jogos em que cair não elimina E o jogador
+     * continua "vivo" a rodada inteira. O resgate do arcabouço pula quem está
+     * vivo (nos outros jogos quem cai está morrendo, e isso é o jogo), e a
+     * guarda do lote só rodava na fase de OBRA. Resultado: um pulo para fora
+     * durante o tema, o passeio ou a votação era queda livre até o dano do
+     * vazio — numa partida de construir, onde ninguém espera morrer.
+     *
+     * <p>O destino depende da fase, e não é detalhe: devolver ao lote durante
+     * o passeio tiraria o jogador da obra que está sendo julgada, e devolver à
+     * plateia durante a obra tiraria da dele.
+     */
+    private void pegarQuemCai(World mundo, BuildBattleCatalog planta) {
+        int piso = planta.quedaY();
+        for (Player jogador : jogadoresVivos()) {
+            if (jogador.getLocation().getY() >= piso) {
+                continue;
+            }
+            Location volta = ondeVoltar(mundo, planta, jogador);
+            if (volta == null) {
+                continue;
+            }
+            jogador.setFallDistance(0f);
+            jogador.teleport(volta);
+            jogador.sendActionBar(plugin.mini().deserialize(
+                    "<color:#8FD3FF>o chão te pegou no ar</color>"));
+            jogador.playSound(volta, Sound.ENTITY_ENDERMAN_TELEPORT, 0.5f, 1.4f);
+        }
+    }
+
+    /** Para onde devolver quem caiu, conforme a fase da rodada. */
+    private Location ondeVoltar(World mundo, BuildBattleCatalog planta,
+                                Player jogador) {
+        if (fase == Fase.PASSEIO || fase == Fase.VOTO) {
+            if (naOrdem >= 0 && naOrdem < ordem.size()) {
+                return BuildBattleBuilder.pontoDaPlateia(mundo, planta,
+                        ordem.get(naOrdem));
+            }
+            return SaguaoPadrao.pontoDoSaguao(mundo, planta);
+        }
+        Integer meu = loteDe.get(jogador.getUniqueId());
+        if (meu == null) {
+            return SaguaoPadrao.pontoDoSaguao(mundo, planta);
+        }
+        return BuildBattleBuilder.pontoDoLote(mundo, planta, meu);
     }
 
     private void avisarDaObra(BuildBattleCatalog planta) {

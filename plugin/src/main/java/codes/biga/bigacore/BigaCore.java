@@ -1191,7 +1191,7 @@ public final class BigaCore extends JavaPlugin {
             getServer().getPluginManager().registerEvents(ouvinte, this);
         }
         jogo.start();
-        MundoDeJogo.garantir(this, catalogo.mundo());
+        MundoDeJogo.garantir(this, catalogo.mundo(), catalogo.mapaPronto());
         jogos.put(catalogo.etiqueta(), new JogoRegistrado(catalogo, construtor, jogo));
     }
 

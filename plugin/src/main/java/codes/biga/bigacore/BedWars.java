@@ -944,9 +944,9 @@ public final class BedWars extends JogoDeArena {
     /** Apaga toda lã posta na rodada passada. */
     private void apagarAsDefesas(World mundo) {
         for (long chave : colocados) {
-            Block bloco = mundo.getBlockAt(ArenaComum.daChave(chave, 0),
-                    ArenaComum.daChave(chave, 1),
-                    ArenaComum.daChave(chave, 2));
+            Block bloco = mundo.getBlockAt(ArenaComum.xDaChave(chave),
+                    ArenaComum.yDaChave(chave),
+                    ArenaComum.zDaChave(chave));
             if (bloco.getType().name().endsWith("_WOOL")) {
                 bloco.setType(Material.AIR, false);
             }

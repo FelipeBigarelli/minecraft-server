@@ -148,8 +148,8 @@ public final class Corrida extends JogoDeArena {
         for (int k = 0; k < entram.size(); k++) {
             Player jogador = entram.get(k);
             UUID id = jogador.getUniqueId();
-            Location grade = CorridaBuilder.pontoDaGrade(mundo, planta, k,
-                    totalDaGrade);
+            Location grade = plugin.corridaBuilder()
+                    .pontoDaGrade(mundo, planta, k);
             jogador.teleport(grade);
             gradeDe.put(id, k);
             proximoPortao.put(id, 0);
@@ -161,6 +161,11 @@ public final class Corrida extends JogoDeArena {
             correr(jogador, planta);
         }
         acenderALargada(mundo, 1, false);
+        java.util.List<String> nomes = new java.util.ArrayList<>();
+        for (Player jogador : entram) {
+            nomes.add(jogador.getName());
+        }
+        plugin.corridaBuilder().numerarAGrade(mundo, planta, nomes);
     }
 
     // ------------------------------------------------------------------
@@ -523,7 +528,8 @@ public final class Corrida extends JogoDeArena {
         UUID id = jogador.getUniqueId();
         int portao = ultimoPortao.getOrDefault(id, -1);
         Location volta = portao < 0
-                ? CorridaBuilder.pontoDaGrade(mundo, planta, gradeDe.getOrDefault(id, 0))
+                ? plugin.corridaBuilder().pontoDaGrade(mundo, planta,
+                        gradeDe.getOrDefault(id, 0))
                 : CorridaBuilder.pontoDoPortao(mundo, planta, portao);
 
         jogador.setFallDistance(0f);
@@ -600,6 +606,12 @@ public final class Corrida extends JogoDeArena {
     @Override
     protected void aoTerminarRodada() {
         tirarOsBarcos();
+        World mundo = mundoDaArena();
+        if (mundo != null) {
+            CorridaCatalog planta = planta2();
+            plugin.corridaBuilder().limparNumeros(mundo, planta,
+                    planta.percursoDaRodada());
+        }
         for (Player jogador : jogadoresDaArena()) {
             jogador.removePotionEffect(PotionEffectType.SPEED);
         }

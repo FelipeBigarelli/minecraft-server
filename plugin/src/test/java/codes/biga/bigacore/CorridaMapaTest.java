@@ -192,17 +192,21 @@ class CorridaMapaTest {
     // ------------------------------------------------------------------
 
     @Test
-    @DisplayName("a pole larga na frente de todo mundo")
+    @DisplayName("a pole larga na frente de todo mundo, e atrás da linha")
     void aPoleLargaNaFrente() {
         // O defeito que isto pega: contar a fila de frente para trás põe quem
         // entrou por último montanha abaixo na frente da pole — e a corrida
         // já começaria decidida ao contrário.
+        int base = 7;
+        double passo = 2.0;
+        int linha = CorridaBuilder.indiceDaLinha(base, passo);
         int antes = Integer.MAX_VALUE;
-        for (int k = 0; k < 16; k++) {
-            int onde = CorridaBuilder.indiceDaFila(k, 16, 2.0,
-                    CorridaBuilder.FUNDURA_DA_LINHA);
-            assertTrue(onde > CorridaBuilder.FUNDURA_DA_LINHA, "o lugar " + k
-                    + " nasce em cima da linha pintada");
+        for (int k = 0; k < CorridaBuilder.FILAS_DA_GRADE * 2; k++) {
+            int onde = CorridaBuilder.indiceDaFila(k, passo, base);
+            assertTrue(onde >= base, "o lugar " + k + " nasce ANTES da base "
+                    + "sondada: fora do pedaço de estrada que coube na grade");
+            assertTrue(onde < linha, "o lugar " + k + " nasce em cima da linha "
+                    + "pintada, ou adiante dela: nunca cruzaria a largada");
             if (k % 2 == 0 && k > 0) {
                 assertTrue(onde < antes, "a fila " + (k / 2) + " largou na "
                         + "frente da anterior");
@@ -211,9 +215,36 @@ class CorridaMapaTest {
                 antes = onde;
             }
         }
-        assertEquals(CorridaBuilder.indiceDaFila(0, 16, 2.0, 3),
-                CorridaBuilder.indiceDaFila(1, 16, 2.0, 3),
+        assertEquals(CorridaBuilder.indiceDaFila(0, passo, base),
+                CorridaBuilder.indiceDaFila(1, passo, base),
                 "os dois da mesma fila largam lado a lado");
+        assertTrue(CorridaBuilder.ladoDaFila(0) < 0
+                        && CorridaBuilder.ladoDaFila(1) > 0,
+                "os dois da mesma fila largam no mesmo lado da pista");
+    }
+
+    @Test
+    @DisplayName("o box é um contorno, e o barco pousa dentro dele")
+    void oBoxEhUmContorno() {
+        // Contorno e não mancha: o miolo tem de continuar sendo a estrada,
+        // que é o que o barco precisa embaixo. E o ponto de largada sai da
+        // MESMA conta do desenho — se saísse de outra, o piloto nasceria ao
+        // lado do próprio box.
+        double[] p = {100.0, 90.0, 200.0};
+        double[] t = {1.0, 0.0};
+        double off = CorridaBuilder.ladoDaFila(1);
+        List<int[]> casas = CorridaBuilder.casasDoBox(p, t, off);
+        assertFalse(casas.isEmpty());
+
+        Set<Long> vistas = new HashSet<>();
+        int[] meio = CorridaBuilder.casa(p, t, off, 0);
+        for (int[] c : casas) {
+            assertTrue(vistas.add(CorridaBuilder.chave(c[0], c[1])),
+                    "casa repetida no contorno: " + c[0] + "," + c[1]);
+        }
+        assertFalse(vistas.contains(CorridaBuilder.chave(meio[0], meio[1])),
+                "o contorno pintou o próprio meio: o barco pousaria em cima "
+                        + "da tinta em vez da estrada");
     }
 
     @Test
@@ -227,14 +258,20 @@ class CorridaMapaTest {
         List<int[]> casas = CorridaBuilder.casasDaLinha(p, t, 4, 3);
         assertFalse(casas.isEmpty());
         Set<Long> vistas = new HashSet<>();
+        int claras = 0;
         for (int[] c : casas) {
-            assertEquals(0, Math.floorMod(c[0] + c[1], 2),
-                    "casa escura do tabuleiro foi pintada: " + c[0] + "," + c[1]);
+            assertEquals(Math.floorMod(c[0] + c[1], 2), c[2],
+                    "a cor da casa não é a do tabuleiro: " + c[0] + "," + c[1]);
             assertTrue(vistas.add(CorridaBuilder.chave(c[0], c[1])),
                     "casa repetida: " + c[0] + "," + c[1]);
+            if (c[2] == 0) {
+                claras++;
+            }
         }
-        assertTrue(casas.size() >= 9, "linha de 9 de largura por 3 de fundura "
-                + "tem mais casas claras do que " + casas.size());
+        assertTrue(claras >= 9, "linha de 9 de largura por 3 de fundura "
+                + "tem mais casas claras do que " + claras);
+        assertTrue(claras < casas.size(), "todas as casas são claras: isso "
+                + "não é um tabuleiro, é uma faixa pintada");
     }
 
     @Test
