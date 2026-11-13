@@ -1,0 +1,248 @@
+# -------------------------------------------------------------
+#  BED WARS — proteja a sua cama
+#
+#  Quatro times, quatro bases num anel, uma ilha no meio com o
+#  tear. Enquanto a sua cama estiver de pé, morrer é voltar; sem
+#  cama, o time passa a contar vidas. O último time de pé ganha.
+#
+#  OS TRÊS DEFEITOS DA REFERÊNCIA, E O QUE FAZEMOS DIFERENTE
+#
+#  O estudo rendeu três reclamações que os jogadores do gênero
+#  fazem há anos nos fóruns, e as três têm a mesma raiz: a
+#  partida acaba para você antes de você ter jogado.
+#
+#  - "RUSH DEMAIS, E NÃO DÁ TEMPO DE PROTEGER A CAMA". A proposta
+#    que aparece no fórum é dar um minuto de proteção. Ela não
+#    resolve: um minuto de carência só muda o rush para o minuto
+#    seguinte, e quem defende continua sem saber de nada até a
+#    cama cair. Aqui a cama custa `golpes-da-cama` golpes, com
+#    `periodo-da-cama` tiques entre um e outro — e CADA GOLPE É
+#    ANUNCIADO ao time dono, com o nome de quem bateu e de que
+#    lado. O defensor não ganha um atraso: ganha informação, que
+#    é o que ele precisa para chegar em tempo. E a cama SE
+#    RECUPERA um golpe a cada `cura-da-cama` segundos sem
+#    ninguém encostar nela, então um rush abandonado no meio não
+#    deixa a cama pela metade para sempre: expulsar o invasor
+#    devolve terreno de verdade.
+#
+#  - "SUA CAMA FOI DESTRUÍDA, VOCÊ AGORA É ESPECTADOR". A frase é
+#    literalmente o título de uma reclamação de fórum. Perder a
+#    cama na referência é virar fantasma na morte seguinte, e com
+#    quatro times isso põe metade da sala assistindo por dez
+#    minutos. Aqui a cama é o RESPAWN, não a vida: quando ela
+#    cai, o time passa a ter `vidas-do-time` vidas compartilhadas
+#    e continua jogando, sabendo exatamente quantas restam. Quem
+#    perde a cama primeiro ainda tem minutos de partida — e tem
+#    um motivo para atacar, porque defender já não serve.
+#
+#  - "O COLEGA FICA PARADO EM CIMA DO GERADOR". A reclamação
+#    mais comum de todas, e ela é um defeito de desenho e não de
+#    educação: se o recurso nasce na sua base, ficar parado em
+#    casa É a jogada ótima. Aqui NÃO HÁ GERADOR NA BASE. A lã sai
+#    do TEAR, no meio da arena, e só rende para quem está no
+#    meio. Não existe lugar seguro onde ficar parado dê lucro, e
+#    `conferirTear` prende as duas pontas: uma viagem ao meio tem
+#    de render lã de sobra para valer a ida, e menos do que uma
+#    defesa inteira, senão uma viagem só fecharia a cama.
+#
+#  A LÃ É DA COR DO TIME. Cada bloco de defesa diz quem o pôs, e
+#  só se quebra o bloco que alguém colocou — as bases não se
+#  mineram. Sem isso, cavar a própria base seria a primeira
+#  jogada de todo mundo.
+#
+#  AS PASSARELAS SÃO DADAS. Cada base nasce ligada ao meio por
+#  uma passarela estreita. O caminho de ida existe de graça; o
+#  caminho para a base do VIZINHO é que se constrói, e é a
+#  decisão do jogo. Sem passarela nenhuma, a primeira lã viria de
+#  lugar nenhum; com passarela para todo lado, não haveria o que
+#  escolher.
+#
+#  A CARÊNCIA É O TEMPO DA VIAGEM. `graca-segundos` é quanto a
+#  cama fica intocável no começo, e o número não é escolhido: é o
+#  tempo que se leva para ir de uma cama até a cama de outro
+#  time, andando. Assim o rush nunca é de graça e nunca é
+#  proibido — ele chega exatamente quando a cama passa a poder
+#  ser batida. `conferirGraca` recusa o número que não bate com
+#  a distância da arena.
+# -------------------------------------------------------------
+
+mundo: bed_wars
+
+arena:
+  y: 100
+
+  # As bases: quantas, a que distância do meio, de que raio cada
+  # uma, e quanto a cama fica recuada do centro da base para o
+  # lado de fora — atrás do dono, de costas para o meio.
+  times: 4
+  base-anel: 40
+  base-raio: 7
+  base-altura: 2
+  cama-recuo: 4
+
+  # A ilha do meio, onde fica o tear: é o único lugar de onde sai
+  # lã, e por isso o único lugar que vale ficar.
+  meio-raio: 10
+  meio-altura: 3
+  tear-altura: 3
+
+  # A passarela que liga cada base ao meio. Estreita de
+  # propósito: é o aperto onde as brigas acontecem.
+  passarela-largura: 3
+
+  saguao-altura: 24
+  saguao-raio: 10
+  saguao-parapeito: 4
+  marco-altura: 18
+  painel-altura: 10
+
+paleta:
+  placa: CHERRY_WALL_SIGN
+
+  base-piso: POLISHED_DEEPSLATE
+  base-beira: DEEPSLATE_TILES
+  base-corpo: DEEPSLATE_BRICKS
+  base-marco: POLISHED_BLACKSTONE_BRICKS
+
+  meio-topo: POLISHED_BLACKSTONE
+  meio-corpo: BLACKSTONE
+  meio-beira: CHISELED_POLISHED_BLACKSTONE
+  meio-luz: SHROOMLIGHT
+
+  passarela: SMOOTH_STONE
+  passarela-beira: STONE_BRICKS
+
+  tear: LOOM
+  tear-base: CHISELED_POLISHED_BLACKSTONE
+  tear-luz: LANTERN
+
+  estrutura: POLISHED_DEEPSLATE
+  escuro: BLACKSTONE
+  borda: DEEPSLATE_TILES
+  metal: IRON_BLOCK
+  vidro: WHITE_STAINED_GLASS
+  luz: SHROOMLIGHT
+  luz-fria: LANTERN
+  nucleo: WHITE_WOOL
+  poste: POLISHED_BLACKSTONE_BRICKS
+  poste-luz: LANTERN
+  torre: POLISHED_DEEPSLATE
+  torre-luz: SHROOMLIGHT
+  folhagem: CHERRY_LEAVES
+
+# Os times, na ordem em que ocupam o anel: o primeiro ao norte e
+# os outros no sentido do relógio. A lã de cada time é da cor
+# dele de propósito — cada bloco de defesa diz quem o pôs, e isso
+# é o que faz "só se quebra o que alguém colocou" ser uma regra
+# que se LÊ no chão em vez de uma regra que se decora.
+times:
+  - nome: "VERMELHO"
+    cor: "#FF6B6B"
+    la: RED_WOOL
+    concreto: RED_CONCRETE
+    terracota: RED_TERRACOTTA
+    cama: RED_BED
+  - nome: "AZUL"
+    cor: "#6BA8FF"
+    la: BLUE_WOOL
+    concreto: BLUE_CONCRETE
+    terracota: BLUE_TERRACOTTA
+    cama: BLUE_BED
+  - nome: "AMARELO"
+    cor: "#FFD93D"
+    la: YELLOW_WOOL
+    concreto: YELLOW_CONCRETE
+    terracota: YELLOW_TERRACOTTA
+    cama: YELLOW_BED
+  - nome: "VERDE"
+    cor: "#8BE04E"
+    la: LIME_WOOL
+    concreto: LIME_CONCRETE
+    terracota: LIME_TERRACOTTA
+    cama: LIME_BED
+
+regras:
+  minimo: 2
+  maximo: 16
+  contagem-segundos: 15
+  fim-segundos: 12
+  treino-sozinho: true
+
+  # A vida é número do plugin e os corações são só o mostrador,
+  # como na ARENA PVP: aqui ninguém tem armadura nem poção, então
+  # vida não é vantagem acumulada e sim o relógio de uma briga.
+  vida-cheia: 100
+
+  # O golpe é a conta da ARENA PVP: a espada tira
+  # `dano-do-golpe` no tempo dela e muito menos fora do tempo. A
+  # carência do alvo é igual ao período, e cinco golpes cheios
+  # derrubam alguém.
+  periodo-do-golpe: 13
+  dano-do-golpe: 20
+
+  empurrao: 0.5
+  empurrao-altura: 0.3
+
+  # A CAMA. `golpes-da-cama` × `periodo-da-cama` é quanto tempo
+  # de pé em cima dela o invasor precisa — com 8 e 16 dá uns seis
+  # segundos e meio, tempo de alguém chegar se for avisado. E é
+  # avisado: cada golpe anuncia nome e lado para o time dono.
+  golpes-da-cama: 8
+  periodo-da-cama: 16
+
+  # A cama volta um golpe a cada tantos segundos sem ninguém
+  # encostar: expulsar o invasor devolve terreno, e um rush
+  # abandonado não deixa a cama pela metade para sempre.
+  cura-da-cama: 8
+
+  # Quantas vidas o time passa a ter quando a cama cai, e quanto
+  # tempo leva para voltar. A cama é o respawn, não a vida — ver
+  # o cabeçalho.
+  vidas-do-time: 3
+  respawn-segundos: 5
+
+  # O tear: quanta lã por quantos segundos, para quem está no
+  # meio. Não há gerador na base, de propósito.
+  la-do-tear: 2
+  tear-segundos: 2
+  la-maxima: 64
+
+  # Quantos blocos uma defesa de cama pede. Não é um limite do
+  # jogo: é o número que `conferirTear` usa para garantir que uma
+  # viagem ao meio NÃO fecha a cama sozinha.
+  la-da-defesa: 24
+
+  # O tempo de ir de uma cama até a cama de outro time, andando.
+  # Ver `conferirGraca`: este número é medido na arena, não
+  # escolhido.
+  graca-segundos: 20
+
+  pontos-por-golpe-na-cama: 10
+  pontos-por-cama: 150
+  pontos-por-eliminacao: 40
+
+  queda-abaixo: 20
+  tempo-limite: 480
+
+textos:
+  titulo: "BED WARS"
+  cor: "#FF8FC4"
+  subtitulo: "proteja a sua cama"
+  regras:
+    - "clique em [ENTRAR] para entrar na fila"
+    - "enquanto a sua cama estiver de pé, morrer é voltar"
+    - "a cama custa oito golpes, e cada golpe avisa o dono"
+    - "a cama se recupera sozinha se ninguém encostar nela"
+    - "sem cama, o time conta vidas — ninguém vira espectador"
+    - "a lã só sai do tear, no meio: não há gerador em casa"
+    - "só se quebra o bloco que alguém colocou"
+  escala-titulo: 2.8
+  escala-placa: 1.6
+  fundo-alpha: 0
+
+  placa-entrar: "[ENTRAR]"
+  placa-sair: "[SAIR]"
+  placa-fila: "na fila"
+  placa-esperando: "esperando"
+  placa-jogando: "EM GUERRA"
+  placa-refazendo: "refazendo"

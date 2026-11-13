@@ -105,6 +105,9 @@ public final class BigaCore extends JavaPlugin {
     private SkyWarsCatalog skyWarsCatalog;
     private SkyWarsBuilder skyWarsBuilder;
     private SkyWars skyWars;
+    private BedWarsCatalog bedWarsCatalog;
+    private BedWarsBuilder bedWarsBuilder;
+    private BedWars bedWars;
 
     /**
      * Os minigames registrados, por etiqueta.
@@ -266,6 +269,11 @@ public final class BigaCore extends JavaPlugin {
             saveResource("sky-wars.yml", false);
         }
 
+        File bedWarsFile = new File(getDataFolder(), "bed-wars.yml");
+        if (!bedWarsFile.exists()) {
+            saveResource("bed-wars.yml", false);
+        }
+
         File mineracaoFile = new File(getDataFolder(), "mineracao.yml");
         if (!mineracaoFile.exists()) {
             saveResource("mineracao.yml", false);
@@ -423,6 +431,11 @@ public final class BigaCore extends JavaPlugin {
         this.skyWarsBuilder = new SkyWarsBuilder(this);
         this.skyWars = new SkyWars(this);
         registrarJogo(skyWarsCatalog, skyWarsBuilder, skyWars);
+
+        this.bedWarsCatalog = new BedWarsCatalog(this);
+        this.bedWarsBuilder = new BedWarsBuilder(this);
+        this.bedWars = new BedWars(this);
+        registrarJogo(bedWarsCatalog, bedWarsBuilder, bedWars);
 
         // As regras valem para o hub E para o lobby, então entram depois dos
         // dois: elas leem a configuração dos dois mundos para saber onde agir.
@@ -1009,6 +1022,18 @@ public final class BigaCore extends JavaPlugin {
 
     public SkyWars skyWars() {
         return skyWars;
+    }
+
+    public BedWarsCatalog bedWarsCatalog() {
+        return bedWarsCatalog;
+    }
+
+    public BedWarsBuilder bedWarsBuilder() {
+        return bedWarsBuilder;
+    }
+
+    public BedWars bedWars() {
+        return bedWars;
     }
 
     /** Os minigames registrados, por etiqueta, na ordem em que entraram. */

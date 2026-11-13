@@ -136,8 +136,8 @@ portais:
     vao: 0
     titulo: "BED WARS"
     descricao: "proteja a sua cama"
-    detalhe: "sem cama, sem volta"
-    mundo: ""
+    detalhe: "sem cama, o time conta vidas"
+    mundo: "bed_wars"
     cor: "#FF8FC4"
     moldura: PINK_TERRACOTTA
     destaque: PINK_CONCRETE
