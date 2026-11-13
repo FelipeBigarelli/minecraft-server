@@ -244,7 +244,13 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
      * partida em curso recebe as regras sem encher o bate-papo de quem já
      * está jogando.
      */
-    protected void instrucoes(Player jogador) {
+    /**
+     * Os parágrafos de instrução deste jogo, para o saguão escrever nas
+     * paredes da rua. Vazio quer dizer "este jogo não tem o que explicar".
+     */
+    @Override
+    public java.util.List<String> instrucoes() {
+        return java.util.List.of();
     }
 
     /** Uma linha de instrução, no bate-papo de um jogador só. */
@@ -568,7 +574,6 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
         }
         lateral().mostrarPara(jogador);
         aoEntrarNaArena(jogador);
-        instrucoes(jogador);
 
         // Administrador voando não é jogador: nem muda de modo, nem conta para
         // o mínimo, nem é largado numa rodada.
@@ -945,7 +950,35 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
             return;
         }
         PlantaDeArena planta = planta();
-        prepararArena(mundo);
+
+        // PREPARAR A ARENA PODE FALHAR, E A FALHA NÃO PODE TRANCAR O SAGUÃO.
+        //
+        // Já trancou: uma classe que faltava no jar fez o prepararArena do
+        // SKY WARS estourar, a largada nunca aconteceu, e o estado ficou em
+        // CONTAGEM — com o relógio descontando para sempre. O jogador via
+        // "começa em -8", depois -9, depois -10, e a única saída era um
+        // administrador parar a rodada à mão.
+        //
+        // O defeito de origem era outro e foi consertado. Isto aqui é o que
+        // impede que o PRÓXIMO defeito de qualquer um dos vinte jogos vire
+        // uma contagem negativa sem fim: se a arena não sobe, a rodada é
+        // cancelada, o erro vai para o console com nome e sobrenome, e o
+        // saguão volta a esperar.
+        try {
+            prepararArena(mundo);
+        } catch (RuntimeException falhou) {
+            plugin.getLogger().log(java.util.logging.Level.SEVERE,
+                    "a arena do " + planta.etiqueta()
+                            + " não subiu — a rodada foi cancelada", falhou);
+            estado = Estado.ESPERANDO;
+            contagem = 0;
+            anunciar("<color:#FF8A8A>a arena não subiu</color> <gray>— a "
+                    + "rodada foi cancelada. Um administrador precisa ver o "
+                    + "console e rodar <white>/biga " + planta.etiqueta()
+                    + " construir CONFIRMAR</white>.</gray>");
+            atualizarPlacas(mundo);
+            return;
+        }
         vivos.clear();
         segundosDeJogo = 0;
 

@@ -363,6 +363,46 @@ public final class ArenaComum {
         });
     }
 
+    /**
+     * Um painel de PAREDE: ele gira para encarar quem lê, mas só no eixo de
+     * pé.
+     *
+     * A diferença para o {@link #painelVirado} é essa, e ela importa: o
+     * billboard CENTER também se inclina com o olhar, então um painel
+     * pendurado na fachada de uma casa deita para trás quando o jogador olha
+     * para cima e atravessa a parede. O VERTICAL só roda em volta do próprio
+     * mastro — fica sempre de pé, sempre legível, e nunca entra no bloco de
+     * trás.
+     *
+     * <p>A largura de linha é menor que a do letreiro do fundo da rua porque
+     * estes ficam entre duas casas: uma linha larga passaria por dentro da
+     * parede de frente.
+     */
+    public static void painelDeParede(World mundo, Location alvo,
+                                      Component texto, float escala,
+                                      int fundoAlpha, int largura,
+                                      String etiqueta) {
+        alvo.setYaw(0f);
+        alvo.setPitch(0f);
+        mundo.spawn(alvo, TextDisplay.class, novo -> {
+            novo.text(texto);
+            novo.setBillboard(Display.Billboard.VERTICAL);
+            novo.setAlignment(TextDisplay.TextAlignment.LEFT);
+            novo.setBackgroundColor(Color.fromARGB(fundoAlpha, 0, 0, 0));
+            novo.setShadowed(true);
+            novo.setBrightness(new Display.Brightness(15, 15));
+            novo.setLineWidth(largura);
+            novo.setViewRange(1.2f);
+            novo.setPersistent(false);
+            novo.addScoreboardTag(etiqueta);
+
+            Transformation t = novo.getTransformation();
+            novo.setTransformation(new Transformation(
+                    t.getTranslation(), t.getLeftRotation(),
+                    new Vector3f(escala, escala, escala), t.getRightRotation()));
+        });
+    }
+
     public static void limparPaineis(World mundo, String etiqueta) {
         for (Entity entidade : mundo.getEntities()) {
             if (entidade.getScoreboardTags().contains(etiqueta)) {

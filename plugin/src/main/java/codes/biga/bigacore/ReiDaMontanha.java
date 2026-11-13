@@ -143,14 +143,17 @@ public final class ReiDaMontanha extends JogoDeArena {
         }
     }
 
+    /** Os parágrafos que o saguão escreve nas paredes da rua. */
     @Override
-    protected void instrucoes(Player jogador) {
+    public java.util.List<String> instrucoes() {
+        java.util.List<String> linhas = new java.util.ArrayList<>();
         ReiCatalog planta = planta2();
-        dizer(jogador, "<gray>ganha quem SOMAR <white>"
+        linhas.add("<gray>ganha quem SOMAR <white>"
                 + planta.segundosParaGanhar() + "s</white> no topo. O seu "
                 + "relógio <white>não zera</white> quando você sai: ele para "
                 + "e continua na próxima subida — mas com dois lá em cima ele "
                 + "congela para os dois</gray>");
+        return linhas;
     }
 
     @Override

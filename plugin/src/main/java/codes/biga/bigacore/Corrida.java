@@ -416,13 +416,16 @@ public final class Corrida extends JogoDeArena {
         }
     }
 
+    /** Os parágrafos que o saguão escreve nas paredes da rua. */
     @Override
-    protected void instrucoes(Player jogador) {
+    public java.util.List<String> instrucoes() {
+        java.util.List<String> linhas = new java.util.ArrayList<>();
         CorridaCatalog planta = planta2();
-        dizer(jogador, "<gray>são <white>" + planta.voltas() + "</white> voltas de <white>"
+        linhas.add("<gray>são <white>" + planta.voltas() + "</white> voltas de <white>"
                 + planta.quantosBlocosDePista() + "</white> blocos — as <white>"
                 + planta.atalhos().length + "</white> pontes de ouro cortam caminho "
                 + "sobre o vazio</gray>");
+        return linhas;
     }
 
     @Override

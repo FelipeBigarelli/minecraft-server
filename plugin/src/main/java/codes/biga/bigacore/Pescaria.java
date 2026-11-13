@@ -144,15 +144,18 @@ public final class Pescaria extends JogoDeArena {
         }
     }
 
+    /** Os parágrafos que o saguão escreve nas paredes da rua. */
     @Override
-    protected void instrucoes(Player jogador) {
+    public java.util.List<String> instrucoes() {
+        java.util.List<String> linhas = new java.util.ArrayList<>();
         PescariaCatalog planta = planta2();
-        dizer(jogador, "<gray>são <white>" + planta.pocos().size() + " poços</white> "
+        linhas.add("<gray>são <white>" + planta.pocos().size() + " poços</white> "
                 + "e todos pagam o mesmo por segundo — o que muda é o ritmo. "
                 + "Poço que é muito pescado <white>cansa</white>, e <white>"
                 + HubBuilder.escapar(planta.oGrande().nome())
                 + "</white> vale <white>" + planta.oGrande().pontos()
                 + "</white></gray>");
+        return linhas;
     }
 
     @Override

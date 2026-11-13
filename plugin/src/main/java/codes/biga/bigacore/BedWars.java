@@ -236,24 +236,27 @@ public final class BedWars extends JogoDeArena {
         }
     }
 
+    /** Os parágrafos que o saguão escreve nas paredes da rua. */
     @Override
-    protected void instrucoes(Player jogador) {
+    public java.util.List<String> instrucoes() {
+        java.util.List<String> linhas = new java.util.ArrayList<>();
         BedWarsCatalog planta = planta2();
         int travessia = planta.travessiaEntreCamas();
-        dizer(jogador, "<gray>a sua cama custa <white>" + planta.golpesDaCama()
+        linhas.add("<gray>a sua cama custa <white>" + planta.golpesDaCama()
                 + " golpes</white> e <white>cada golpe avisa</white> o seu "
                 + "time, com nome e lado. Ela também <white>se cura</white> um "
                 + "golpe a cada " + planta.curaDaCama() + "s sem ninguém "
-                + "encostar: expulsar o invasor devolve terreno.</gray>");        dizer(jogador, "<gray>a cama só pode ser batida depois de <white>"
+                + "encostar: expulsar o invasor devolve terreno.</gray>");        linhas.add("<gray>a cama só pode ser batida depois de <white>"
                 + planta.gracaSegundos() + "s</white>, que é o tempo de ir de "
                 + "uma cama até a outra andando (<white>" + travessia
                 + " blocos</white>) — o rush não é de graça nem é "
-                + "proibido.</gray>");        dizer(jogador, "<gray>a lã sai <white>só do tear</white>, no meio, e é da "
+                + "proibido.</gray>");        linhas.add("<gray>a lã sai <white>só do tear</white>, no meio, e é da "
                 + "<white>cor do seu time</white>. Não há gerador em casa: "
-                + "ficar parado não rende nada em lugar nenhum.</gray>");        dizer(jogador, "<gray>sem cama, o time passa a ter <white>"
+                + "ficar parado não rende nada em lugar nenhum.</gray>");        linhas.add("<gray>sem cama, o time passa a ter <white>"
                 + planta.vidasDoTime() + " vidas</white> e <white>continua "
                 + "jogando</white> — ninguém vira espectador na primeira "
                 + "cama que cai.</gray>");
+        return linhas;
     }
 
     @Override

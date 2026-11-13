@@ -154,16 +154,19 @@ public final class Musica extends JogoDeArena {
         }
     }
 
+    /** Os parágrafos que o saguão escreve nas paredes da rua. */
     @Override
-    protected void instrucoes(Player jogador) {
+    public java.util.List<String> instrucoes() {
+        java.util.List<String> linhas = new java.util.ArrayList<>();
         MusicaCatalog planta = planta2();
-        dizer(jogador, "<gray>o metrônomo começa em <white>"
+        linhas.add("<gray>o metrônomo começa em <white>"
                 + MusicaCatalog.bpmDe(planta.tempos().get(0))
                 + " bpm</white> e sobe até <white>"
                 + MusicaCatalog.bpmDe(planta.tempos().get(
                         planta.tempos().size() - 1))
                 + " bpm</white>. O primeiro compasso é <white>de graça</white> "
                 + "— depois dele, pulo fora da batida tira uma vida</gray>");
+        return linhas;
     }
 
     @Override

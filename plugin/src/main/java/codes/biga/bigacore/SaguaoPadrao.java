@@ -602,6 +602,146 @@ public final class SaguaoPadrao {
         }
     }
 
+    // ------------------------------------------------------------------
+    //  AS PAREDES QUE EXPLICAM O JOGO
+    //
+    //  As instruções viviam no BATE-PAPO, ditas uma a uma quando o jogador
+    //  entrava na arena. Era a coisa errada por dois motivos.
+    //
+    //  O bate-papo empurra texto para cima: chegar com a rodada anterior
+    //  acabando significava ler as regras entremeadas de "fulano caiu",
+    //  "fulano ganhou em 0:10", e metade delas já tinha rolado para fora da
+    //  tela antes de ser lida. E uma parede de texto cinza, de seis linhas,
+    //  é a última coisa que alguém lê quando acabou de chegar num lugar
+    //  novo — ele está olhando em volta, não lendo o canto da tela.
+    //
+    //  Agora cada parágrafo é uma PLACA na fachada de uma casa, na altura do
+    //  olho de quem anda pela avenida. Ler passa a ser andar: quem quer
+    //  saber caminha até o fim da rua, quem não quer entra pela placa e
+    //  joga. É o quadro emoldurado na parede da vila do mapa de referência,
+    //  e é o que uma rua serve para fazer.
+    // ------------------------------------------------------------------
+
+    /** Quanto o painel se afasta da fachada, para não entrar na parede. */
+    private static final double RECUO_DA_PAREDE = 1.35;
+
+    /** Onde o pé do painel fica: altura do olho de quem passa. */
+    private static final double PE_DO_PAINEL = 1.5;
+
+    private static final float ESCALA_DA_PAREDE = 0.85f;
+    private static final int LARGURA_DA_PAREDE = 200;
+    private static final int LETRAS_NA_PAREDE = 30;
+
+    /**
+     * As vagas de placa na rua: o meio de cada casa, dos dois lados.
+     *
+     * Contadas DO ARCO para trás porque é para o arco que a avenida aponta e
+     * é para lá que quem pousa está olhando: a primeira placa de cada lado
+     * fica no campo de visão de quem acabou de chegar, sem precisar virar.
+     *
+     * <p>Estática e sem mundo para o teste medir sem servidor.
+     */
+    static List<int[]> vagasDeParede(int raio) {
+        List<int[]> vagas = new ArrayList<>();
+        int zArco = zDoArcoDeVolta(raio);
+        for (int z = zArco + 2; z <= raio - 2; z += 6) {
+            if (!ArenaComum.noDisco(0, z, raio - 2)) {
+                continue;
+            }
+            vagas.add(new int[]{-1, z});
+            vagas.add(new int[]{1, z});
+        }
+        return vagas;
+    }
+
+    /**
+     * Reparte os parágrafos pelas vagas.
+     *
+     * Sobrando parágrafo, os que não couberam se juntam ao último em vez de
+     * sumirem: regra que o saguão não mostra é regra que o jogador descobre
+     * perdendo, e cortar em silêncio é o pior dos dois mundos.
+     */
+    static List<String> repartir(List<String> paragrafos, int vagas) {
+        List<String> saida = new ArrayList<>();
+        if (paragrafos.isEmpty() || vagas <= 0) {
+            return saida;
+        }
+        if (paragrafos.size() <= vagas) {
+            saida.addAll(paragrafos);
+            return saida;
+        }
+        for (int k = 0; k < vagas - 1; k++) {
+            saida.add(paragrafos.get(k));
+        }
+        saida.add(String.join("\n\n",
+                paragrafos.subList(vagas - 1, paragrafos.size())));
+        return saida;
+    }
+
+    /** Escreve os parágrafos de instrução nas fachadas das casas. */
+    public static void escreverAsParedes(BigaCore plugin, World mundo,
+                                         PlantaDeArena planta, String etiqueta) {
+        JogoRegistrado registrado = plugin.jogos().get(planta.etiqueta());
+        if (registrado == null) {
+            return;
+        }
+        List<String> paragrafos = registrado.jogo().instrucoes();
+        if (paragrafos == null || paragrafos.isEmpty()) {
+            return;
+        }
+        int raio = planta.saguaoRaio();
+        List<int[]> vagas = vagasDeParede(raio);
+        List<String> repartidos = repartir(paragrafos, vagas.size());
+
+        int y = planta.saguaoY();
+        double x = xDaFachada(raio) - RECUO_DA_PAREDE;
+        String cor = planta.corDoTexto();
+
+        for (int k = 0; k < repartidos.size() && k < vagas.size(); k++) {
+            int[] vaga = vagas.get(k);
+            String escrito = comCabecalho(repartidos.get(k), cor, k + 1,
+                    repartidos.size());
+            double alto = alturaDoPainel(
+                    linhasDaParede(escrito), ESCALA_DA_PAREDE);
+            ArenaComum.painelDeParede(mundo,
+                    new Location(mundo, vaga[0] * x, y + PE_DO_PAINEL + alto / 2,
+                            vaga[1] + 0.5),
+                    plugin.mini().deserialize(escrito),
+                    ESCALA_DA_PAREDE, fundoDaParede(planta.fundoDoTexto()),
+                    LARGURA_DA_PAREDE, etiqueta);
+        }
+    }
+
+    /**
+     * O cabeçalho de cada placa: a régua na cor do jogo e a conta.
+     *
+     * A conta — "2 de 4" — existe para quem está lendo saber se falta placa.
+     * Sem ela, uma placa escondida atrás de uma árvore é uma regra que o
+     * jogador nunca saberá que existiu.
+     */
+    static String comCabecalho(String texto, String cor, int qual, int quantas) {
+        return "<color:" + cor + ">\u2501\u2501 </color>"
+                + "<color:" + cor + "><bold>COMO SE JOGA</bold></color>"
+                + "<color:" + SOMBRA + "> " + qual + "/" + quantas + "</color>"
+                + "<color:" + cor + "> \u2501\u2501</color>\n" + texto;
+    }
+
+    /** O fundo da placa de parede: mais firme que o do letreiro do fundo. */
+    static int fundoDaParede(int escolhido) {
+        return escolhido > 0 ? escolhido : 170;
+    }
+
+    /** Quantas linhas o texto ocupa na largura da placa de parede. */
+    static int linhasDaParede(String texto) {
+        int total = 0;
+        for (String pedaco : texto.split("\n", -1)) {
+            String limpo = semMarcacao(pedaco);
+            total += Math.max(1,
+                    (limpo.length() + LETRAS_NA_PAREDE - 1) / LETRAS_NA_PAREDE);
+        }
+        return Math.max(1, total);
+    }
+
     public static void escreverPlaca(World mundo, PlantaDeArena planta, int[] onde,
                                      List<Component> linhas) {
         ArenaComum.escreverPlaca(mundo, onde, planta.materialDaPlaca(),
@@ -658,6 +798,11 @@ public final class SaguaoPadrao {
                 plugin.mini().deserialize("<color:" + cor + "><bold>"
                         + HubBuilder.escapar(planta.titulo()) + "</bold></color>"),
                 (float) planta.escalaTitulo(), fundo, etiqueta);
+
+        // E as placas das paredes, aqui dentro e não no construir: assim o
+        // /biga <jogo> textos — que é o comando que se roda quando algo sai
+        // torto — refaz os dois, e não um só.
+        escreverAsParedes(plugin, mundo, planta, etiqueta);
     }
 
     /**

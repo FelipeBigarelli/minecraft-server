@@ -244,16 +244,18 @@ public final class SkyWars extends JogoDeArena {
         }
     }
 
+    /** Os parágrafos que o saguão escreve nas paredes da rua. */
     @Override
-    protected void instrucoes(Player jogador) {
+    public java.util.List<String> instrucoes() {
+        java.util.List<String> linhas = new java.util.ArrayList<>();
         SkyWarsCatalog planta = planta2();
-        dizer(jogador, "<gray>você larga <white>sem nada</white>: o saque "
+        linhas.add("<gray>você larga <white>sem nada</white>: o saque "
                 + "está nos <white>" + planta.bausDaIlha() + " baú(s)</white> "
                 + "da sua ilha. A <white>espada</white> é a mesma em toda "
                 + "ilha na mesma partida; o resto do baú varia — mas tem "
                 + "<white>piso garantido</white>: espada, comida, uma peça "
                 + "de armadura e blocos para a ponte.</gray>");
-        dizer(jogador, "<gray>e pode vir <white>ferramenta</white>, que é o "
+        linhas.add("<gray>e pode vir <white>ferramenta</white>, que é o "
                 + "que se usa no outro: o <color:#6FC3FF>balde d'água</color> "
                 + "lava o inimigo para fora da ponte sem encostar nele, o "
                 + "<color:#FF8A3D>balde de lava</color> fecha a ponte e cobra "
@@ -261,15 +263,16 @@ public final class SkyWars extends JogoDeArena {
                 + "quem atravessar, e a <color:#DCE9FF>bola de neve</color> "
                 + "empurra de longe sem tirar vida nenhuma. As duas poças "
                 + "<white>secam em " + planta.baldeSegundos() + "s</white>.</gray>");
-        dizer(jogador, "<gray>o baú do <white>meio</white> tem a espada do "
+        linhas.add("<gray>o baú do <white>meio</white> tem a espada do "
                 + "nível de cima e o <white>conjunto de armadura</white>, e "
                 + "só abre quando a <white>cúpula cair</white>, em <white>"
                 + planta.segundosParaOMeio() + "s</white> — chegar antes "
                 + "ganha posição, não o baú.</gray>");
-        dizer(jogador, "<gray>só se quebra o <white>bloco que alguém "
+        linhas.add("<gray>só se quebra o <white>bloco que alguém "
                 + "colocou</white>: as ilhas não se mineram. E em <white>"
                 + planta.segundosDeCerco() + "s</white> o anel começa a cair, "
                 + "uma ilha de cada vez, <white>dando a volta</white>.</gray>");
+        return linhas;
     }
 
     @Override

@@ -175,16 +175,19 @@ public final class Arco extends JogoDeArena {
         jogador.updateInventory();
     }
 
+    /** Os parágrafos que o saguão escreve nas paredes da rua. */
     @Override
-    protected void instrucoes(Player jogador) {
+    public java.util.List<String> instrucoes() {
+        java.util.List<String> linhas = new java.util.ArrayList<>();
         ArcoCatalog planta = planta2();
-        dizer(jogador, "<gray>a flecha é <white>infinita</white> e <white>um acerto "
+        linhas.add("<gray>a flecha é <white>infinita</white> e <white>um acerto "
                 + "elimina</white>. Tiro sem puxar o arco é <white>recusado"
                 + "</white> — puxe <white>"
                 + ArcoCatalog.tiquesParaForca(planta.forcaMinima())
                 + " tiques</white> (um segundo) antes de soltar. A flecha "
                 + "<white>come o muro</white> em que acerta, então acampar "
                 + "gasta o próprio abrigo.</gray>");
+        return linhas;
     }
 
     @Override

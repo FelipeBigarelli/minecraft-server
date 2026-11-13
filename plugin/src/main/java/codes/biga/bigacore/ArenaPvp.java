@@ -221,18 +221,21 @@ public final class ArenaPvp extends JogoDeArena {
         jogador.updateInventory();
     }
 
+    /** Os parágrafos que o saguão escreve nas paredes da rua. */
     @Override
-    protected void instrucoes(Player jogador) {
+    public java.util.List<String> instrucoes() {
+        java.util.List<String> linhas = new java.util.ArrayList<>();
         ArenaPvpCatalog planta = planta2();
-        dizer(jogador, "<gray>todos têm a <white>mesma espada</white> e nada mais. "
+        linhas.add("<gray>todos têm a <white>mesma espada</white> e nada mais. "
                 + "O golpe vale pela <white>prontidão</white> da espada: "
                 + "martelar o botão faz <white>um terço</white> do dano. "
                 + "Espere a espada carregar — são <white>"
                 + planta.periodoDoGolpe() + " tiques</white> entre "
-                + "golpes.</gray>");        dizer(jogador, "<gray>derrubar alguém devolve <white>"
+                + "golpes.</gray>");        linhas.add("<gray>derrubar alguém devolve <white>"
                 + planta.curaPorEliminacao() + "</white> de vida, e os "
                 + "<white>" + planta.vaos() + " vãos</white> da beira dão no "
                 + "vazio.</gray>");
+        return linhas;
     }
 
     @Override

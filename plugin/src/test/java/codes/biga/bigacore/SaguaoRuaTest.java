@@ -163,6 +163,99 @@ class SaguaoRuaTest {
         }
     }
 
+    // ------------------------------------------------------------------
+    //  As paredes que explicam o jogo
+    // ------------------------------------------------------------------
+
+    /**
+     * Toda rua tem de ter vaga de placa dos DOIS lados.
+     *
+     * Só de um lado, metade das instruções ficaria atrás do jogador quando
+     * ele pousa — e quem pousa está olhando para o arco.
+     */
+    @Test
+    @DisplayName("as vagas de placa vêm aos pares, uma de cada lado")
+    void asVagasVemAosPares() {
+        for (int raio : RAIOS) {
+            java.util.List<int[]> vagas = SaguaoPadrao.vagasDeParede(raio);
+            assertTrue(vagas.size() >= 2, "raio " + raio
+                    + ": a rua não tem onde pendurar instrução nenhuma");
+            assertEquals(0, vagas.size() % 2, "raio " + raio
+                    + ": sobrou vaga sem par do outro lado");
+            for (int k = 0; k < vagas.size(); k += 2) {
+                assertEquals(-1, vagas.get(k)[0]);
+                assertEquals(1, vagas.get(k + 1)[0]);
+                assertEquals(vagas.get(k)[1], vagas.get(k + 1)[1],
+                        "o par não está no mesmo ponto da rua");
+            }
+        }
+    }
+
+    /** Nenhuma placa pode nascer fora do saguão. */
+    @Test
+    @DisplayName("as vagas ficam todas dentro da rua")
+    void asVagasFicamDentroDaRua() {
+        for (int raio : RAIOS) {
+            for (int[] vaga : SaguaoPadrao.vagasDeParede(raio)) {
+                assertTrue(Math.abs(vaga[1]) <= raio - 1, "raio " + raio
+                        + ": vaga em z=" + vaga[1] + " passou do parapeito");
+                assertTrue(vaga[1] >= SaguaoPadrao.zDoArcoDeVolta(raio),
+                        "raio " + raio + ": vaga atrás do arco, onde ninguém "
+                                + "passa");
+            }
+        }
+    }
+
+    /**
+     * Parágrafo que não cabe não some: junta-se ao último.
+     *
+     * Regra que o saguão não mostra é regra que o jogador descobre perdendo.
+     */
+    @Test
+    @DisplayName("parágrafo a mais se junta ao último, e não some")
+    void oParagrafoQueSobraNaoSome() {
+        java.util.List<String> oito = new java.util.ArrayList<>();
+        for (int k = 1; k <= 8; k++) {
+            oito.add("regra" + k);
+        }
+        java.util.List<String> saiu = SaguaoPadrao.repartir(oito, 6);
+        assertEquals(6, saiu.size());
+        for (int k = 1; k <= 8; k++) {
+            boolean achou = false;
+            for (String placa : saiu) {
+                if (placa.contains("regra" + k)) {
+                    achou = true;
+                    break;
+                }
+            }
+            assertTrue(achou, "a regra" + k + " sumiu da rua");
+        }
+    }
+
+    @Test
+    @DisplayName("cabendo tudo, nada é juntado")
+    void cabendoTudoNadaEhJuntado() {
+        java.util.List<String> tres = java.util.List.of("a", "b", "c");
+        assertEquals(tres, SaguaoPadrao.repartir(tres, 6));
+    }
+
+    @Test
+    @DisplayName("sem instrução, nenhuma placa é pendurada")
+    void semInstrucaoNenhumaPlaca() {
+        assertTrue(SaguaoPadrao.repartir(java.util.List.of(), 6).isEmpty());
+        assertTrue(SaguaoPadrao.repartir(java.util.List.of("a"), 0).isEmpty());
+    }
+
+    /** O cabeçalho diz quantas placas existem, senão não se sabe se faltou. */
+    @Test
+    @DisplayName("o cabeçalho de cada placa diz qual é e quantas são")
+    void oCabecalhoDizQualEQuantas() {
+        String saiu = SaguaoPadrao.comCabecalho("o texto", "#FF0000", 2, 4);
+        assertTrue(saiu.contains("2/4"), saiu);
+        assertTrue(saiu.contains("#FF0000"), saiu);
+        assertTrue(saiu.contains("o texto"), saiu);
+    }
+
     /**
      * Os letreiros começam ACIMA do frontão do arco.
      *

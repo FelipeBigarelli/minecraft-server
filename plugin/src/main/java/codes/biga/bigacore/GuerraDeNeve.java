@@ -162,13 +162,16 @@ public final class GuerraDeNeve extends JogoDeArena {
                 + "</gray>";
     }
 
+    /** Os parágrafos que o saguão escreve nas paredes da rua. */
     @Override
-    protected void instrucoes(Player jogador) {
+    public java.util.List<String> instrucoes() {
+        java.util.List<String> linhas = new java.util.ArrayList<>();
         NeveCatalog planta = planta2();
-        dizer(jogador, "<gray>cada um tem <white>" + planta.vidas()
+        linhas.add("<gray>cada um tem <white>" + planta.vidas()
                 + "</white> vidas e bola de neve sem fim — o campo começa a "
                 + "encolher em <white>" + planta.apertoSegundos()
                 + "s</white></gray>");
+        return linhas;
     }
 
     @Override

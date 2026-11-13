@@ -351,7 +351,6 @@ public final class Spleef implements Listener, JogoDeMinigame {
 
     private void entrou(Player jogador) {
         lateral().mostrarPara(jogador);
-        instrucoes(jogador);
         // Quem chegou com /speed ligado no hub não traz a velocidade
         // para dentro da arena.
         JogoDeArena.velocidadeNormal(jogador);
@@ -1486,20 +1485,24 @@ public final class Spleef implements Listener, JogoDeMinigame {
      * chão começa a sumir não são lidos por ninguém. Quem precisa das
      * regras está parado aqui esperando a fila encher.
      */
-    private void instrucoes(Player jogador) {
+    /** Os parágrafos que o saguão escreve nas paredes da rua. */
+    @Override
+    public java.util.List<String> instrucoes() {
+        java.util.List<String> linhas = new java.util.ArrayList<>();
         SpleefCatalog planta = plugin.spleefCatalog();
-        dizer(jogador, "<gray>o chão <white>não some sozinho</white>: alguém "
+        linhas.add("<gray>o chão <white>não some sozinho</white>: alguém "
                 + "tem de cavar. A <white>pá de ferro</white> é a única coisa "
                 + "que abre o gelo — com a bola de neve na mão você não "
                 + "cava.</gray>");
-        dizer(jogador, "<gray>a <white>bola de neve</white> não acaba e não "
+        linhas.add("<gray>a <white>bola de neve</white> não acaba e não "
                 + "machuca: ela <white>empurra</white>. Empurrar alguém para "
                 + "cima de um buraco que você cavou é a jogada.</gray>");
-        dizer(jogador, "<gray>ficar parado <white>racha o gelo</white> debaixo "
+        linhas.add("<gray>ficar parado <white>racha o gelo</white> debaixo "
                 + "de você em <white>" + planta.paradoRacha() + "s</white>, e "
                 + "depois de <white>" + planta.apertoSegundos() + "s</white> a "
                 + "arena começa a <white>encolher</white> — toda partida "
                 + "termina.</gray>");
+        return linhas;
     }
 
     /** Uma linha de instrução, no bate-papo de um jogador só. */

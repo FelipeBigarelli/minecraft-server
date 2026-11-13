@@ -166,13 +166,16 @@ public final class Quiz extends JogoDeArena {
         }
     }
 
+    /** Os parágrafos que o saguão escreve nas paredes da rua. */
     @Override
-    protected void instrucoes(Player jogador) {
+    public java.util.List<String> instrucoes() {
+        java.util.List<String> linhas = new java.util.ArrayList<>();
         QuizCatalog planta = planta2();
-        dizer(jogador, "<gray>são <white>" + planta.perguntasPorRodada() + " perguntas</white>, do "
+        linhas.add("<gray>são <white>" + planta.perguntasPorRodada() + " perguntas</white>, do "
                 + "fácil ao difícil. <white>" + planta.tempoResposta()
                 + " segundos</white> para pisar na resposta — e ficar no átrio "
                 + "conta como <white>errar</white></gray>");
+        return linhas;
     }
 
     @Override

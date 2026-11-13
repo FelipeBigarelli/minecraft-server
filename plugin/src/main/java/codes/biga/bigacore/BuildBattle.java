@@ -209,18 +209,21 @@ public final class BuildBattle extends JogoDeArena {
         tiqueDaFase = tiquesDeJogo();
     }
 
+    /** Os parágrafos que o saguão escreve nas paredes da rua. */
     @Override
-    protected void instrucoes(Player jogador) {
+    public java.util.List<String> instrucoes() {
+        java.util.List<String> linhas = new java.util.ArrayList<>();
         BuildBattleCatalog planta = planta2();
-        dizer(jogador, "<gray>você tem <white>" + planta.segundosDeObra()
+        linhas.add("<gray>você tem <white>" + planta.segundosDeObra()
                 + "s</white> de obra num lote só seu, com uma paleta que "
                 + "<white>cabe inteira no inventário</white>, e durante a "
                 + "obra você <white>não sai do seu lote</white>.</gray>");
-        dizer(jogador, "<gray>depois tem um <white>passeio</white> sem voto e "
+        linhas.add("<gray>depois tem um <white>passeio</white> sem voto e "
                 + "depois a <white>volta do voto</white>: quando você votar "
                 + "no primeiro lote, já vai ter visto todos. E "
                 + "<white>dar nota baixa para todos não levanta a sua</white> "
                 + "— a conta usa a ordem da sua cédula, não as notas.</gray>");
+        return linhas;
     }
 
     @Override

@@ -278,11 +278,14 @@ public final class Parkour extends JogoDeArena {
         }
     }
 
+    /** Os parágrafos que o saguão escreve nas paredes da rua. */
     @Override
-    protected void instrucoes(Player jogador) {
-        dizer(jogador, "<gray>são <white>" + planta2().saltos() + "</white> saltos e "
+    public java.util.List<String> instrucoes() {
+        java.util.List<String> linhas = new java.util.ArrayList<>();
+        linhas.add("<gray>são <white>" + planta2().saltos() + "</white> saltos e "
                 + "<white>" + (planta2().saltos() / planta2().checkpointACada())
                 + "</white> checkpoints — cair não elimina</gray>");
+        return linhas;
     }
 
     @Override

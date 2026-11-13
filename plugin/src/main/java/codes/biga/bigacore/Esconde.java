@@ -219,10 +219,12 @@ public final class Esconde extends JogoDeArena {
                 planta.caixotesDaOnda(0, Math.max(1, quantosEscondem)));
     }
 
+    /** Os parágrafos que o saguão escreve nas paredes da rua. */
     @Override
-    protected void instrucoes(Player jogador) {
+    public java.util.List<String> instrucoes() {
+        java.util.List<String> linhas = new java.util.ArrayList<>();
         EscondeCatalog planta = planta2();
-        dizer(jogador, "<gray>quem se esconde ganha <white>"
+        linhas.add("<gray>quem se esconde ganha <white>"
                 + planta.pontosPorSegundo() + " ponto por segundo</white> de "
                 + "pé; cada captura paga ao caçador o que o escondido "
                 + "deixou de ganhar, e sobreviver até o fim vale <white>"
@@ -231,6 +233,7 @@ public final class Esconde extends JogoDeArena {
                 + planta.segredoSegundos() + "s</white> — fique <white>parado "
                 + "um segundo</white> num lugar de caixote para "
                 + "<color:" + planta.corDoTexto() + ">ENCAIXAR</color></gray>");
+        return linhas;
     }
 
     @Override

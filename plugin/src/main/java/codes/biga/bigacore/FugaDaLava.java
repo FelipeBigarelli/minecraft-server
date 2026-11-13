@@ -337,15 +337,18 @@ public final class FugaDaLava extends JogoDeArena {
         }
     }
 
+    /** Os parágrafos que o saguão escreve nas paredes da rua. */
     @Override
-    protected void instrucoes(Player jogador) {
+    public java.util.List<String> instrucoes() {
+        java.util.List<String> linhas = new java.util.ArrayList<>();
         LavaCatalog planta = planta2();
-        dizer(jogador, "<gray>a lava começa a subir em <white>" + planta.carenciaSegundos()
+        linhas.add("<gray>a lava começa a subir em <white>" + planta.carenciaSegundos()
                 + "s</white> e leva <white>"
                 + LavaCatalog.segundosAte(planta.altura(), planta.segundosPorFiada(),
                         planta.aceleraACada())
                 + "s</white> até o topo — são <white>" + planta.altura()
                 + "</white> fiadas de rampa</gray>");
+        return linhas;
     }
 
     @Override

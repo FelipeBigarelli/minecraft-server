@@ -134,16 +134,19 @@ public final class Sorte extends JogoDeArena {
         }
     }
 
+    /** Os parágrafos que o saguão escreve nas paredes da rua. */
     @Override
-    protected void instrucoes(Player jogador) {
+    public java.util.List<String> instrucoes() {
+        java.util.List<String> linhas = new java.util.ArrayList<>();
         SorteCatalog planta = planta2();
-        dizer(jogador, "<gray>o dado é <white>justo</white>: toda fatia é <white>1 em "
+        linhas.add("<gray>o dado é <white>justo</white>: toda fatia é <white>1 em "
                 + planta.setores() + "</white>. O prêmio da rodada é "
                 + "<white>dividido</white> por quantos escolherem a mesma "
                 + "fatia — a cheia paga <white>zero</white>. Pular no "
                 + "<color:#E8A87C>banco do meio</color> guarda o que você tem "
                 + "e te tira da partida; <white>cair não guarda nada</white>."
                 + "</gray>");
+        return linhas;
     }
 
     @Override

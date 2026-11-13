@@ -129,16 +129,19 @@ public final class Mineracao extends JogoDeArena {
         }
     }
 
+    /** Os parágrafos que o saguão escreve nas paredes da rua. */
     @Override
-    protected void instrucoes(Player jogador) {
+    public java.util.List<String> instrucoes() {
+        java.util.List<String> linhas = new java.util.ArrayList<>();
         MineracaoCatalog planta = planta2();
         MineracaoCatalog.Veio melhor = planta.tabela().isEmpty() ? null
                 : planta.tabela().get(planta.tabela().size() - 1);
-        dizer(jogador, "<gray>a mina é nova — minério vale ponto, e o fundo paga "
+        linhas.add("<gray>a mina é nova — minério vale ponto, e o fundo paga "
                 + "mais" + (melhor == null ? "" : ": <white>" + melhor.nome()
                 + "</white> vale <white>" + melhor.pontos() + "</white>")
                 + ". Os últimos <white>" + planta.dobroSegundos()
                 + "s</white> valem dobrado</gray>");
+        return linhas;
     }
 
     @Override
