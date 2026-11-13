@@ -42,13 +42,26 @@ public final class MundoDeJogo {
             return achado;
         }
 
-        plugin.getLogger().info("[mundos] Criando o mundo vazio '" + nome + "'.");
+        // Um mundo que JÁ EXISTE em disco carrega com o gerador dele, nunca
+        // com o nosso. A Corrida roda sobre um mapa baixado — uma montanha de
+        // quatrocentos megabytes — e impor o gerador vazio a ele faria o
+        // servidor gerar vazio em volta da estrada e, pior, discordar do que
+        // está escrito no level.dat do próprio mapa. Só mundo que nasce aqui
+        // nasce vazio.
+        java.io.File pasta = new java.io.File(org.bukkit.Bukkit.getWorldContainer(),
+                nome);
+        boolean jaEstaEmDisco = new java.io.File(pasta, "level.dat").isFile();
+        plugin.getLogger().info("[mundos] " + (jaEstaEmDisco
+                ? "Carregando o mundo '" + nome + "' que já está em disco."
+                : "Criando o mundo vazio '" + nome + "'."));
         try {
-            World novo = new WorldCreator(nome)
+            WorldCreator receita = new WorldCreator(nome)
                     .environment(World.Environment.NORMAL)
-                    .generator(new VazioGenerator())
-                    .generateStructures(false)
-                    .createWorld();
+                    .generateStructures(false);
+            if (!jaEstaEmDisco) {
+                receita.generator(new VazioGenerator());
+            }
+            World novo = receita.createWorld();
             if (novo == null) {
                 plugin.getLogger().warning("[mundos] O servidor recusou criar '" + nome
                         + "'. Crie à mão: /mv create " + nome + " normal -g BigaCore");

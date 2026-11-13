@@ -9,10 +9,26 @@ import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+import org.bukkit.entity.Boat;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.boat.AcaciaBoat;
+import org.bukkit.entity.boat.BirchBoat;
+import org.bukkit.entity.boat.CherryBoat;
+import org.bukkit.entity.boat.DarkOakBoat;
+import org.bukkit.entity.boat.JungleBoat;
+import org.bukkit.entity.boat.MangroveBoat;
+import org.bukkit.entity.boat.OakBoat;
+import org.bukkit.entity.boat.PaleOakBoat;
+import org.bukkit.entity.boat.SpruceBoat;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.vehicle.VehicleDestroyEvent;
+import org.bukkit.event.vehicle.VehicleExitEvent;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 
 /**
@@ -42,8 +58,21 @@ import java.util.UUID;
  */
 public final class Corrida extends JogoDeArena {
 
-    /** A folga de altura em que um portão ainda conta. */
+    /** A folga de altura em que um portão ainda conta, na pista gerada. */
     private static final int FAIXA_DE_ALTURA = 5;
+
+    /**
+     * Os barcos da grade, um tipo de madeira por lugar.
+     *
+     * <p>Nove madeiras e não um barco só: numa descida de montanha os barcos
+     * ficam a trinta blocos uns dos outros e a única coisa que distingue o
+     * segundo do terceiro é a cor da madeira. Com um tipo só, "quem está na
+     * minha frente?" não tem resposta visual nenhuma.
+     */
+    private static final List<Class<? extends Boat>> MADEIRAS = List.of(
+            OakBoat.class, SpruceBoat.class, BirchBoat.class, JungleBoat.class,
+            AcaciaBoat.class, DarkOakBoat.class, CherryBoat.class,
+            MangroveBoat.class, PaleOakBoat.class);
 
     private final Map<UUID, Integer> proximoPortao = new HashMap<>();
     private final Map<UUID, Integer> voltaDe = new HashMap<>();
@@ -52,6 +81,14 @@ public final class Corrida extends JogoDeArena {
     private final Map<UUID, Integer> gradeDe = new HashMap<>();
     private final Map<UUID, Integer> quedasDe = new HashMap<>();
     private final Map<UUID, double[]> ondeEstava = new HashMap<>();
+
+    /** O barco de cada um, pelo id da entidade. */
+    private final Map<UUID, UUID> barcoDe = new HashMap<>();
+
+    private final Random sorteio = new Random();
+
+    /** Quantos largaram: é o que diz qual fila é a pole. */
+    private int totalDaGrade = 2;
 
     private UUID campeao;
     private long tempoDoCampeao;
@@ -86,7 +123,12 @@ public final class Corrida extends JogoDeArena {
 
     @Override
     protected void prepararArena(World mundo) {
+        // O sorteio ANTES da obra: é ele que diz qual percurso vai ser
+        // decorado, e decorar primeiro seria pôr a largada na montanha
+        // errada. Sem mapa pronto, sortearPercurso não faz nada.
+        planta2().sortearPercurso(sorteio);
         plugin.corridaBuilder().refazerPista(mundo);
+        tirarOsBarcos();
         proximoPortao.clear();
         voltaDe.clear();
         ultimoPortao.clear();
@@ -94,6 +136,7 @@ public final class Corrida extends JogoDeArena {
         gradeDe.clear();
         quedasDe.clear();
         ondeEstava.clear();
+        barcoDe.clear();
         campeao = null;
         quantosTerminaram = 0;
     }
@@ -101,10 +144,12 @@ public final class Corrida extends JogoDeArena {
     @Override
     protected void largar(World mundo, List<Player> entram) {
         CorridaCatalog planta = planta2();
+        totalDaGrade = Math.max(1, entram.size());
         for (int k = 0; k < entram.size(); k++) {
             Player jogador = entram.get(k);
             UUID id = jogador.getUniqueId();
-            Location grade = CorridaBuilder.pontoDaGrade(mundo, planta, k);
+            Location grade = CorridaBuilder.pontoDaGrade(mundo, planta, k,
+                    totalDaGrade);
             jogador.teleport(grade);
             gradeDe.put(id, k);
             proximoPortao.put(id, 0);
@@ -114,6 +159,102 @@ public final class Corrida extends JogoDeArena {
             quedasDe.put(id, 0);
             ondeEstava.put(id, new double[]{grade.getX(), grade.getZ()});
             correr(jogador, planta);
+        }
+        acenderALargada(mundo, 1, false);
+    }
+
+    // ------------------------------------------------------------------
+    //  Os barcos
+    // ------------------------------------------------------------------
+
+    /**
+     * A árvore de largada, acesa no preparo e apagada na largada.
+     *
+     * <p>Uma luz por segundo, e todas apagam de uma vez quando a rodada abre
+     * — que é a árvore de verdade. Quem está num barco olhando montanha
+     * abaixo não tira os olhos da pista para ler um número no canto da tela;
+     * cinco luzes vermelhas sumindo ele vê sem olhar para nada.
+     */
+    @Override
+    protected void aCadaSegundoDePreparo(World mundo, int falta) {
+        CorridaCatalog planta = planta2();
+        int total = Math.max(1, planta.preparoSegundos());
+        acenderALargada(mundo, total - falta + 1, false);
+    }
+
+    private void acenderALargada(World mundo, int acesas, boolean verde) {
+        CorridaCatalog planta = planta2();
+        CorridaCatalog.Percurso curso = planta.percursoDaRodada();
+        if (curso == null) {
+            return;
+        }
+        plugin.corridaBuilder().luzesDaLargada(mundo, planta, curso, acesas, verde);
+    }
+
+    /**
+     * Põe o jogador num barco, e é por isso que a corrida é de barco.
+     *
+     * <p>O barco nasce na LARGADA e não no preparo: o gelo da estrada é
+     * escorregadio de verdade, e um barco parado cinco segundos numa rampa
+     * desce sozinho antes de a rodada abrir. O jogador espera de pé — que o
+     * arcabouço sabe congelar — e o barco aparece debaixo dele quando as
+     * luzes apagam.
+     */
+    private void embarcar(World mundo, Player jogador, int lugar) {
+        UUID id = jogador.getUniqueId();
+        desembarcar(id);
+        Location onde = jogador.getLocation();
+        Boat barco = mundo.spawn(onde, MADEIRAS.get(
+                Math.floorMod(lugar, MADEIRAS.size())));
+        barco.setInvulnerable(true);
+        barco.setPersistent(false);
+        barco.addPassenger(jogador);
+        barcoDe.put(id, barco.getUniqueId());
+    }
+
+    private void desembarcar(UUID id) {
+        UUID qual = barcoDe.remove(id);
+        if (qual == null) {
+            return;
+        }
+        Entity barco = org.bukkit.Bukkit.getEntity(qual);
+        if (barco != null) {
+            barco.remove();
+        }
+    }
+
+    /** Tira todos os barcos: no fim da rodada e antes de montar a próxima. */
+    private void tirarOsBarcos() {
+        for (UUID id : new ArrayList<>(barcoDe.keySet())) {
+            desembarcar(id);
+        }
+        barcoDe.clear();
+    }
+
+    /**
+     * Ninguém desce do barco no meio da corrida.
+     *
+     * <p>Sem isto, apertar agachar na primeira curva vira a corrida a pé —
+     * que no gelo é mais lenta mas também mais controlável, e transformaria o
+     * barco em desvantagem. Fora da rodada o evento passa: é o barco sendo
+     * recolhido.
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void aoSairDoBarco(VehicleExitEvent evento) {
+        if (!jogando() || !(evento.getExited() instanceof Player jogador)) {
+            return;
+        }
+        UUID qual = barcoDe.get(jogador.getUniqueId());
+        if (qual != null && qual.equals(evento.getVehicle().getUniqueId())) {
+            evento.setCancelled(true);
+        }
+    }
+
+    /** E ninguém quebra o barco do vizinho a remada. */
+    @EventHandler(ignoreCancelled = true)
+    public void aoQuebrarOBarco(VehicleDestroyEvent evento) {
+        if (barcoDe.containsValue(evento.getVehicle().getUniqueId())) {
+            evento.setCancelled(true);
         }
     }
 
@@ -192,12 +333,29 @@ public final class Corrida extends JogoDeArena {
         if (campeao == null) {
             return "na frente quando o tempo acabou";
         }
+        CorridaCatalog.Percurso curso = planta2().percursoDaRodada();
+        if (curso != null) {
+            return curso.nome() + " em " + ArenaComum.tempo(tempoDoCampeao)
+                    + " · " + quedasDe.getOrDefault(campeao, 0) + " queda(s)";
+        }
         return planta2().voltas() + " voltas em " + ArenaComum.tempo(tempoDoCampeao)
                 + " · " + quedasDe.getOrDefault(campeao, 0) + " queda(s)";
     }
 
     @Override
     protected String textoDaBarra() {
+        CorridaCatalog.Percurso curso = planta2().percursoDaRodada();
+        if (curso != null) {
+            int lider = 0;
+            for (Map.Entry<UUID, Integer> avanco : avancoDe.entrySet()) {
+                lider = Math.max(lider, avanco.getValue());
+            }
+            int quantos = curso.quantosPortoes();
+            return "<white>" + HubBuilder.escapar(curso.nome()) + "</white> "
+                    + "<gray>· portão " + Math.min(lider, quantos) + "/" + quantos
+                    + " · " + quantosVivos() + " na pista · "
+                    + ArenaComum.tempo(tiquesDeJogo()) + "</gray>";
+        }
         int liderVolta = 0;
         for (Map.Entry<UUID, Integer> volta : voltaDe.entrySet()) {
             liderVolta = Math.max(liderVolta, volta.getValue());
@@ -217,13 +375,22 @@ public final class Corrida extends JogoDeArena {
         CorridaCatalog planta = planta2();
         List<List<PistaFechada.Portao>> planos = planta.planos();
         int quantos = planos.size();
-        int chaoY = planta.topoY();
+        boolean comMapa = planta.percursoDaRodada() != null;
 
         for (Player jogador : jogadoresVivos()) {
             UUID id = jogador.getUniqueId();
             Location onde = jogador.getLocation();
 
-            if (onde.getY() < planta.quedaY()) {
+            // A altura é medida contra o PORTÃO que se está buscando, e não
+            // contra uma fiada só. Numa descida de cento e trinta fiadas, uma
+            // altura única para tudo ou perdoa quem caiu no alto ou acusa
+            // queda em quem está correndo certo lá embaixo.
+            int alvo = Math.floorMod(proximoPortao.getOrDefault(id, 0), quantos);
+            int chaoY = comMapa ? planta.alturaDoPortao(alvo) : planta.topoY();
+            int piso = comMapa ? planta.quedaDoPortao(alvo) : planta.quedaY();
+            int faixa = comMapa ? planta.faixaDeAltura() : FAIXA_DE_ALTURA;
+
+            if (onde.getY() < piso) {
                 devolverAoPortao(mundo, jogador, planta);
                 continue;
             }
@@ -240,7 +407,7 @@ public final class Corrida extends JogoDeArena {
 
             // Fora da faixa de altura da pista não se cruza portão nenhum:
             // quem está caindo passa por dentro do plano e não deve contar.
-            if (onde.getY() < chaoY - 2 || onde.getY() > chaoY + FAIXA_DE_ALTURA) {
+            if (onde.getY() < chaoY - faixa || onde.getY() > chaoY + faixa) {
                 continue;
             }
 
@@ -250,10 +417,10 @@ public final class Corrida extends JogoDeArena {
             boolean cruzou = true;
             while (cruzou) {
                 cruzou = false;
-                int alvo = Math.floorMod(proximoPortao.getOrDefault(id, 0), quantos);
-                for (PistaFechada.Portao portao : planos.get(alvo)) {
+                int qual = Math.floorMod(proximoPortao.getOrDefault(id, 0), quantos);
+                for (PistaFechada.Portao portao : planos.get(qual)) {
                     if (portao.cruzouParaFrente(ax, az, onde.getX(), onde.getZ())) {
-                        registrarPortao(mundo, jogador, planta, alvo, quantos);
+                        registrarPortao(mundo, jogador, planta, qual, quantos);
                         cruzou = !terminou(id);
                         break;
                     }
@@ -273,6 +440,23 @@ public final class Corrida extends JogoDeArena {
         ultimoPortao.put(id, portao);
         proximoPortao.put(id, Math.floorMod(portao + 1, quantos));
         avancoDe.merge(id, 1, Integer::sum);
+
+        // Num percurso ABERTO a chegada é o ÚLTIMO portão, e não a largada.
+        // A pista gerada é um anel e fecha a volta na largada; a descida da
+        // montanha não fecha, e esperar que ela feche seria esperar para
+        // sempre — a corrida acabaria só no tempo limite.
+        if (planta.percursoDaRodada() != null) {
+            if (portao == quantos - 1) {
+                cruzarAChegada(mundo, jogador, planta);
+                return;
+            }
+            jogador.playSound(jogador.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT,
+                    0.5f, 1.8f);
+            jogador.sendActionBar(plugin.mini().deserialize(
+                    "<gray>portão <white>" + (portao + 1) + "/" + quantos
+                            + "</white> · " + posicaoEscrita(jogador) + "</gray>"));
+            return;
+        }
 
         if (portao != 0) {
             jogador.playSound(jogador.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT,
@@ -315,6 +499,7 @@ public final class Corrida extends JogoDeArena {
         }
 
         vivos().remove(id);
+        desembarcar(id);
         jogador.setGameMode(GameMode.SPECTATOR);
         jogador.teleport(CorridaBuilder.pontoDaPlateia(mundo, planta));
         mundo.spawnParticle(Particle.TOTEM_OF_UNDYING, jogador.getLocation(),
@@ -344,6 +529,11 @@ public final class Corrida extends JogoDeArena {
         jogador.setFallDistance(0f);
         jogador.teleport(volta);
         correr(jogador, planta);
+        // O barco não acompanha o teleporte do passageiro: quem cai volta ao
+        // portão a pé e termina a descida andando no gelo, que é outro jogo.
+        if (planta.percursoDaRodada() != null) {
+            embarcar(mundo, jogador, gradeDe.getOrDefault(id, 0));
+        }
         ondeEstava.put(id, new double[]{volta.getX(), volta.getZ()});
 
         int quedas = quedasDe.merge(id, 1, Integer::sum);
@@ -366,7 +556,6 @@ public final class Corrida extends JogoDeArena {
      */
     private List<Player> classificacao() {
         CorridaCatalog planta = planta2();
-        List<double[]> eixo = planta.eixo();
         List<Player> ordem = new ArrayList<>(jogadoresVivos());
         ordem.sort((a, b) -> {
             int avancoA = avancoDe.getOrDefault(a.getUniqueId(), 0);
@@ -374,18 +563,16 @@ public final class Corrida extends JogoDeArena {
             if (avancoA != avancoB) {
                 return Integer.compare(avancoB, avancoA);
             }
-            return Double.compare(faltaPara(a, planta, eixo), faltaPara(b, planta, eixo));
+            return Double.compare(faltaPara(a, planta), faltaPara(b, planta));
         });
         return ordem;
     }
 
-    private double faltaPara(Player jogador, CorridaCatalog planta,
-                             List<double[]> eixo) {
-        int alvo = planta.indiceDoPortao(
-                proximoPortao.getOrDefault(jogador.getUniqueId(), 0));
-        double[] p = eixo.get(alvo);
+    private double faltaPara(Player jogador, CorridaCatalog planta) {
         Location onde = jogador.getLocation();
-        return Math.hypot(p[0] - onde.getX(), p[1] - onde.getZ());
+        return planta.distanciaAoPortao(
+                proximoPortao.getOrDefault(jogador.getUniqueId(), 0),
+                onde.getX(), onde.getZ());
     }
 
     private String posicaoEscrita(Player jogador) {
@@ -397,6 +584,7 @@ public final class Corrida extends JogoDeArena {
 
     @Override
     protected void aoSairDaArena(UUID id) {
+        desembarcar(id);
         proximoPortao.remove(id);
         voltaDe.remove(id);
         ultimoPortao.remove(id);
@@ -411,6 +599,7 @@ public final class Corrida extends JogoDeArena {
 
     @Override
     protected void aoTerminarRodada() {
+        tirarOsBarcos();
         for (Player jogador : jogadoresDaArena()) {
             jogador.removePotionEffect(PotionEffectType.SPEED);
         }
@@ -421,6 +610,19 @@ public final class Corrida extends JogoDeArena {
     public java.util.List<String> instrucoes() {
         java.util.List<String> linhas = new java.util.ArrayList<>();
         CorridaCatalog planta = planta2();
+        CorridaCatalog.Percurso curso = planta.percursoDaRodada();
+        if (curso != null) {
+            linhas.add("<gray>descida de barco pela montanha: <white>"
+                    + Math.round(curso.comprimento()) + "</white> blocos e <white>"
+                    + curso.quantosPortoes() + "</white> portões, de <white>y "
+                    + curso.alturaDaLargada() + "</white> a <white>y "
+                    + curso.alturaDoPortao(curso.quantosPortoes() - 1)
+                    + "</white></gray>");
+            linhas.add("<gray>o trecho muda a cada rodada — são <white>"
+                    + planta.arquivosDoRodizio().size() + "</white> no rodízio — e "
+                    + "quem cai volta ao último portão, de barco novo</gray>");
+            return linhas;
+        }
         linhas.add("<gray>são <white>" + planta.voltas() + "</white> voltas de <white>"
                 + planta.quantosBlocosDePista() + "</white> blocos — as <white>"
                 + planta.atalhos().length + "</white> pontes de ouro cortam caminho "
@@ -428,8 +630,28 @@ public final class Corrida extends JogoDeArena {
         return linhas;
     }
 
+    /**
+     * A largada: as luzes apagam e os barcos aparecem debaixo de todos.
+     *
+     * <p>Nesta ordem, e no mesmo tique: a luz verde sem barco é largada sem
+     * corrida, e o barco antes da luz é um barco escorregando rampa abaixo
+     * enquanto o jogo ainda conta.
+     */
     @Override
     protected void aoComecarRodada(World mundo) {
         CorridaCatalog planta = planta2();
+        CorridaCatalog.Percurso curso = planta.percursoDaRodada();
+        if (curso == null) {
+            return;
+        }
+        acenderALargada(mundo, 0, true);
+        for (Player jogador : jogadoresVivos()) {
+            embarcar(mundo, jogador,
+                    gradeDe.getOrDefault(jogador.getUniqueId(), 0));
+        }
+        anunciar("<color:" + planta.corDoTexto() + ">" + curso.nome()
+                + "</color> <gray>— " + Math.round(curso.comprimento())
+                + " blocos de descida, " + curso.quantosPortoes()
+                + " portões</gray>");
     }
 }

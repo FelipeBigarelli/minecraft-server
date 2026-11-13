@@ -1,29 +1,112 @@
 # -------------------------------------------------------------
-#  CORRIDA — primeiro a cruzar leva
+#  CORRIDA — descida de barco pela montanha
 #
-#  Um autódromo flutuante de três bojos, duas voltas, oito
-#  portões por volta e três ATALHOS: pontes de dois blocos de
-#  largura sobre o vazio, que cortam a ponta de cada bojo e
-#  economizam um sexto da volta. Cair não elimina: devolve ao
-#  último portão, e isso custa mais tempo do que o atalho
-#  economiza. "Atalho é por sua conta" é regra, não enfeite.
+#  A Corrida roda sobre um MAPA PRONTO: a estrada do Monte Akina,
+#  cinco mil novecentos e cinquenta e quatro blocos de gelo
+#  descendo cento e trinta e quatro fiadas de montanha. Ela não é
+#  gerada por código — veio no mundo 'corrida_akina', e o plugin
+#  não põe um bloco nela.
 #
-#  A pista é GERADA: um anel ondulado r = raio - onda*cos(voltas*t),
-#  reamostrado de um em um bloco. Com menos cosseno a largada cai
-#  num VALE, que é o ponto mais longe dos bojos — e a linha de
-#  chegada não pode ser contornável por atalho.
+#  O QUE A RODADA FAZ. Sorteia um dos trechos da lista lá
+#  embaixo, pinta a largada e a chegada DELE e apaga as dos
+#  outros. Cada trecho tem uns mil e cem blocos de descida e dez
+#  portões — a montanha inteira seriam dez minutos de rodada, que
+#  é longo demais, e cortá-la em cinco é também o que dá o
+#  sorteio de cada rodada.
 #
-#  Os portões são planos verticais, e o jogo testa o SEGMENTO que
-#  o jogador andou no tique contra o plano. Testar só a posição
-#  perderia a passagem de quem corre com Velocidade II, e um
-#  portão perdido tranca a volta para sempre.
+#  O PERCURSO É ABERTO, e isso muda tudo em relação a uma pista
+#  gerada: não há volta, a largada não é portão (o jogador já
+#  está em cima dela) e a chegada é o ÚLTIMO portão. A altura é
+#  conferida contra a fiada DE CADA PORTÃO, porque numa descida
+#  de cento e trinta fiadas uma altura só para o percurso inteiro
+#  ou perdoa queda no alto ou acusa queda em quem corre embaixo.
+#
+#  A OBRA NÃO APAGA A MONTANHA. Com mapa pronto, a caixa que o
+#  'desfazer' varre encolhe até o disco do saguão; a largada e a
+#  chegada são desfeitas casa por casa, e só onde o material é um
+#  que nós pusemos. No chão, a linha só troca GELO por GELO AZUL:
+#  nenhum bloco do mapa é tocado, e linha de concreto seria um
+#  freio no meio da pista.
+#
+#  PARA VOLTAR À PISTA GERADA basta 'mapa-pronto.ativo: false' e
+#  'mundo: corrida'. O autódromo de três bojos, duas voltas e
+#  três pontes de ouro continua inteiro no código.
 # -------------------------------------------------------------
 
-mundo: corrida
+mundo: corrida_akina
+
+# -------------------------------------------------------------
+#  O MAPA PRONTO
+# -------------------------------------------------------------
+mapa-pronto:
+  # Ligado: a pista vem do mapa e nada é gerado.
+  ativo: true
+
+  # Onde ficam os arquivos de percurso, dentro de
+  # plugins/BigaCore. Cada arquivo é uma lista de 'x y z', um
+  # ponto por linha, seguindo o meio da estrada.
+  pasta: mapas/corrida
+
+  # Sortear um percurso por rodada, sem repetir o da anterior.
+  rodizio: true
+
+  # Quantos portões por percurso. O último é a CHEGADA.
+  portoes: 10
+
+  # O teto da meia-largura do portão. A largura de verdade é
+  # MEDIDA no mundo, sondando gelo para os lados: a estrada muda
+  # de largura, e portão de largura fixa ou fica plantado dentro
+  # da pista ou flutuando ao lado dela.
+  meia-largura: 14
+
+  # Quantas fiadas acima ou abaixo do portão ainda contam como
+  # "está na estrada". Entre dois portões seguidos a descida
+  # chega a onze fiadas; dezesseis dá folga sem deixar quem está
+  # caindo cruzar portão de passagem.
+  faixa-de-altura: 16
+
+  # Abaixo da fiada do portão menos isto, caiu: volta ao último
+  # portão, de barco novo.
+  queda-abaixo: 18
+
+  # De quantos em quantos blocos o eixo é reamostrado. Dois é
+  # fino o bastante para a curva e grosso o bastante para o
+  # arquivo de mil linhas virar quinhentos pontos.
+  passo: 2.0
+
+  # Quantos pontos para cada lado a tangente olha. Seis: o
+  # traçado veio bloco a bloco, e dois pontos seguidos de uma
+  # escada apontam na diagonal mesmo com a pista reta.
+  janela-da-tangente: 6
+
+  # Quantas fiadas de desacordo com os dois vizinhos ainda são
+  # estrada. Acima disto é PICO e a fiada é corrigida: no
+  # primeiro trecho, dois pontos saíram em y 100 entre vizinhos
+  # em y 221, porque havia gelo num lago cento e vinte fiadas
+  # abaixo da estrada, na mesma coluna. Sem esta linha, um dos
+  # dez portões nascia no fundo do lago — e portão que ninguém
+  # cruza é corrida que não acaba.
+  pico: 8
+
+  # Os trechos do rodízio, do alto para o fim da descida.
+  percursos:
+    - arquivo: akina-1.txt
+      nome: "Alto do Monte"
+    - arquivo: akina-2.txt
+      nome: "Os Cinco Grampos"
+    - arquivo: akina-3.txt
+      nome: "Meia Encosta"
+    - arquivo: akina-4.txt
+      nome: "A Reta do Vale"
+    - arquivo: akina-5.txt
+      nome: "Última Descida"
 
 arena:
-  # A fiada da pista.
-  y: 100
+  # A fiada do SAGUÃO, não da pista: com mapa pronto não há pista
+  # para gerar. Cento e cinquenta põe a rua do saguão em y 166,
+  # acima dos 122 do terreno na origem do mapa — o saguão flutua
+  # longe da montanha e a obra nunca a alcança.
+  y: 150
 
   # O anel: raio médio e quanto a onda abre para fora.
   raio: 36
@@ -72,6 +155,26 @@ paleta:
 
   ponte: POLISHED_BLACKSTONE
   ponte-borda: GOLD_BLOCK
+
+  # -----------------------------------------------------------
+  #  O MAPA PRONTO: o gelo e a árvore de largada
+  #
+  #  mapa-piso é o gelo da estrada e mapa-linha é o da linha
+  #  pintada. OS DOIS TÊM DE SER GELO: a linha é posta casa sim
+  #  casa não em cima da estrada, e um bloco que não escorrega
+  #  ali é um freio a oitenta por hora no meio da pista.
+  #
+  #  As três últimas são as cinco luzes do pórtico da largada:
+  #  acendem uma por segundo no preparo e TODAS viram verde
+  #  quando a rodada abre. Quem está num barco olhando montanha
+  #  abaixo não lê número no canto da tela; cinco luzes ele vê.
+  # -----------------------------------------------------------
+  mapa-piso: PACKED_ICE
+  mapa-linha: BLUE_ICE
+
+  largada-apagada: BLACK_CONCRETE
+  largada-vermelha: REDSTONE_BLOCK
+  largada-verde: LIME_CONCRETE
 
   estrutura: QUARTZ_BLOCK
   escuro: POLISHED_DEEPSLATE
@@ -124,11 +227,15 @@ regras:
   fim-segundos: 8
   treino-sozinho: true
 
-  # Quantas voltas tem a corrida.
+  # Quantas voltas tem a corrida. Com mapa pronto é sempre UMA,
+  # e esta linha é ignorada: uma descida de montanha não dá
+  # volta — o último portão é a chegada.
   voltas: 2
 
   # Velocidade que todo mundo ganha na largada (0 = nenhuma,
-  # 1 = Velocidade I, 2 = Velocidade II).
+  # 1 = Velocidade I, 2 = Velocidade II). Dentro do barco ela
+  # quase não aparece — quem anda é o barco —, mas vale para
+  # quem está a pé entre uma queda e o barco novo.
   velocidade: 2
 
   # O teto da partida. Quem estiver na frente ganha se estourar.
@@ -140,9 +247,9 @@ textos:
   subtitulo: "primeiro a cruzar leva"
   regras:
     - "clique em [ENTRAR] para entrar na fila"
-    - "duas voltas, oito portões por volta"
-    - "as pontes de ouro cortam caminho"
-    - "cair devolve ao último portão"
+    - "descida de barco pela montanha, dez portões"
+    - "o trecho muda a cada rodada"
+    - "cair devolve ao último portão, de barco novo"
   escala-titulo: 2.6
   escala-placa: 1.6
   fundo-alpha: 0
@@ -151,5 +258,5 @@ textos:
   placa-sair: "[SAIR]"
   placa-fila: "na fila"
   placa-esperando: "esperando"
-  placa-jogando: "CORRENDO"
+  placa-jogando: "DESCENDO"
   placa-refazendo: "refazendo"

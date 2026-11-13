@@ -47,7 +47,8 @@ class CorridaTest {
     private static YamlConfiguration arena;
 
     /** Os números da planta, repetidos aqui para o teste não depender dela. */
-    private static final int Y = 100;
+    /** A fiada do SAGUÃO: com mapa pronto não há pista para gerar. */
+    private static final int Y = 150;
     private static final int RAIO = 36;
     private static final int ONDA = 9;
     private static final int VOLTAS_DA_ONDA = 3;
@@ -93,7 +94,8 @@ class CorridaTest {
     @Test
     @DisplayName("a planta tem os números que o construtor e o jogo esperam")
     void plantaConfere() {
-        assertEquals("corrida", arena.getString("mundo"));
+        assertEquals("corrida_akina", arena.getString("mundo"),
+                "o mundo da Corrida é o do mapa baixado");
         assertEquals(Y, arena.getInt("arena.y"));
         assertEquals(RAIO, arena.getInt("arena.raio"));
         assertEquals(ONDA, arena.getInt("arena.onda"));
@@ -141,7 +143,7 @@ class CorridaTest {
     @DisplayName("a arena tem mundo próprio")
     void arenaTemMundoProprio() {
         String mundo = arena.getString("mundo");
-        assertEquals("corrida", mundo);
+        assertEquals("corrida_akina", mundo);
         assertFalse("world".equals(mundo) || "minigames".equals(mundo));
     }
 

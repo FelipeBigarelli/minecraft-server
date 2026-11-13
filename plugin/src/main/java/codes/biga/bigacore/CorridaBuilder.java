@@ -5,6 +5,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -60,6 +61,9 @@ public final class CorridaBuilder implements ConstrutorDeArena {
     @Override
     public Resultado construir(World mundo, boolean aplicar) {
         CorridaCatalog planta = plugin.corridaCatalog();
+        if (planta.querMapaPronto()) {
+            return construirComMapa(mundo, planta, aplicar);
+        }
         List<double[]> eixo = planta.eixo();
 
         String problema = conferirPista(eixo, planta.meiaLargura(),
@@ -118,6 +122,19 @@ public final class CorridaBuilder implements ConstrutorDeArena {
         contador = 0;
 
         ArenaComum.limparPaineis(mundo, TAG_PAINEL);
+        if (planta.querMapaPronto()) {
+            // A caixa aqui é só o saguão — ver o javadoc de
+            // CorridaCatalog#alcanceDaObra. A estrada da montanha não é obra
+            // nossa e não se apaga; o que se apaga é a decoração dela, casa
+            // por casa, e só onde o material é um que nós pusemos.
+            int enfeite = limparDecoracoes(mundo, planta);
+            contador += ArenaComum.apagarACaixa(mundo, alcance,
+                    planta.fundoDaObra(), planta.tetoDaObra());
+            return new Resultado(true, "Saguão apagado: " + contador
+                    + " blocos, dos quais " + enfeite + " de decoração da "
+                    + "largada e da chegada. A estrada do mapa ficou "
+                    + "intacta.", contador);
+        }
         contador += ArenaComum.apagarACaixa(mundo, alcance,
                 planta.fundoDaObra(), planta.tetoDaObra());
         return new Resultado(true, "Autódromo apagado: " + contador + " blocos.",
@@ -127,8 +144,19 @@ public final class CorridaBuilder implements ConstrutorDeArena {
     /** Refaz só o chão da pista e das pontes. É o que roda a cada rodada. */
     public int refazerPista(World mundo) {
         CorridaCatalog planta = plugin.corridaCatalog();
-        List<double[]> eixo = planta.eixo();
         contador = 0;
+        if (planta.querMapaPronto()) {
+            // A cada rodada o rodízio pode ter trocado de percurso: tira a
+            // decoração de todos e põe a do sorteado. É isto que faz a
+            // largada nascer onde a corrida vai começar de verdade.
+            limparDecoracoes(mundo, planta);
+            CorridaCatalog.Percurso curso = planta.percursoDaRodada();
+            if (curso != null) {
+                decorar(mundo, planta, curso);
+            }
+            return contador;
+        }
+        List<double[]> eixo = planta.eixo();
         escreverChao(mundo, planta, chaoDaPista(eixo, planta.meiaLargura(),
                 planta.portoes()));
         escreverChao(mundo, planta, chaoDasPontes(eixo, planta.atalhos(),
@@ -515,6 +543,417 @@ public final class CorridaBuilder implements ConstrutorDeArena {
         contador++;
     }
 
+
+    // ------------------------------------------------------------------
+    //  O MAPA PRONTO: a montanha já existe, nós só decoramos
+    //
+    //  Com um mapa pronto o construtor não levanta pista nenhuma: a estrada
+    //  do Monte Akina veio no mundo, cinco mil novecentos e cinquenta e
+    //  quatro blocos de gelo descendo cento e trinta e quatro fiadas, e
+    //  gerar qualquer coisa por cima seria estragá-la. O que ele faz é
+    //  LARGADA e CHEGADA — e faz de um jeito que não pode danificar o mapa:
+    //
+    //   * no chão, só troca GELO COMPACTADO por GELO AZUL, casa sim casa
+    //     não. A outra metade do xadrez é o gelo que já estava lá. Nenhum
+    //     bloco da montanha é tocado, e desfazer é trocar de volta;
+    //   * no alto, só ocupa casas que estão VAZIAS. Desfazer devolve ao
+    //     vazio, e só nas casas que carregam um material nosso.
+    //
+    //  E o gelo azul foi escolhido por ser gelo: linha de largada de
+    //  concreto seria um freio no meio da pista, e um barco a oitenta por
+    //  hora batendo em concreto é o contrário de uma largada bonita.
+    // ------------------------------------------------------------------
+
+    /** A altura do pórtico sobre a estrada. Quatro de folga para o barco. */
+    public static final int ALTURA_DO_PORTICO = 7;
+
+    /** Quantas fiadas de fundura tem a linha pintada no chão. */
+    public static final int FUNDURA_DA_LINHA = 3;
+
+    /** Quantas luzes tem a árvore de largada. Cinco, como na de verdade. */
+    public static final int LUZES_DA_LARGADA = 5;
+
+    /** Os tipos de casa do pórtico. */
+    public static final int PILAR = 0;
+    public static final int VIGA = 1;
+    public static final int LANTERNA = 2;
+    public static final int LUZ = 3;
+    public static final int BANDEIRADA = 4;
+
+    /**
+     * Levanta o saguão e decora o percurso da rodada. Não gera pista.
+     */
+    private Resultado construirComMapa(World mundo, CorridaCatalog planta,
+                                       boolean aplicar) {
+        CorridaCatalog.Percurso curso = planta.percursoDaRodada();
+        if (curso == null) {
+            return new Resultado(false, "O mapa pronto está ligado mas nenhum "
+                    + "percurso abriu. Veja plugins/BigaCore/"
+                    + planta.pastaDosPercursos() + " e o console.", 0);
+        }
+        if (!aplicar) {
+            int ocupados = ArenaComum.contarOcupados(mundo, planta.alcanceDaObra(),
+                    planta.fundoDaObra(), planta.tetoDaObra());
+            return new Resultado(true, "Mapa pronto: " + planta.arquivosDoRodizio().size()
+                    + " percurso(s) no rodízio, o desta rodada é '" + curso.nome()
+                    + "' — " + Math.round(curso.comprimento()) + " blocos, "
+                    + curso.quantosPortoes() + " portões, y "
+                    + curso.alturaDaLargada() + " → "
+                    + curso.alturaDoPortao(curso.quantosPortoes() - 1) + ". "
+                    + "A obra só mexe no saguão (y " + planta.saguaoY() + ", raio "
+                    + planta.alcanceDaObra() + "): " + (ocupados == 0 ? "livre"
+                    : ocupados + " bloco(s) no caminho") + ".", 0);
+        }
+
+        contador = 0;
+        ArenaComum.limparPaineis(mundo, TAG_PAINEL);
+        contador += SaguaoPadrao.construir(plugin, mundo, planta, TAG_PAINEL);
+        contador += limparDecoracoes(mundo, planta);
+        contador += decorar(mundo, planta, curso);
+
+        Location pouso = SaguaoPadrao.pontoDoSaguao(mundo, planta);
+        mundo.setSpawnLocation(pouso.getBlockX(), pouso.getBlockY(), pouso.getBlockZ());
+
+        return new Resultado(true, "Saguão levantado sobre o mapa pronto: "
+                + contador + " blocos. A estrada é a do mundo '" + planta.mundo()
+                + "' e não foi tocada. Percurso da rodada: '" + curso.nome()
+                + "'.", contador);
+    }
+
+    /**
+     * Apaga a decoração de TODOS os percursos do rodízio.
+     *
+     * <p>De todos, e não só do da rodada: o rodízio sorteia um percurso por
+     * rodada, e limpar apenas o atual deixaria o pórtico do anterior plantado
+     * na montanha. Como cada percurso diz exatamente quais casas ele usa, a
+     * conta é determinística e não precisa de nada anotado em disco.
+     */
+    public int limparDecoracoes(World mundo, CorridaCatalog planta) {
+        int antes = contador;
+        for (String arquivo : planta.arquivosDoRodizio()) {
+            CorridaCatalog.Percurso curso = planta.percursoDoArquivo(arquivo);
+            if (curso == null) {
+                continue;
+            }
+            for (int i : pontosDecorados(curso)) {
+                limparUmaLinha(mundo, planta, curso, i);
+            }
+        }
+        return contador - antes;
+    }
+
+    /** Desenha a largada e a chegada do percurso. */
+    public int decorar(World mundo, CorridaCatalog planta,
+                       CorridaCatalog.Percurso curso) {
+        int antes = contador;
+        int[] onde = pontosDecorados(curso);
+        desenharLinha(mundo, planta, curso, onde[0], true);
+        desenharLinha(mundo, planta, curso, onde[1], false);
+        return contador - antes;
+    }
+
+    /** Os dois índices do eixo que levam enfeite: a largada e a chegada. */
+    static int[] pontosDecorados(CorridaCatalog.Percurso curso) {
+        return new int[]{0, curso.indiceDoPortao(curso.quantosPortoes() - 1)};
+    }
+
+    // ------------------------------------------------------------------
+    //  A geometria da decoração — pura, para o teste rodar sem servidor
+    // ------------------------------------------------------------------
+
+    /** Uma casa do chão, a {@code off} de lado e {@code ao} ao longo do eixo. */
+    static int[] casa(double[] p, double[] t, double off, double ao) {
+        double x = p[0] - t[1] * off + t[0] * ao;
+        double z = p[2] + t[0] * off + t[1] * ao;
+        return new int[]{(int) Math.floor(x), (int) Math.floor(z)};
+    }
+
+    /**
+     * As casas do xadrez da linha, em conta pura.
+     *
+     * <p>Devolve só as casas CLARAS do tabuleiro — as escuras são o gelo que
+     * já estava na estrada. É o que faz a linha não poder estragar o mapa:
+     * metade dela não é posta, é descoberta.
+     *
+     * @return {x, z} de cada casa que leva gelo azul
+     */
+    static List<int[]> casasDaLinha(double[] p, double[] t, int meia, int fundura) {
+        List<int[]> saida = new ArrayList<>();
+        Set<Long> vistas = new HashSet<>();
+        for (int u = 0; u < Math.max(1, fundura); u++) {
+            for (double off = -meia; off <= meia + 0.001; off += PASSO) {
+                int[] c = casa(p, t, off, u);
+                if (Math.floorMod(c[0] + c[1], 2) != 0) {
+                    continue;
+                }
+                if (vistas.add(chave(c[0], c[1]))) {
+                    saida.add(c);
+                }
+            }
+        }
+        return saida;
+    }
+
+    /**
+     * As casas do pórtico, em conta pura.
+     *
+     * <p>Dois pilares fora da estrada, uma viga atravessando no alto, duas
+     * lanternas penduradas e a árvore de cinco luzes no meio da viga. Nada
+     * abaixo de {@code altura - 2}: um barco com gente dentro tem dois blocos,
+     * e pórtico que raspa na cabeça é pórtico que derruba.
+     *
+     * @return {x, dy, z, tipo, ordem} — dy é a fiada acima da estrada
+     */
+    static List<int[]> casasDoPortico(double[] p, double[] t, int meia,
+                                      int altura, boolean bandeirada) {
+        List<int[]> saida = new ArrayList<>();
+        int borda = meia + 1;
+        for (int lado = -1; lado <= 1; lado += 2) {
+            int[] c = casa(p, t, lado * borda, 0);
+            for (int dy = 0; dy <= altura; dy++) {
+                saida.add(new int[]{c[0], dy, c[1], PILAR, 0});
+            }
+            int[] pendurada = casa(p, t, lado * meia, 0);
+            saida.add(new int[]{pendurada[0], altura - 1, pendurada[1], LANTERNA, 0});
+        }
+
+        Set<Long> naViga = new HashSet<>();
+        List<int[]> faixa = new ArrayList<>();
+        for (double off = -borda; off <= borda + 0.001; off += PASSO) {
+            int[] c = casa(p, t, off, 0);
+            if (!naViga.add(chave(c[0], c[1]))) {
+                continue;
+            }
+            saida.add(new int[]{c[0], altura, c[1], VIGA, 0});
+            faixa.add(c);
+        }
+
+        if (bandeirada) {
+            // A chegada: duas fiadas de xadrez penduradas na viga, que é o
+            // que se vê de longe descendo — e de longe é a única hora em que
+            // uma bandeirada serve para alguma coisa.
+            for (int k = 0; k < faixa.size(); k++) {
+                int[] c = faixa.get(k);
+                for (int dy = altura - 2; dy <= altura - 1; dy++) {
+                    saida.add(new int[]{c[0], dy, c[1], BANDEIRADA,
+                            Math.floorMod(k + dy, 2)});
+                }
+            }
+            return saida;
+        }
+
+        // A largada: as cinco luzes espalhadas pela viga, da esquerda para a
+        // direita de quem desce, para acenderem na ordem em que se lê.
+        for (int luz = 0; luz < LUZES_DA_LARGADA; luz++) {
+            int onde = faixa.isEmpty() ? 0 : (int) Math.round(
+                    (luz + 0.5) * (faixa.size() - 1) / (double) LUZES_DA_LARGADA);
+            if (faixa.isEmpty()) {
+                break;
+            }
+            int[] c = faixa.get(Math.min(faixa.size() - 1, onde));
+            saida.add(new int[]{c[0], altura - 1, c[1], LUZ, luz});
+        }
+        return saida;
+    }
+
+    /**
+     * Em que índice do eixo nasce o lugar k da grade.
+     *
+     * <p>A pole é a da frente — o MAIOR índice, que é quem está mais perto da
+     * descida. Todos nascem ADIANTE da linha pintada, nunca em cima: a linha
+     * tem fundura, e barco largado dentro dela começa escorregando.
+     */
+    static int indiceDaFila(int k, int total, double passo, int fundura) {
+        int filas = Math.max(1, (Math.max(1, total) + 1) / 2);
+        int fila = Math.min(filas - 1, Math.max(0, k) / 2);
+        int entre = Math.max(1, (int) Math.round(4.0 / Math.max(0.5, passo)));
+        int base = fundura + entre;
+        return base + (filas - 1 - fila) * entre;
+    }
+
+    // ------------------------------------------------------------------
+    //  A decoração no mundo
+    // ------------------------------------------------------------------
+
+    /** Se este bloco é estrada: é por ele que se mede a largura da pista. */
+    static boolean ehEstrada(Material tipo) {
+        return tipo == Material.PACKED_ICE || tipo == Material.BLUE_ICE
+                || tipo == Material.ICE || tipo == Material.FROSTED_ICE;
+    }
+
+    /**
+     * Quantos blocos de estrada há para cada lado, medidos no mundo.
+     *
+     * <p>Medida e não configurada porque a estrada do mapa muda de largura:
+     * a reta de cima é larga, o grampo é estreito, e um pórtico de largura
+     * fixa ou fica plantado dentro da pista ou flutuando no ar ao lado dela.
+     */
+    static int larguraDaEstrada(World mundo, double[] p, double[] t, int maximo) {
+        int achou = 1;
+        for (int off = 1; off <= maximo; off++) {
+            boolean dosDois = temEstrada(mundo, p, t, off)
+                    && temEstrada(mundo, p, t, -off);
+            if (!dosDois) {
+                break;
+            }
+            achou = off;
+        }
+        return achou;
+    }
+
+    private static boolean temEstrada(World mundo, double[] p, double[] t, int off) {
+        int[] c = casa(p, t, off, 0);
+        int y = (int) Math.round(p[1]);
+        for (int dy = 0; dy >= -1; dy--) {
+            if (ehEstrada(mundo.getBlockAt(c[0], y + dy, c[1]).getType())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Desenha uma linha e o pórtico dela. */
+    private void desenharLinha(World mundo, CorridaCatalog planta,
+                               CorridaCatalog.Percurso curso, int i,
+                               boolean ehLargada) {
+        double[] p = curso.ponto(i);
+        double[] t = PistaAberta.tangente(curso.eixo(), i, planta.janelaDaTangente());
+        int meia = larguraDaEstrada(mundo, p, t, (int) planta.meiaLarguraDoMapa());
+        int y = (int) Math.round(p[1]);
+
+        Material azul = planta.linhaDaPista();
+        for (int[] c : casasDaLinha(p, t, meia, FUNDURA_DA_LINHA)) {
+            pintarGelo(mundo, c[0], y, c[1], azul);
+        }
+
+        Material pilar = planta.cor("escuro", Material.POLISHED_DEEPSLATE);
+        Material viga = planta.cor("metal", Material.IRON_BLOCK);
+        Material clara = planta.cor("largada-clara", Material.WHITE_CONCRETE);
+        Material escura = planta.cor("largada-escura", Material.BLACK_CONCRETE);
+        Material apagada = planta.cor("largada-apagada", Material.BLACK_CONCRETE);
+
+        for (int[] c : casasDoPortico(p, t, meia, ALTURA_DO_PORTICO, !ehLargada)) {
+            Material qual = switch (c[3]) {
+                case PILAR -> c[1] % 3 == 0 ? viga : pilar;
+                case VIGA -> pilar;
+                case LANTERNA -> Material.LANTERN;
+                case BANDEIRADA -> c[4] == 0 ? clara : escura;
+                default -> apagada;
+            };
+            seVazio(mundo, c[0], y + c[1], c[2], qual);
+        }
+    }
+
+    /** Apaga a linha e o pórtico de um ponto, sem tocar na montanha. */
+    private void limparUmaLinha(World mundo, CorridaCatalog planta,
+                                CorridaCatalog.Percurso curso, int i) {
+        double[] p = curso.ponto(i);
+        double[] t = PistaAberta.tangente(curso.eixo(), i, planta.janelaDaTangente());
+        int y = (int) Math.round(p[1]);
+        // A largura máxima, não a medida: o pórtico pode ter sido posto
+        // quando a estrada media outra coisa — depois de um /biga configs
+        // atualizar, por exemplo —, e limpar pela medida de hoje deixaria a
+        // ponta do de ontem para trás.
+        int meia = (int) planta.meiaLarguraDoMapa();
+        Material gelo = planta.pisoDaPista();
+
+        for (int[] c : casasDaLinha(p, t, meia, FUNDURA_DA_LINHA)) {
+            Block onde = mundo.getBlockAt(c[0], y, c[1]);
+            if (onde.getType() == planta.linhaDaPista()) {
+                onde.setType(gelo, false);
+                contador++;
+            }
+        }
+        for (int[] c : casasDoPortico(p, t, meia, ALTURA_DO_PORTICO, true)) {
+            tirarSeNosso(mundo, planta, c[0], y + c[1], c[2]);
+        }
+        for (int[] c : casasDoPortico(p, t, meia, ALTURA_DO_PORTICO, false)) {
+            tirarSeNosso(mundo, planta, c[0], y + c[1], c[2]);
+        }
+    }
+
+    /**
+     * Acende as luzes da árvore de largada.
+     *
+     * <p>Cinco vermelhas acendendo uma por segundo no preparo e TODAS
+     * apagando de uma vez na largada — que é a árvore de verdade, e é a única
+     * contagem que um piloto lê sem tirar os olhos da pista.
+     *
+     * @param acesas quantas luzes vermelhas, de 0 a cinco
+     * @param verde  se as luzes viram verde (a largada) em vez de apagar
+     */
+    public int luzesDaLargada(World mundo, CorridaCatalog planta,
+                              CorridaCatalog.Percurso curso, int acesas,
+                              boolean verde) {
+        if (curso == null) {
+            return 0;
+        }
+        double[] p = curso.ponto(0);
+        double[] t = PistaAberta.tangente(curso.eixo(), 0, planta.janelaDaTangente());
+        int meia = larguraDaEstrada(mundo, p, t, (int) planta.meiaLarguraDoMapa());
+        int y = (int) Math.round(p[1]);
+
+        Material apagada = planta.cor("largada-apagada", Material.BLACK_CONCRETE);
+        Material vermelha = planta.cor("largada-vermelha", Material.REDSTONE_BLOCK);
+        Material lima = planta.cor("largada-verde", Material.LIME_CONCRETE);
+
+        int mexeu = 0;
+        for (int[] c : casasDoPortico(p, t, meia, ALTURA_DO_PORTICO, false)) {
+            if (c[3] != LUZ) {
+                continue;
+            }
+            Material qual = verde ? lima : (c[4] < acesas ? vermelha : apagada);
+            Block onde = mundo.getBlockAt(c[0], y + c[1], c[2]);
+            if (onde.getType() != qual) {
+                onde.setType(qual, false);
+                mexeu++;
+            }
+        }
+        return mexeu;
+    }
+
+    /** Só troca gelo por gelo: nunca escreve sobre um bloco da montanha. */
+    private void pintarGelo(World mundo, int x, int y, int z, Material azul) {
+        Block onde = mundo.getBlockAt(x, y, z);
+        if (ehEstrada(onde.getType()) && onde.getType() != azul) {
+            onde.setType(azul, false);
+            contador++;
+        }
+    }
+
+    /** Só ocupa o vazio: nunca escreve sobre um bloco da montanha. */
+    private void seVazio(World mundo, int x, int y, int z, Material material) {
+        Block onde = mundo.getBlockAt(x, y, z);
+        if (onde.getType().isAir()) {
+            onde.setType(material, false);
+            contador++;
+        }
+    }
+
+    /** Só tira o que é nosso: o resto da montanha fica onde está. */
+    private void tirarSeNosso(World mundo, CorridaCatalog planta, int x, int y,
+                              int z) {
+        Block onde = mundo.getBlockAt(x, y, z);
+        if (materiaisDoPortico(planta).contains(onde.getType())) {
+            onde.setType(Material.AIR, false);
+            contador++;
+        }
+    }
+
+    /** Tudo que o pórtico pode ter posto. É a lista que o desfazer confere. */
+    static Set<Material> materiaisDoPortico(CorridaCatalog planta) {
+        Set<Material> saida = new HashSet<>();
+        saida.add(planta.cor("escuro", Material.POLISHED_DEEPSLATE));
+        saida.add(planta.cor("metal", Material.IRON_BLOCK));
+        saida.add(planta.cor("largada-clara", Material.WHITE_CONCRETE));
+        saida.add(planta.cor("largada-escura", Material.BLACK_CONCRETE));
+        saida.add(planta.cor("largada-apagada", Material.BLACK_CONCRETE));
+        saida.add(planta.cor("largada-vermelha", Material.REDSTONE_BLOCK));
+        saida.add(planta.cor("largada-verde", Material.LIME_CONCRETE));
+        saida.add(Material.LANTERN);
+        return saida;
+    }
+
     // ------------------------------------------------------------------
     //  Pontos
     // ------------------------------------------------------------------
@@ -536,6 +975,33 @@ public final class CorridaBuilder implements ConstrutorDeArena {
      * quem nasce em cima dela não a cruza — a primeira volta nunca começaria.
      */
     public static Location pontoDaGrade(World mundo, CorridaCatalog planta, int k) {
+        return pontoDaGrade(mundo, planta, k, 2);
+    }
+
+    /**
+     * A mesma grade, sabendo quantos vão largar.
+     *
+     * <p>O total importa só no mapa pronto, e importa muito: a pole tem de
+     * ser o lugar MAIS ADIANTADO, e sem saber quantas filas existem não dá
+     * para contar de trás para frente. Sem o total, quem larga em último sai
+     * montanha abaixo na frente de todo mundo.
+     */
+    public static Location pontoDaGrade(World mundo, CorridaCatalog planta, int k,
+                                        int total) {
+        CorridaCatalog.Percurso curso = planta.percursoDaRodada();
+        if (curso != null) {
+            int i = Math.min(curso.eixo().size() - 1, indiceDaFila(k, total,
+                    planta.passoDoEixo(), FUNDURA_DA_LINHA));
+            double[] p = curso.ponto(i);
+            double[] t = PistaAberta.tangente(curso.eixo(), i,
+                    planta.janelaDaTangente());
+            double off = (k % 2 == 0 ? -1.5 : 1.5);
+            Location pouso = new Location(mundo, p[0] - t[1] * off + 0.5,
+                    Math.round(p[1]) + 1, p[2] + t[0] * off + 0.5);
+            pouso.setYaw(yawDaDirecao(t[0], t[1]));
+            pouso.setPitch(0f);
+            return pouso;
+        }
         double[] onde = grade(planta.eixo(), k);
         Location pouso = new Location(mundo, onde[0], planta.topoY() + 1, onde[1]);
         pouso.setYaw((float) onde[2]);
@@ -559,6 +1025,18 @@ public final class CorridaBuilder implements ConstrutorDeArena {
 
     /** Em cima do portão k, olhando para onde se corre. */
     public static Location pontoDoPortao(World mundo, CorridaCatalog planta, int k) {
+        CorridaCatalog.Percurso curso = planta.percursoDaRodada();
+        if (curso != null) {
+            int i = curso.indiceDoPortao(k);
+            double[] p = curso.ponto(i);
+            double[] t = PistaAberta.tangente(curso.eixo(), i,
+                    planta.janelaDaTangente());
+            Location onde = new Location(mundo, p[0] + 0.5,
+                    Math.round(p[1]) + 1, p[2] + 0.5);
+            onde.setYaw(yawDaDirecao(t[0], t[1]));
+            onde.setPitch(0f);
+            return onde;
+        }
         List<double[]> eixo = planta.eixo();
         int i = planta.indiceDoPortao(k);
         double[] p = eixo.get(i);
@@ -572,6 +1050,19 @@ public final class CorridaBuilder implements ConstrutorDeArena {
 
     /** De onde se assiste: no alto do meio da pista, olhando para baixo. */
     public static Location pontoDaPlateia(World mundo, CorridaCatalog planta) {
+        CorridaCatalog.Percurso curso = planta.percursoDaRodada();
+        if (curso != null) {
+            // Sobre a CHEGADA, e não sobre o meio: num percurso aberto o meio
+            // é um trecho qualquer de montanha, e quem já cruzou quer ver os
+            // outros cruzarem.
+            double[] p = curso.ponto(
+                    curso.indiceDoPortao(curso.quantosPortoes() - 1));
+            Location alto = new Location(mundo, p[0] + 0.5,
+                    Math.round(p[1]) + 14, p[2] + 0.5);
+            alto.setYaw(0f);
+            alto.setPitch(55f);
+            return alto;
+        }
         Location onde = new Location(mundo, 0.5, planta.topoY() + 10, 0.5);
         onde.setYaw(180f);
         onde.setPitch(50f);

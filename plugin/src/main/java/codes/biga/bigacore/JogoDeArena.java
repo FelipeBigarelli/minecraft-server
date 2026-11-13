@@ -219,6 +219,19 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
     protected void aCadaSegundo(World mundo) {
     }
 
+    /**
+     * Um segundo do PREPARO, antes de a rodada abrir.
+     *
+     * <p>Existe porque alguns jogos têm o que mostrar nesses segundos: a
+     * árvore de luzes da Corrida acende uma por segundo aqui, e sem este
+     * gancho ela teria de ser um relógio próprio, correndo em paralelo com o
+     * do preparo e saindo de passo com ele na primeira sobrecarga.
+     *
+     * @param falta quantos segundos ainda faltam para a largada
+     */
+    protected void aCadaSegundoDePreparo(World mundo, int falta) {
+    }
+
     protected void aoEntrarNaArena(Player jogador) {
     }
 
@@ -711,6 +724,7 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
                     abrirARodada(mundo);
                     return;
                 }
+                aCadaSegundoDePreparo(mundo, preparo);
                 for (Player jogador : jogadoresDaArena()) {
                     jogador.showTitle(Title.title(
                             plugin.mini().deserialize("<color:"
