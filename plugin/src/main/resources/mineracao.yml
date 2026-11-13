@@ -141,6 +141,35 @@ paleta:
   luz-fria: END_ROD
   nucleo: RAW_IRON_BLOCK
 
+  # -----------------------------------------------------------
+  #  AS CORES DA RUA DO SAGUÃO
+  #
+  #  O saguão dos vinte jogos é uma RUA DE VILA: avenida de grama
+  #  entre duas fileiras de casas de dois andares, com o andar de
+  #  cima em balanço sobre a calçada, floreiras nas janelas,
+  #  lampiões pendurados, bandeirinhas atravessadas no alto e um
+  #  arco monumental no fundo. A planta é a mesma nos vinte; o que
+  #  muda de jogo para jogo é a COR, e é aqui que ela se muda.
+  #
+  #  Todas as chaves abaixo são opcionais e já têm padrão. Apagar
+  #  qualquer uma não quebra nada: a rua nasce na cor de fábrica.
+  #  Escrever só uma muda só ela.
+  #
+  #    grama          GRASS_BLOCK               o leito da avenida
+  #    caminho        DIRT_PATH                 a trilha do meio
+  #    alvenaria      COBBLESTONE               a calçada e o alicerce
+  #    reboco         BIRCH_PLANKS              o pano claro das paredes
+  #    viga           DARK_OAK_LOG              o madeiramento escuro
+  #    madeira        SPRUCE_PLANKS             telhado e assoalho
+  #    folhagem       OAK_LEAVES                copa e floreira
+  #    flor           FLOWERING_AZALEA_LEAVES   o florido da janela
+  #    lampiao        LANTERN                   pendurado no balanço
+  #    mastro         OAK_FENCE                 o poste da calçada
+  #    tronco         OAK_LOG                   a árvore da viela
+  #    bandeira       PINK_WOOL                 bandeirinha, cor um
+  #    bandeira-dois  LIGHT_BLUE_WOOL           bandeirinha, cor dois
+  # -----------------------------------------------------------
+
 regras:
   minimo: 2
   maximo: 16

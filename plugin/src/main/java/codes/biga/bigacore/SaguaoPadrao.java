@@ -70,7 +70,17 @@ public final class SaguaoPadrao {
     private static final double FOLGA = 0.7;
 
     /** De quanto o painel mais baixo sobe do piso do saguão. */
-    private static final double ALTURA_LIVRE = 3.2;
+    /**
+     * Onde a pilha de letreiros começa, contada do piso do saguão.
+     *
+     * Era 3,2 — a altura do olho — e os letreiros ficavam pendurados bem no
+     * vão do arco de volta: o maior painel da rua tapava a própria saída.
+     * Agora começa ACIMA do frontão do arco, que vai até nove. A rua inteira
+     * aponta para o arco, o arco é o fim da rua e o nome do jogo fica em
+     * cima dele, que é onde a vila do mapa de referência põe o letreiro
+     * dela.
+     */
+    private static final double ALTURA_LIVRE = 10.5;
 
     /**
      * Quantas letras cabem numa linha antes de o letreiro quebrar.
@@ -153,65 +163,80 @@ public final class SaguaoPadrao {
     //  A obra
     // ------------------------------------------------------------------
 
+    // ------------------------------------------------------------------
+    //  A RUA
+    //
+    //  O saguão era uma caixa: disco de vidro, parapeito e um arco. Cumpria
+    //  a função e não era lugar nenhum — o jogador pousava, lia as regras e
+    //  clicava em ENTRAR sem nunca ter chegado a um sítio.
+    //
+    //  Esta é a planta de uma RUA DE VILA, tirada do saguão do mapa que o
+    //  Felipe mandou: uma avenida de grama entre duas fileiras de casas de
+    //  dois andares, com o andar de cima em BALANÇO sobre a calçada, vigas
+    //  escuras e reboco claro, floreiras nas janelas, lampiões pendurados
+    //  debaixo do balanço, bandeirinhas atravessadas no alto e, no fundo da
+    //  rua, um arco monumental com o letreiro. Quem pousa está numa rua e
+    //  olha para o fim dela.
+    //
+    //  AS MEDIDAS SAEM DO RAIO, e por isso a mesma planta serve aos vinte
+    //  jogos sem ajuste: a avenida é um terço do diâmetro, a calçada é a
+    //  faixa seguinte e as casas ocupam o que sobra até o parapeito.
+    //
+    //  AS CORES SAEM DA PALETA DE CADA JOGO. Toda chave nova tem padrão, e
+    //  nenhum yml precisa mudar para a rua existir; o yml que quiser a sua
+    //  rua com a sua cor escreve `paleta.viga`, `paleta.reboco` e as outras
+    //  e tem a mesma rua na cor dele. É a diferença entre vinte saguões
+    //  iguais e vinte saguões irmãos.
+    // ------------------------------------------------------------------
+
+    /** Metade da largura da avenida. Um terço do diâmetro, nunca menos de 2. */
+    public static int meiaAvenida(int raio) {
+        return Math.max(2, raio / 3);
+    }
+
+    /** A calçada: a faixa logo fora da avenida, onde ficam árvores e postes. */
+    public static int xDaCalcada(int raio) {
+        return meiaAvenida(raio) + 1;
+    }
+
+    /** A coluna da FACHADA: onde a parede térrea das casas encosta na rua. */
+    public static int xDaFachada(int raio) {
+        return meiaAvenida(raio) + 2;
+    }
+
     /**
-     * Levanta o saguão inteiro: caixa, arco, fachada, placas e letreiros.
+     * Se há casa neste ponto da fileira.
+     *
+     * Módulos de seis: cinco de casa e um de viela. A viela não é enfeite —
+     * é o que impede a rua de virar um corredor de duas paredes lisas, e é
+     * por ela que entra a luz do céu e se vê a arena lá embaixo.
+     */
+    public static boolean temCasa(int z, int zArco) {
+        return Math.floorMod(z - zArco, 6) < 5;
+    }
+
+    /** Se este ponto é o MEIO de uma viela: onde vão árvore, poste e bandeira. */
+    public static boolean noMeioDaViela(int z, int zArco) {
+        return Math.floorMod(z - zArco, 6) == 5;
+    }
+
+    /**
+     * Levanta o saguão inteiro: a rua, as casas, o arco, as placas e os
+     * letreiros.
      *
      * @return quantos blocos foram postos, para o construtor do jogo somar.
      */
     public static int construir(BigaCore plugin, World mundo, PlantaDeArena planta,
                                 String etiquetaDoPainel) {
         Obra obra = new Obra(mundo);
-        int y = planta.saguaoY();
-        int raio = planta.saguaoRaio();
 
-        Material estrutura = planta.cor("estrutura", Material.QUARTZ_BLOCK);
-        Material escuro = planta.cor("escuro", Material.POLISHED_DEEPSLATE);
-        Material borda = planta.cor("borda", Material.DEEPSLATE_TILES);
-        Material metal = planta.cor("metal", Material.IRON_BLOCK);
-        Material vidro = planta.cor("vidro", Material.LIGHT_BLUE_STAINED_GLASS);
-        Material luz = planta.cor("luz", Material.SEA_LANTERN);
-        Material rod = planta.cor("luz-fria", Material.END_ROD);
-        Material nucleo = planta.cor("nucleo", Material.AMETHYST_BLOCK);
-
-        // A caixa: chão de vidro, parapeito e remate.
-        for (int x = -raio; x <= raio; x++) {
-            for (int z = -raio; z <= raio; z++) {
-                if (!ArenaComum.noDisco(x, z, raio)) {
-                    continue;
-                }
-                boolean rim = ArenaComum.naBeira(x, z, raio, 1);
-                Material chao;
-                if (rim) {
-                    chao = escuro;
-                } else if (x == 0 || z == 0) {
-                    chao = Math.floorMod(x + z, 4) == 0 ? luz : estrutura;
-                } else {
-                    chao = vidro;
-                }
-                obra.por(x, y, z, chao);
-
-                if (!rim) {
-                    continue;
-                }
-                for (int alto = 1; alto <= planta.saguaoParapeito(); alto++) {
-                    obra.por(x, y + alto, z,
-                            Math.floorMod(x + z, 5) == 0 ? estrutura : vidro);
-                }
-                obra.por(x, y + planta.saguaoParapeito() + 1, z, borda);
-            }
-        }
-
-        // Quatro agulhas de luz nos cardeais, para o saguão ter silhueta vista
-        // de dentro da arena.
-        for (int[] eixo : new int[][]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
-            for (int alto = planta.saguaoParapeito() + 2;
-                 alto <= planta.saguaoParapeito() + 4; alto++) {
-                obra.por(eixo[0] * raio, y + alto, eixo[1] * raio, rod);
-            }
-        }
-
-        arcoDeVolta(obra, planta, estrutura, metal, nucleo, luz);
-        fachadaDasPlacas(obra, planta, estrutura, metal, escuro);
+        Paleta tinta = new Paleta(planta);
+        chaoDaRua(obra, planta, tinta);
+        parapeito(obra, planta, tinta);
+        asCasas(obra, planta, tinta);
+        aRuaViva(obra, planta, tinta);
+        arcoDeVolta(obra, planta, tinta);
+        fachadaDasPlacas(obra, planta, tinta);
 
         escreverPlaca(mundo, planta, pontoDaPlacaEntrar(planta), List.of());
         escreverPlaca(mundo, planta, pontoDaPlacaSair(planta), List.of());
@@ -221,15 +246,250 @@ public final class SaguaoPadrao {
     }
 
     /**
-     * O arco de volta ao lobby, em pé no chão do saguão.
+     * O chão: avenida de grama, caminho batido no meio, calçada e vielas.
+     *
+     * A VIELA É DE VIDRO. É o que sobrou da caixa antiga, e sobrou de
+     * propósito: o saguão fica no alto, a arena está lá embaixo, e ver a
+     * partida anterior acabando pelo vão entre duas casas é metade do motivo
+     * de o saguão ficar no alto. Vidro em toda a rua devolveria a caixa;
+     * vidro nenhum esconderia a arena.
+     */
+    private static void chaoDaRua(Obra obra, PlantaDeArena planta, Paleta tinta) {
+        int y = planta.saguaoY();
+        int raio = planta.saguaoRaio();
+        int zArco = zDoArcoDeVolta(planta);
+        int avenida = meiaAvenida(raio);
+        int calcada = xDaCalcada(raio);
+
+        for (int x = -raio; x <= raio; x++) {
+            for (int z = -raio; z <= raio; z++) {
+                if (!ArenaComum.noDisco(x, z, raio)
+                        || ArenaComum.naBeira(x, z, raio, 1)) {
+                    continue;
+                }
+                int fora = Math.abs(x);
+                boolean viela = !temCasa(z, zArco);
+                Material chao;
+                if (fora <= 1) {
+                    chao = tinta.caminho;                  // a trilha batida
+                } else if (viela) {
+                    // A VIELA É DE VIDRO DE PONTA A PONTA, e é o que sobrou
+                    // da caixa antiga. O saguão fica no alto e a arena está
+                    // lá embaixo: ver a partida anterior acabando pelo vão
+                    // entre duas casas é metade do motivo de o saguão ficar
+                    // no alto. Vidro na rua toda devolveria a caixa de vidro;
+                    // vidro nenhum esconderia a arena.
+                    chao = tinta.vidro;
+                } else if (fora <= avenida) {
+                    chao = tinta.grama;
+                } else if (fora <= calcada) {
+                    chao = tinta.alvenaria;                // a calçada
+                } else {
+                    chao = tinta.madeira;                  // o assoalho da casa
+                }
+                obra.por(x, y, z, chao);
+            }
+        }
+    }
+
+    /** O parapeito da beira: é ele que impede a queda, com casa ou sem casa. */
+    private static void parapeito(Obra obra, PlantaDeArena planta, Paleta tinta) {
+        int y = planta.saguaoY();
+        int raio = planta.saguaoRaio();
+
+        for (int x = -raio; x <= raio; x++) {
+            for (int z = -raio; z <= raio; z++) {
+                if (!ArenaComum.noDisco(x, z, raio)
+                        || !ArenaComum.naBeira(x, z, raio, 1)) {
+                    continue;
+                }
+                obra.por(x, y, z, tinta.escuro);
+                for (int alto = 1; alto <= planta.saguaoParapeito(); alto++) {
+                    obra.por(x, y + alto, z,
+                            Math.floorMod(x + z, 5) == 0 ? tinta.estrutura
+                                    : tinta.vidro);
+                }
+                obra.por(x, y + planta.saguaoParapeito() + 1, z, tinta.borda);
+            }
+        }
+
+        // Quatro agulhas de luz nos cardeais, para o saguão ter silhueta
+        // vista de dentro da arena.
+        for (int[] eixo : new int[][]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+            for (int alto = planta.saguaoParapeito() + 2;
+                 alto <= planta.saguaoParapeito() + 4; alto++) {
+                obra.por(eixo[0] * raio, y + alto, eixo[1] * raio, tinta.luzFria);
+            }
+        }
+    }
+
+    /**
+     * As duas fileiras de casas.
+     *
+     * O ANDAR DE CIMA AVANÇA UM BLOCO sobre a calçada, e é só disso que vem
+     * a silhueta da rua: sem o balanço são duas paredes retas e o lugar não
+     * é uma vila, é um corredor. O balanço cria sombra sobre a calçada, dá
+     * onde pendurar o lampião e põe a floreira na altura do olho de quem
+     * anda embaixo.
+     *
+     * <p>Quatro blocos de pé-direito embaixo do balanço: dá para passar
+     * correndo sem encostar a cabeça.
+     */
+    private static void asCasas(Obra obra, PlantaDeArena planta, Paleta tinta) {
+        int y = planta.saguaoY();
+        int raio = planta.saguaoRaio();
+        int zArco = zDoArcoDeVolta(planta);
+        int fachada = xDaFachada(raio);
+        int balanco = fachada - 1;
+
+        for (int lado = -1; lado <= 1; lado += 2) {
+            for (int z = -raio; z <= raio; z++) {
+                if (!temCasa(z, zArco)) {
+                    continue;
+                }
+                int modulo = Math.floorMod(z - zArco, 6);
+                boolean meioDaCasa = modulo == 2;
+                boolean quinaDaCasa = modulo == 0 || modulo == 4;
+
+                // --- o térreo, na linha da fachada ---
+                for (int x = fachada; x <= raio; x++) {
+                    int px = lado * x;
+                    if (!ArenaComum.noDisco(px, z, raio - 1)) {
+                        continue;
+                    }
+                    if (x > fachada) {
+                        continue;                      // o miolo da casa é oco
+                    }
+                    obra.por(px, y + 1, z, tinta.alvenaria);
+                    for (int alto = 2; alto <= 4; alto++) {
+                        Material qual = quinaDaCasa ? tinta.viga
+                                : meioDaCasa && alto <= 3 ? tinta.vidro
+                                        : tinta.reboco;
+                        obra.por(px, y + alto, z, qual);
+                    }
+                }
+
+                // --- o andar de cima, avançado um bloco sobre a calçada ---
+                int px = lado * balanco;
+                if (!ArenaComum.noDisco(px, z, raio - 1)) {
+                    continue;
+                }
+                obra.por(px, y + 5, z, tinta.madeira);     // a forra do balanço
+                for (int alto = 6; alto <= 8; alto++) {
+                    Material qual = quinaDaCasa ? tinta.viga
+                            : meioDaCasa && alto <= 7 ? tinta.vidro
+                                    : tinta.reboco;
+                    obra.por(px, y + alto, z, qual);
+                }
+
+                // --- a floreira, na janela do andar de cima ---
+                if (meioDaCasa) {
+                    obra.por(lado * (balanco - 1), y + 5, z, tinta.folhagem);
+                    obra.por(lado * (balanco - 1), y + 6, z, tinta.flor);
+                    // --- o lampião, pendurado debaixo do balanço ---
+                    obra.pendurar(lado * (balanco - 1), y + 4, z, tinta.lampiao);
+                }
+
+                // --- o telhado, com beiral de um bloco sobre a rua ---
+                for (int x = balanco - 1; x <= raio; x++) {
+                    int rx = lado * x;
+                    if (!ArenaComum.noDisco(rx, z, raio - 1)) {
+                        continue;
+                    }
+                    obra.por(rx, y + 9, z,
+                            x == balanco - 1 ? tinta.viga : tinta.madeira);
+                }
+            }
+        }
+    }
+
+    /**
+     * O que faz a rua parecer habitada: árvores, postes e bandeirinhas.
+     *
+     * Tudo nas VIELAS, e por um motivo prático antes do estético: é o único
+     * lugar com céu aberto por cima, e é o único lugar onde nada disso fica
+     * na frente do arco nem dos letreiros do fundo da rua.
+     */
+    private static void aRuaViva(Obra obra, PlantaDeArena planta, Paleta tinta) {
+        int y = planta.saguaoY();
+        int raio = planta.saguaoRaio();
+        int zArco = zDoArcoDeVolta(planta);
+        int avenida = meiaAvenida(raio);
+        int calcada = xDaCalcada(raio);
+        int vez = 0;
+
+        for (int z = -raio; z <= raio; z++) {
+            if (!noMeioDaViela(z, zArco) || !ArenaComum.noDisco(0, z, raio - 2)) {
+                continue;
+            }
+            // --- as bandeirinhas atravessadas no alto da rua ---
+            for (int x = -avenida; x <= avenida; x++) {
+                obra.por(x, y + 8, z, Math.floorMod(x, 2) == 0
+                        ? tinta.bandeira : tinta.bandeiraDois);
+            }
+            // --- árvore de um lado, poste do outro, alternando rua abaixo ---
+            boolean arvore = Math.floorMod(vez, 2) == 0;
+            for (int lado = -1; lado <= 1; lado += 2) {
+                int px = lado * calcada;
+                if (!ArenaComum.noDisco(px, z, raio - 1)) {
+                    continue;
+                }
+                if (arvore) {
+                    arvoreDaCalcada(obra, tinta, px, y, z, raio);
+                } else {
+                    posteDaCalcada(obra, tinta, px, y, z);
+                }
+            }
+            vez++;
+        }
+    }
+
+    private static void arvoreDaCalcada(Obra obra, Paleta tinta, int px, int y,
+                                        int z, int raio) {
+        for (int alto = 1; alto <= 4; alto++) {
+            obra.por(px, y + alto, z, tinta.tronco);
+        }
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                for (int alto = 5; alto <= 6; alto++) {
+                    if (Math.abs(dx) + Math.abs(dz) == 2 && alto == 6) {
+                        continue;                       // a copa arredonda
+                    }
+                    int cx = px + dx;
+                    if (!ArenaComum.noDisco(cx, z + dz, raio - 1)) {
+                        continue;
+                    }
+                    obra.por(cx, y + alto, z + dz, tinta.folhagem);
+                }
+            }
+        }
+        obra.por(px, y + 7, z, tinta.folhagem);
+    }
+
+    private static void posteDaCalcada(Obra obra, Paleta tinta, int px, int y,
+                                       int z) {
+        for (int alto = 1; alto <= 3; alto++) {
+            obra.por(px, y + alto, z, tinta.mastro);
+        }
+        obra.por(px, y + 4, z, tinta.luz);
+    }
+
+    /**
+     * O arco de volta ao lobby, no fundo da rua.
      *
      * Sem ele o jogador que entra por curiosidade fica preso: não há chão por
      * onde sair e a única saída seria um comando que ele não conhece. O vão é
      * AR com cortina de partícula — bloco de portal de verdade levaria ao
      * Nether.
+     *
+     * <p>Ele é o ponto de fuga da rua, e é por isso que ganhou frontão: a
+     * avenida inteira aponta para cá, e o que está no fim de uma rua tem de
+     * valer o olhar. O vão continua com a mesma largura de antes porque é
+     * {@link #dentroDaVolta} que decide quem volta ao lobby, e alargá-lo
+     * mandaria para o lobby quem só passou perto.
      */
-    private static void arcoDeVolta(Obra obra, PlantaDeArena planta, Material estrutura,
-                                    Material metal, Material nucleo, Material luz) {
+    private static void arcoDeVolta(Obra obra, PlantaDeArena planta,
+                                    Paleta tinta) {
         int y = planta.saguaoY();
         int z = zDoArcoDeVolta(planta);
         int altura = alturaDoArcoDeVolta();
@@ -238,21 +498,30 @@ public final class SaguaoPadrao {
             boolean montante = Math.abs(x) == 2;
             for (int alto = 1; alto <= altura; alto++) {
                 if (montante || alto == altura) {
-                    obra.por(x, y + alto, z, alto == altura ? metal : estrutura);
+                    obra.por(x, y + alto, z,
+                            alto == altura ? tinta.metal : tinta.viga);
                 } else {
                     obra.ar(x, y + alto, z);
                 }
             }
-            obra.por(x, y + altura + 1, z, Math.abs(x) <= 1 ? nucleo : metal);
         }
-        obra.por(-2, y + altura + 2, z, luz);
-        obra.por(2, y + altura + 2, z, luz);
+
+        // O frontão: três fiadas que estreitam, vidradas no meio.
+        for (int fiada = 0; fiada <= 2; fiada++) {
+            int meio = 2 - fiada;
+            for (int x = -meio; x <= meio; x++) {
+                Material qual = Math.abs(x) == meio ? tinta.metal : tinta.nucleo;
+                obra.por(x, y + altura + 1 + fiada, z, qual);
+            }
+        }
+        obra.por(-2, y + altura + 2, z, tinta.luz);
+        obra.por(2, y + altura + 2, z, tinta.luz);
+        obra.por(0, y + altura + 4, z, tinta.luzFria);
     }
 
     /** O muro das duas placas, nos dois lados do arco de volta. */
     private static void fachadaDasPlacas(Obra obra, PlantaDeArena planta,
-                                         Material estrutura, Material metal,
-                                         Material escuro) {
+                                         Paleta tinta) {
         int y = planta.saguaoY();
         int z = zDoArcoDeVolta(planta);
 
@@ -261,10 +530,75 @@ public final class SaguaoPadrao {
                 continue;                                // o vão do arco
             }
             for (int alto = 1; alto <= alturaDoArcoDeVolta(); alto++) {
-                obra.por(x, y + alto, z,
-                        alto == alturaDoArcoDeVolta() ? metal : estrutura);
+                Material qual = alto == alturaDoArcoDeVolta() ? tinta.metal
+                        : Math.abs(x) == LARGURA_DA_FACHADA ? tinta.viga
+                                : tinta.reboco;
+                obra.por(x, y + alto, z, qual);
             }
-            obra.por(x, y + alturaDoArcoDeVolta() + 1, z, escuro);
+            obra.por(x, y + alturaDoArcoDeVolta() + 1, z, tinta.escuro);
+        }
+        // Duas floreiras ladeando o arco, na altura do peito de quem chega.
+        obra.por(-3, y + alturaDoArcoDeVolta() + 2, z, tinta.flor);
+        obra.por(3, y + alturaDoArcoDeVolta() + 2, z, tinta.flor);
+    }
+
+    /**
+     * A paleta da rua, lida uma vez.
+     *
+     * Num objeto e não em quinze variáveis soltas porque são quinze materiais
+     * passados por cinco métodos: a assinatura de {@code asCasas} com todos
+     * eles seria ilegível, e trocar `reboco` por `viga` numa chamada de
+     * quinze argumentos do mesmo tipo é um erro que o compilador não pega.
+     *
+     * <p>Todas as chaves têm padrão. Nenhum yml precisa mudar para a rua
+     * existir, e o yml que quiser a rua na cor dele escreve só as que quer.
+     */
+    private static final class Paleta {
+        private final Material estrutura;
+        private final Material escuro;
+        private final Material borda;
+        private final Material metal;
+        private final Material vidro;
+        private final Material luz;
+        private final Material luzFria;
+        private final Material nucleo;
+        private final Material grama;
+        private final Material caminho;
+        private final Material alvenaria;
+        private final Material reboco;
+        private final Material viga;
+        private final Material madeira;
+        private final Material folhagem;
+        private final Material flor;
+        private final Material lampiao;
+        private final Material mastro;
+        private final Material tronco;
+        private final Material bandeira;
+        private final Material bandeiraDois;
+
+        private Paleta(PlantaDeArena planta) {
+            estrutura = planta.cor("estrutura", Material.QUARTZ_BLOCK);
+            escuro = planta.cor("escuro", Material.POLISHED_DEEPSLATE);
+            borda = planta.cor("borda", Material.DEEPSLATE_TILES);
+            metal = planta.cor("metal", Material.IRON_BLOCK);
+            vidro = planta.cor("vidro", Material.LIGHT_BLUE_STAINED_GLASS);
+            luz = planta.cor("luz", Material.SEA_LANTERN);
+            luzFria = planta.cor("luz-fria", Material.END_ROD);
+            nucleo = planta.cor("nucleo", Material.AMETHYST_BLOCK);
+            grama = planta.cor("grama", Material.GRASS_BLOCK);
+            caminho = planta.cor("caminho", Material.DIRT_PATH);
+            alvenaria = planta.cor("alvenaria", Material.COBBLESTONE);
+            reboco = planta.cor("reboco", Material.BIRCH_PLANKS);
+            viga = planta.cor("viga", Material.DARK_OAK_LOG);
+            madeira = planta.cor("madeira", Material.SPRUCE_PLANKS);
+            folhagem = planta.cor("folhagem", Material.OAK_LEAVES);
+            flor = planta.cor("flor", Material.FLOWERING_AZALEA_LEAVES);
+            lampiao = planta.cor("lampiao", Material.LANTERN);
+            mastro = planta.cor("mastro", Material.OAK_FENCE);
+            tronco = planta.cor("tronco", Material.OAK_LOG);
+            bandeira = planta.cor("bandeira", Material.PINK_WOOL);
+            bandeiraDois = planta.cor("bandeira-dois",
+                    Material.LIGHT_BLUE_WOOL);
         }
     }
 
@@ -403,6 +737,24 @@ public final class SaguaoPadrao {
 
         private void por(int x, int y, int z, Material material) {
             mundo.getBlockAt(x, y, z).setType(material, false);
+            contador++;
+        }
+
+        /**
+         * Põe o bloco PENDURADO, quando ele souber ficar pendurado.
+         *
+         * O lampião é o caso: posto do jeito comum ele fica em pé no chão, e
+         * o que a rua precisa é dele preso embaixo do balanço. Quem não for
+         * pendurável passa reto — a chave da paleta aceita qualquer material.
+         */
+        private void pendurar(int x, int y, int z, Material material) {
+            Block bloco = mundo.getBlockAt(x, y, z);
+            bloco.setType(material, false);
+            if (bloco.getBlockData()
+                    instanceof org.bukkit.block.data.type.Lantern pendente) {
+                pendente.setHanging(true);
+                bloco.setBlockData(pendente, false);
+            }
             contador++;
         }
 
