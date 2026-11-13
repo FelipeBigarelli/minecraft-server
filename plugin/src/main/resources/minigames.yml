@@ -103,6 +103,14 @@ volta:
 #  leva ninguém a lugar nenhum. É assim que todos nascem — os
 #  jogos entram um a um, e o lobby não precisa de obra nova.
 #
+#  O NOME DO MUNDO APARECE DUAS VEZES: aqui e no yml do próprio
+#  jogo. Se os dois discordarem, o portal existe, brilha, deixa
+#  entrar e cospe "o mundo X não está carregado" — que não diz a
+#  ninguém o que está errado. Foi o que aconteceu quando a
+#  Corrida mudou de 'corrida' para 'corrida_akina' e esta linha
+#  ficou para trás. O teste aListaDosPortais confere o par, e é
+#  ele que impede a volta do defeito.
+#
 #  lado: de que galeria ele faz parte.
 #  vao:  qual dos cinco nichos daquela galeria, de -2 a +2.
 # -------------------------------------------------------------
@@ -183,9 +191,9 @@ portais:
     lado: LESTE
     vao: -1
     titulo: "CORRIDA"
-    descricao: "primeiro a cruzar leva"
-    detalhe: "atalho é por sua conta"
-    mundo: "corrida"
+    descricao: "desça a montanha de barco"
+    detalhe: "o trecho muda a cada rodada"
+    mundo: "corrida_akina"
     cor: "#D0D0D0"
     moldura: WHITE_TERRACOTTA
     destaque: BLACK_CONCRETE

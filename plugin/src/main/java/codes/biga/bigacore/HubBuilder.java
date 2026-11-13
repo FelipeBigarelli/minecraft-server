@@ -971,6 +971,20 @@ public final class HubBuilder {
      * cor são dezenas de milhares de blocos reescritos por causa de uma
      * linha — e cada ida dessas é um servidor travado por segundos.
      */
+    /**
+     * Se a praça do hub já está levantada neste mundo.
+     *
+     * <p>Olha um BLOCO e não as entidades de painel: num mundo cujos pedaços
+     * não estão carregados, {@code getEntities()} devolve lista vazia e a
+     * praça pareceria não existir — enquanto {@code getBlockAt} carrega o
+     * pedaço para responder. Quem pergunta é a subida do plugin, que corre
+     * antes de qualquer jogador entrar e portanto antes de qualquer pedaço
+     * ser carregado por gente.
+     */
+    public static boolean construido(World mundo, HubCatalog planta) {
+        return !mundo.getBlockAt(0, planta.pisoY(), 0).getType().isAir();
+    }
+
     public Resultado textos(World mundo) {
         HubCatalog planta = plugin.hubCatalog();
         List<HubCatalog.Portal> portais = planta.portais();

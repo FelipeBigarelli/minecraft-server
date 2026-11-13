@@ -1145,6 +1145,11 @@ public final class LobbyBuilder {
      * uma palavra não pode custar duzentos mil blocos reescritos, que é um
      * servidor travado por segundos a cada ida.
      */
+    /** Se o lobby já está levantado. Ver o gêmeo em {@link HubBuilder}. */
+    public static boolean construido(World mundo, MinigamesCatalog planta) {
+        return !mundo.getBlockAt(0, planta.pisoY(), 0).getType().isAir();
+    }
+
     public Resultado textos(World mundo) {
         MinigamesCatalog planta = plugin.minigamesCatalog();
         List<MinigamesCatalog.Portal> portais = planta.portais();

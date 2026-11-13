@@ -213,12 +213,25 @@ public final class LobbyPortais implements Listener {
 
         World destino = Bukkit.getWorld(portal.mundo());
         if (destino == null) {
+            // O recado para o JOGADOR fala do jogo, não do mundo: "o mundo
+            // corrida não está carregado" é verdade e não quer dizer nada
+            // para quem só queria jogar. O recado para o DONO vai no
+            // console e diz as duas chaves que precisam concordar — porque o
+            // nome do mundo está escrito em dois lugares, e foi exatamente
+            // isso que quebrou quando a Corrida virou 'corrida_akina'.
             ultimoSalto.put(jogador.getUniqueId(), agora);
-            jogador.sendMessage(Component.text("O mundo " + portal.mundo()
-                    + " não está carregado agora. Avise a administração."));
-            plugin.getLogger().warning("[lobby] Portal " + portal.id()
-                    + " aponta para o mundo '" + portal.mundo()
-                    + "', que não existe ou não está carregado.");
+            jogador.sendActionBar(plugin.mini().deserialize(
+                    "<color:" + portal.cor() + ">"
+                            + HubBuilder.escapar(portal.titulo())
+                            + "</color> <gray>está fora do ar — já avisamos a "
+                            + "administração</gray>"));
+            jogador.playSound(jogador.getLocation(),
+                    Sound.BLOCK_NOTE_BLOCK_BASS, 0.6f, 0.7f);
+            plugin.getLogger().warning("[lobby] O portal '" + portal.id()
+                    + "' leva ao mundo '" + portal.mundo() + "', que não está "
+                    + "carregado. Confira se minigames.yml (portais → " + portal.id()
+                    + " → mundo) diz o MESMO nome que o yml do jogo, e se a "
+                    + "pasta desse mundo existe em disco.");
             return;
         }
 

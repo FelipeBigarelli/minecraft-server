@@ -520,9 +520,60 @@ public final class BigaCore extends JavaPlugin {
         }
         getLogger().info("BigaCore habilitado — " + economyState + ".");
 
+        refrescarOsLetreiros();
         relatarVendaDeTerreno();
         relatarTerrenoSurvival();
         relatarEncomendas();
+    }
+
+    /**
+     * Reescreve os letreiros do hub e do lobby a cada subida.
+     *
+     * <h2>O defeito que isto conserta</h2>
+     *
+     * <p>O letreiro de um portal é escrito uma vez, na obra, e fica pendurado
+     * no mundo como entidade. O que está no yml depois disso não chega nele:
+     * um jogo que abriu continuava com "EM OBRA · ainda não abre" escrito na
+     * entrada, e um jogo que mudou de nome, de descrição ou de mundo
+     * continuava anunciando o que era antes. Nada no console dizia isso, e
+     * nada no jogo: o texto simplesmente estava errado, para sempre, até
+     * alguém lembrar de rodar {@code /biga lobby textos} à mão.
+     *
+     * <p>Agora a subida refaz os dois. São vinte e três letreiros ao todo,
+     * uma vez por reinício — barato o bastante para não valer a pena ter um
+     * comando que alguém precisa lembrar de dar.
+     *
+     * <h2>Só onde já existe praça</h2>
+     *
+     * <p>Refaz apenas onde a praça JÁ ESTÁ LEVANTADA. Sem essa pergunta, um
+     * servidor novo — ou um mundo de hub que ainda não foi construído —
+     * ganharia vinte placas flutuando no vazio, à espera de uma praça que
+     * não existe.
+     */
+    private void refrescarOsLetreiros() {
+        org.bukkit.World hub = hubPortais == null ? null : hubPortais.mundoDoHub();
+        if (hub != null && HubBuilder.construido(hub, hubCatalog)) {
+            refrescarLetreiro("hub", hub, mundo -> hubBuilder.textos(mundo).mensagem());
+        }
+        org.bukkit.World lobby = lobbyPortais == null
+                ? null : lobbyPortais.mundoDoLobby();
+        if (lobby != null && LobbyBuilder.construido(lobby, minigamesCatalog)) {
+            refrescarLetreiro("lobby", lobby,
+                    mundo -> lobbyBuilder.textos(mundo).mensagem());
+        }
+    }
+
+    private void refrescarLetreiro(String onde, org.bukkit.World mundo,
+                                   java.util.function.Function<org.bukkit.World,
+                                           String> refazer) {
+        try {
+            getLogger().info("[" + onde + "] " + refazer.apply(mundo));
+        } catch (RuntimeException deuRuim) {
+            // Letreiro errado é feio; onEnable caindo leva economia, lojas e
+            // painel junto. É o mesmo motivo do try do MundoDeJogo.
+            getLogger().warning("[" + onde + "] Não deu para refazer os "
+                    + "letreiros: " + deuRuim.getMessage());
+        }
     }
 
     /**

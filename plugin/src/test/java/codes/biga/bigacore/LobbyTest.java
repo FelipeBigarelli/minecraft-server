@@ -879,4 +879,93 @@ class LobbyTest {
         assertEquals(Integer.MIN_VALUE, MinigamesCatalog.vaoEm(40, VAOS, meia),
                 "a ponta da galeria não é nicho");
     }
+
+    // ------------------------------------------------------------------
+    //  O portal e o jogo do outro lado dele
+    // ------------------------------------------------------------------
+
+    @Test
+    @DisplayName("todo portal leva ao mundo que o jogo diz ser o dele")
+    void oPortalEOJogoConcordam() {
+        // O CASO QUE DEU ORIGEM A ISTO. A Corrida mudou de mundo — de
+        // 'corrida' para 'corrida_akina', porque a pista passou a vir de um
+        // mapa pronto — e esta linha do minigames.yml ficou para trás. O
+        // portal continuou existindo, brilhando e deixando entrar, e o que o
+        // jogador recebia era "O mundo corrida não está carregado agora",
+        // que não diz a ninguém o que está errado nem onde.
+        //
+        // O nome do mundo está escrito em DOIS lugares porque os dois
+        // precisam dele sem se conhecerem: o lobby para abrir o portal, o
+        // jogo para levantar a arena. Enquanto forem dois, é este teste que
+        // os mantém iguais.
+        // Os mundos que os vinte ymls de jogo dizem ser os deles. Comparar
+        // por MUNDO e não por nome de arquivo de propósito: o id do portal
+        // nem sempre é o nome do yml ('fuga_da_lava' mora em lava.yml), e um
+        // teste que exige essa correspondência quebra na próxima vez que
+        // alguém batizar um jogo de um jeito e o arquivo de outro — que é
+        // justamente a liberdade que o arquivo tem.
+        Set<String> mundosDosJogos = new HashSet<>();
+        for (String arquivo : BigaCore.CONFIGS_DO_JAR) {
+            String mundo = lerYml("/" + arquivo).getString("mundo");
+            if (mundo != null && !mundo.isBlank()) {
+                mundosDosJogos.add(mundo);
+            }
+        }
+
+        Set<String> mundosDosPortais = new HashSet<>();
+        List<Map<?, ?>> portais = lobby.getMapList("portais");
+        assertEquals(20, portais.size(), "os vinte jogos");
+        for (Map<?, ?> portal : portais) {
+            String id = String.valueOf(portal.get("id"));
+            String mundo = String.valueOf(portal.get("mundo"));
+            assertFalse("null".equals(mundo) || mundo.isBlank(),
+                    "o portal '" + id + "' está EM OBRA: sem mundo ele existe, "
+                            + "brilha e não leva a lugar nenhum");
+            assertTrue(mundosDosJogos.contains(mundo), "o portal '" + id
+                    + "' leva ao mundo '" + mundo + "' e NENHUM yml de jogo "
+                    + "diz morar lá: o portal vai deixar entrar e cair no "
+                    + "vazio. Mundos declarados: " + mundosDosJogos);
+            assertTrue(mundosDosPortais.add(mundo), "dois portais levando ao "
+                    + "mesmo mundo: " + mundo);
+        }
+
+        Set<String> semPortal = new HashSet<>(mundosDosJogos);
+        semPortal.removeAll(mundosDosPortais);
+        assertEquals(Set.of(), semPortal, "jogo com mundo próprio e sem portal "
+                + "no lobby: ninguém chega nele a não ser por comando");
+    }
+
+    @Test
+    @DisplayName("o letreiro de cada portal diz do que é o jogo")
+    void oLetreiroDizDoQueEhOJogo() {
+        // Descrição e detalhe são o que o jogador lê ANTES de atravessar, e
+        // são a única coisa que distingue vinte vãos iguais. Vazio, repetido
+        // ou herdado de uma versão antiga do jogo é pior do que nada: manda
+        // para dentro quem não queria entrar.
+        Set<String> descricoes = new HashSet<>();
+        Set<String> detalhes = new HashSet<>();
+        for (Map<?, ?> portal : lobby.getMapList("portais")) {
+            String id = String.valueOf(portal.get("id"));
+            for (String chave : List.of("titulo", "descricao", "detalhe")) {
+                Object valor = portal.get(chave);
+                assertNotNull(valor, "o portal '" + id + "' não tem " + chave);
+                assertFalse(valor.toString().isBlank(),
+                        "o portal '" + id + "' tem " + chave + " em branco");
+            }
+            assertTrue(descricoes.add(String.valueOf(portal.get("descricao"))),
+                    "dois portais com a mesma descrição: " + id);
+            assertTrue(detalhes.add(String.valueOf(portal.get("detalhe"))),
+                    "dois portais com o mesmo detalhe: " + id);
+        }
+    }
+
+    private static YamlConfiguration lerYml(String recurso) {
+        try (InputStream in = LobbyTest.class.getResourceAsStream(recurso)) {
+            assertNotNull(in, recurso + " não foi empacotado");
+            return YamlConfiguration.loadConfiguration(
+                    new InputStreamReader(in, StandardCharsets.UTF_8));
+        } catch (java.io.IOException naoAbriu) {
+            throw new IllegalStateException(naoAbriu);
+        }
+    }
 }
