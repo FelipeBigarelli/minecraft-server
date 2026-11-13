@@ -216,11 +216,11 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
         for (int x = -alcance; x <= alcance; x++) {
             for (int z = -alcance; z <= alcance; z++) {
                 for (int y = planta.fundoDaObra(); y <= planta.tetoDaObra(); y++) {
-                    Block bloco = mundo.getBlockAt(x, y, z);
-                    if (!bloco.getType().isAir()) {
-                        bloco.setType(Material.AIR, false);
-                        contador++;
-                    }
+                    // Esvaziando o que tiver dentro: um baú de saque trocado
+                    // por ar cospe o conteúdo no chão, e era isso que cobria
+                    // a arena de item depois de /biga refazer.
+                    contador += MapaDaArena.apagarSemDerrubar(
+                            mundo.getBlockAt(x, y, z));
                 }
             }
         }
@@ -757,6 +757,17 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
      * QUE aparece continua sendo o nosso sorteio, com o piso garantido que o
      * gênero inteiro pede e quase nenhum servidor dá.
      */
+    /**
+     * Os baús marcados no mapa pronto — só os das ilhas.
+     *
+     * <p>Os do meio ficam de fora de propósito. Num mapa feito à mão não há
+     * cúpula para esconder o centro: o relato foi "o meio já estava aberto
+     * antes do vidro quebrar, e tinha baús vazios no meio". Baú vazio que
+     * está lá desde o começo é um baú que o jogador atravessa a arena para
+     * abrir e volta de mãos vazias — pior do que baú nenhum. Então eles
+     * NASCEM na hora de abrir, por {@link #porOsBausDoMeio}, e a aparição
+     * deles é que faz as vezes do vidro caindo.
+     */
     private void bausDoMapa(World mundo, SkyWarsCatalog planta) {
         Material bau = planta.cor("bau", Material.CHEST);
         for (int k = 0; k < planta.ilhas(); k++) {
@@ -764,9 +775,26 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
                 por(mundo, onde[0], onde[1], onde[2], bau);
             }
         }
+    }
+
+    /** Põe os baús do meio do mapa pronto: é o abrir do meio em pessoa. */
+    public int porOsBausDoMeio(World mundo, SkyWarsCatalog planta) {
+        Material bau = planta.cor("bau", Material.CHEST);
+        contador = 0;
         for (int[] onde : planta.bausDoMeioEmTresD()) {
             por(mundo, onde[0], onde[1], onde[2], bau);
         }
+        return contador;
+    }
+
+    /** Tira os baús do meio: o preparo da rodada seguinte. */
+    public int tirarOsBausDoMeio(World mundo, SkyWarsCatalog planta) {
+        int tirados = 0;
+        for (int[] onde : planta.bausDoMeioEmTresD()) {
+            tirados += MapaDaArena.apagarSemDerrubar(
+                    mundo.getBlockAt(onde[0], onde[1], onde[2]));
+        }
+        return tirados;
     }
 
     /** As placas do meio: as regras que o jogador lê ao chegar. */

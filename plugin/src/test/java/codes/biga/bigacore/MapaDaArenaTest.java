@@ -1,5 +1,6 @@
 package codes.biga.bigacore;
 
+import org.bukkit.Material;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -10,6 +11,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -304,5 +306,86 @@ class MapaDaArenaTest {
     /** Quantos blocos o recorte deu para a ilha k. */
     private static int contarBlocosDaIlha(MapaDaArena mapa, int k) {
         return mapa.blocosDaIlhaParaTeste(k);
+    }
+
+    /**
+     * Um mapa de duas jaulas em que UM baú cai em cima de um bloco.
+     *
+     * @param altoDoBau a altura do marcador de baú da ilha do norte: igual à
+     *                  da laje, ele divide casa com um bloco do mapa
+     */
+    private static MapaDaArena doisBaus(int altoDoBau) {
+        List<EstruturaDeMapa.Bloco> blocos = new ArrayList<>();
+        List<EstruturaDeMapa.Marco> marcos = new ArrayList<>();
+        int[][] jaulas = {{0, 40, -10}, {0, 40, 10}};
+        for (int[] jaula : jaulas) {
+            marcos.add(new EstruturaDeMapa.Marco(jaula[0] + 0.5, jaula[1],
+                    jaula[2] + 0.5, Set.of("cage")));
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    blocos.add(new EstruturaDeMapa.Bloco(jaula[0] + dx, 39,
+                            jaula[2] + dz, "minecraft:stone"));
+                }
+            }
+        }
+        // o baú da ilha do norte na altura da laje: mesma casa de um bloco
+        marcos.add(new EstruturaDeMapa.Marco(1.5, altoDoBau, -9.5,
+                Set.of("normalChest")));
+        // o da ilha do sul no ar, um palmo acima: casa livre
+        marcos.add(new EstruturaDeMapa.Marco(1.5, 40, 10.5,
+                Set.of("normalChest")));
+        return new MapaDaArena("baus", new EstruturaDeMapa(blocos, marcos),
+                Y_DA_ARENA, "cage", List.of("normalChest"), List.of());
+    }
+
+    private static int ilhaDoNorte(MapaDaArena mapa) {
+        return mapa.jaula(0)[2] < mapa.jaula(1)[2] ? 0 : 1;
+    }
+
+    @Test
+    @DisplayName("a casa do baú sai do mapa, e só ela")
+    void aCasaDoBauSaiDoMapa() {
+        // O RELATO: "itens estão espalhados no chão". Quatro dos 34
+        // marcadores de baú do mapa baixado caem EM CIMA de um bloco. O baú
+        // era posto por cima dele e, no refazer da rodada seguinte, o mapa
+        // repunha o bloco na casa do baú. Trocar um baú cheio por outro
+        // bloco faz o Minecraft DERRUBAR o conteúdo no chão — e era isso
+        // que o jogador via espalhado pela arena.
+        MapaDaArena comChoque = doisBaus(39);
+        MapaDaArena semChoque = doisBaus(40);
+
+        int norte = ilhaDoNorte(comChoque);
+        assertEquals(norte, ilhaDoNorte(semChoque), "as duas montagens "
+                + "tinham de numerar as ilhas igual");
+
+        assertEquals(9, semChoque.blocosDaIlhaParaTeste(norte),
+                "sem choque a laje de 3x3 fica inteira");
+        assertEquals(8, comChoque.blocosDaIlhaParaTeste(norte),
+                "a casa do baú tinha de sair da laje");
+        assertEquals(semChoque.blocosDaIlhaParaTeste(1 - norte),
+                comChoque.blocosDaIlhaParaTeste(1 - norte),
+                "a outra ilha não tinha nada com isso");
+
+        // E o baú continua onde o mapa mandou: tirar o bloco não é mover
+        // o baú para o lado.
+        int[] bau = comChoque.bausDaIlha(norte).get(0);
+        assertEquals(1, bau[0]);
+        assertEquals(-10, bau[2]);
+    }
+
+    @Test
+    @DisplayName("a pergunta barata sabe quem guarda coisa dentro")
+    void aPerguntaBarataSabeQuemGuarda() {
+        // Desfazer a arena passa por centenas de milhares de blocos, e
+        // getState() monta um objeto a cada chamada: o material é a peneira
+        // que faz a conta cara só nos poucos blocos que podem ter saque.
+        assertTrue(MapaDaArena.guardaCoisa(Material.CHEST));
+        assertTrue(MapaDaArena.guardaCoisa(Material.TRAPPED_CHEST));
+        assertTrue(MapaDaArena.guardaCoisa(Material.BARREL));
+        assertTrue(MapaDaArena.guardaCoisa(Material.RED_SHULKER_BOX));
+        assertTrue(MapaDaArena.guardaCoisa(Material.FURNACE));
+        assertFalse(MapaDaArena.guardaCoisa(Material.STONE));
+        assertFalse(MapaDaArena.guardaCoisa(Material.CHERRY_LEAVES));
+        assertFalse(MapaDaArena.guardaCoisa(Material.AIR));
     }
 }

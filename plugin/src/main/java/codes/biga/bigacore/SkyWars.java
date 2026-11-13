@@ -205,7 +205,7 @@ public final class SkyWars extends JogoDeArena {
 
         apagarAsPontes(mundo);
         secarAsPocas(mundo);
-        limparFlechas(mundo);
+        limparOChao(mundo);
         for (int k = 0; k < planta.ilhas(); k++) {
             obra.refazerIlha(mundo, planta, k);
         }
@@ -358,7 +358,7 @@ public final class SkyWars extends JogoDeArena {
             devolverAVidaDoMinecraft(jogador);
         }
         if (mundo != null) {
-            limparFlechas(mundo);
+            limparOChao(mundo);
             ArenaComum.limparPaineis(mundo, SkyWarsBuilder.TAG_AR);
         }
     }
@@ -1152,9 +1152,21 @@ public final class SkyWars extends JogoDeArena {
                 + "</color> <gray>— sem dano, só empurrão</gray>"));
     }
 
-    private void limparFlechas(World mundo) {
+    /**
+     * Varre o chão da arena: flecha cravada e saque caído.
+     *
+     * <p>O saque caído é o rastro de quem morreu no meio da rodada e o do baú
+     * que o cerco levou junto com a ilha. Sem esta varrição ele fica, e a
+     * rodada seguinte começa com o chão coberto de maçã dourada — o relato
+     * foi "itens estão espalhados no chão". É de propósito que isto só roda
+     * no preparo e no encerramento, nunca durante a rodada: o item que cai
+     * do jogador eliminado é o prêmio de quem o matou, e varrer o chão no
+     * meio da partida seria roubar essa troca.
+     */
+    private void limparOChao(World mundo) {
         for (Entity bicho : mundo.getEntities()) {
-            if (bicho instanceof AbstractArrow) {
+            if (bicho instanceof AbstractArrow
+                    || bicho instanceof org.bukkit.entity.Item) {
                 bicho.remove();
             }
         }
@@ -1205,13 +1217,16 @@ public final class SkyWars extends JogoDeArena {
     }
 
     /** Deixa os baús do meio vazios até a hora marcada. */
+    /**
+     * Tira os baús do meio do mapa pronto da rodada passada.
+     *
+     * <p>Eles voltam em {@link #abrirOMeio}, cheios. Até lá o centro não tem
+     * baú nenhum — e não ter é melhor do que ter vazio: o jogador que
+     * atravessa a arena cedo volta de mãos abanando e acha que o jogo está
+     * quebrado, que foi exatamente o relato.
+     */
     private void esvaziarOsBaus(World mundo, SkyWarsCatalog planta) {
-        for (int[] onde : planta.bausDoMeioEmTresD()) {
-            Block bloco = mundo.getBlockAt(onde[0], onde[1], onde[2]);
-            if (bloco.getState() instanceof Chest arca) {
-                arca.getBlockInventory().clear();
-            }
-        }
+        plugin.skyWarsBuilder().tirarOsBausDoMeio(mundo, planta);
     }
 
     private void abrirOMeio(World mundo, SkyWarsCatalog planta) {
@@ -1221,6 +1236,7 @@ public final class SkyWars extends JogoDeArena {
         int quantos = comMapa ? planta.bausDoMeioEmTresD().size()
                 : planta.meioBaus();
         if (comMapa) {
+            plugin.skyWarsBuilder().porOsBausDoMeio(mundo, planta);
             encherOsBaus(mundo, planta);
         }
         tituloEmTodos("<color:" + planta.corDoTexto() + ">O MEIO ABRIU"
@@ -1232,9 +1248,12 @@ public final class SkyWars extends JogoDeArena {
                 : "a cúpula caiu: os <white>") + quantos
                 + " baús</white> do meio são <white>iguais entre si</white> — "
                 + "chegar primeiro não dá baú melhor, dá posição melhor.</gray>");
+        // Vidro quebrando sem vidro nenhum é o som mentindo para o
+        // jogador: num mapa pronto o que acontece é baú aparecendo.
+        Sound estalo = comMapa ? Sound.BLOCK_CHEST_OPEN
+                : Sound.BLOCK_GLASS_BREAK;
         for (Player jogador : jogadoresDaArena()) {
-            jogador.playSound(jogador.getLocation(), Sound.BLOCK_GLASS_BREAK,
-                    1.0f, 0.8f);
+            jogador.playSound(jogador.getLocation(), estalo, 1.0f, 0.8f);
         }
         mostrarOPainel(mundo, planta);
     }

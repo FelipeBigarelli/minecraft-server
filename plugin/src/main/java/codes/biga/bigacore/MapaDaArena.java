@@ -4,15 +4,20 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.Container;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.inventory.InventoryHolder;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -104,10 +109,31 @@ public final class MapaDaArena {
                 bausDoMeio.add(bau);
             }
         }
+        // As casas onde VAI UM BAÚ saem do mapa.
+        //
+        // O defeito que isto conserta derrubou saque no chão: quatro dos 34
+        // marcadores do mapa baixado caem em cima de um bloco — pedra,
+        // andesito, lã. O baú era posto por cima, e na rodada seguinte o
+        // mapa era recolado em cima do baú. Trocar um baú cheio por outro
+        // bloco faz o Minecraft DERRUBAR o conteúdo dele no chão, e era
+        // isso que aparecia espalhado na grama.
+        Set<Long> casasDeBau = new HashSet<>();
+        for (List<int[]> lista : bausDaIlha) {
+            for (int[] bau : lista) {
+                casasDeBau.add(ArenaComum.chave(bau[0], bau[1], bau[2]));
+            }
+        }
+        for (int[] bau : bausDoMeio) {
+            casasDeBau.add(ArenaComum.chave(bau[0], bau[1], bau[2]));
+        }
         for (EstruturaDeMapa.Bloco bloco : estrutura.blocos()) {
             EstruturaDeMapa.Bloco posto = new EstruturaDeMapa.Bloco(
                     bloco.x() + desloca[0], bloco.y() + desloca[1],
                     bloco.z() + desloca[2], bloco.estado());
+            if (casasDeBau.contains(ArenaComum.chave(
+                    posto.x(), posto.y(), posto.z()))) {
+                continue;
+            }
             int dono = ilhaMaisPerto(posto.x(), posto.z(), jaulas,
                     raioDeRecorte);
             if (dono >= 0) {
@@ -373,20 +399,82 @@ public final class MapaDaArena {
         return postos;
     }
 
-    /** Apaga os blocos da ilha k: é isso que o cerco faz. */
+    /** Apaga os blocos da ilha k, e os baús dela: é isso que o cerco faz. */
     public int apagarIlha(World mundo, int k) {
         if (k < 0 || k >= blocosDaIlha.size()) {
             return 0;
         }
         int tirados = 0;
         for (EstruturaDeMapa.Bloco bloco : blocosDaIlha.get(k)) {
-            Block onde = mundo.getBlockAt(bloco.x(), bloco.y(), bloco.z());
-            if (!onde.getType().isAir()) {
-                onde.setType(Material.AIR, false);
-                tirados++;
-            }
+            tirados += apagarSemDerrubar(
+                    mundo.getBlockAt(bloco.x(), bloco.y(), bloco.z()));
+        }
+        for (int[] bau : bausDaIlha(k)) {
+            tirados += apagarSemDerrubar(
+                    mundo.getBlockAt(bau[0], bau[1], bau[2]));
         }
         return tirados;
+    }
+
+    /** Apaga o mapa inteiro, bloco a bloco: é o que o rodízio precisa. */
+    public int apagarTudo(World mundo) {
+        int tirados = 0;
+        for (int k = 0; k < blocosDaIlha.size(); k++) {
+            tirados += apagarIlha(mundo, k);
+        }
+        for (EstruturaDeMapa.Bloco bloco : blocosSoltos) {
+            tirados += apagarSemDerrubar(
+                    mundo.getBlockAt(bloco.x(), bloco.y(), bloco.z()));
+        }
+        for (int[] bau : bausDoMeio) {
+            tirados += apagarSemDerrubar(
+                    mundo.getBlockAt(bau[0], bau[1], bau[2]));
+        }
+        return tirados;
+    }
+
+    /**
+     * Apaga um bloco esvaziando antes o que houver dentro dele.
+     *
+     * <p>Sem o esvaziar, trocar um baú cheio por ar faz o Minecraft cuspir o
+     * conteúdo no chão — que é o comportamento certo quando alguém quebra um
+     * baú, e o errado quando quem está apagando é a própria arena. Era isso
+     * que deixava a ilha coberta de maçã dourada e flecha depois do cerco.
+     */
+    public static int apagarSemDerrubar(Block onde) {
+        Material tipo = onde.getType();
+        if (tipo.isAir()) {
+            return 0;
+        }
+        if (guardaCoisa(tipo)) {
+            BlockState estado = onde.getState();
+            if (estado instanceof InventoryHolder dono) {
+                dono.getInventory().clear();
+                if (estado instanceof Container caixa) {
+                    caixa.update(true, false);
+                }
+            }
+        }
+        onde.setType(Material.AIR, false);
+        return 1;
+    }
+
+    /**
+     * Se o material guarda coisa dentro.
+     *
+     * <p>A pergunta barata antes da cara: desfazer a arena passa por centenas
+     * de milhares de blocos, e {@code getState()} monta um objeto de bloco a
+     * cada chamada. Perguntar o material primeiro faz a conta cara só nos
+     * poucos blocos que podem ter inventário.
+     */
+    static boolean guardaCoisa(Material tipo) {
+        return tipo == Material.CHEST || tipo == Material.TRAPPED_CHEST
+                || tipo == Material.BARREL || tipo == Material.HOPPER
+                || tipo == Material.DROPPER || tipo == Material.DISPENSER
+                || tipo == Material.FURNACE || tipo == Material.BLAST_FURNACE
+                || tipo == Material.SMOKER || tipo == Material.BREWING_STAND
+                || tipo == Material.CHISELED_BOOKSHELF
+                || tipo.name().endsWith("SHULKER_BOX");
     }
 
     /** Levanta de volta a ilha k, para a rodada seguinte. */
