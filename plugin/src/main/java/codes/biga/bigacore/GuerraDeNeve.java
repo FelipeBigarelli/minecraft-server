@@ -205,7 +205,7 @@ public final class GuerraDeNeve extends JogoDeArena {
                 && mao.getAmount() >= bolas) {
             return;
         }
-        jogador.getInventory().setItem(0, new ItemStack(Material.SNOWBALL, bolas));
+        jogador.getInventory().setItem(0, new ItemStack(Material.SNOWBALL, ArenaComum.cabemNaPilha(Material.SNOWBALL, bolas)));
         if (jogador.getInventory().getHeldItemSlot() != 0
                 && !temBolaNaMao(jogador)) {
             jogador.getInventory().setHeldItemSlot(0);

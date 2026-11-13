@@ -185,6 +185,23 @@ regras:
   # Quantos sonares cada jogador leva. O sonar diz o minério mais
   # valioso num raio e a direção dele, e gasta um uso.
   sonares: 2
+
+  # Quantas tochas o jogador leva. ELAS NÃO ACABAM: o espaço delas
+  # volta a encher a cada segundo.
+  #
+  # O maciço é pedra maciça — nenhuma luz do céu entra nele, e cavar
+  # para dentro era cavar no escuro: o jogador não enxergava o minério
+  # que estava raspando. A tocha não é conforto, é a diferença entre
+  # jogar e adivinhar.
+  #
+  # Infinita porque contada seria pior: viraria um segundo recurso
+  # para administrar, e o jogo já tem o sonar para isso. Infinita, a
+  # decisão que sobra é a boa — ONDE acender, que é o que separa quem
+  # abre um túnel por onde dá para voltar de quem se perde no próprio
+  # buraco.
+  #
+  # Zero tira a tocha do kit e devolve o escuro.
+  tochas: 16
   sonar-alcance: 10
 
   # Os últimos segundos, em que todo minério vale dobrado.

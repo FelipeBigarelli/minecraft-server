@@ -100,6 +100,12 @@ public final class Mineracao extends JogoDeArena {
     //  A rodada
     // ------------------------------------------------------------------
 
+    /** A lista lateral mostra o placar deste jogo. */
+    @Override
+    protected Placar placarDaLateral() {
+        return placar;
+    }
+
     @Override
     protected void prepararArena(World mundo) {
         placar.zerar();
@@ -214,12 +220,29 @@ public final class Mineracao extends JogoDeArena {
                         Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.2f);
             }
         }
+        reporAsTochas();
         for (Player jogador : jogadoresVivos()) {
             int meus = placar.de(jogador.getUniqueId());
             int lugar = placar.posicaoDe(jogador.getUniqueId());
             jogador.sendActionBar(plugin.mini().deserialize(
                     "<color:#B5835A>" + meus + " pts</color> <gray>· "
                             + lugar + "º de " + placar.quantos() + "</gray>"));
+        }
+    }
+
+    /** A tocha não acaba: o espaço dela volta a encher a cada segundo. */
+    private void reporAsTochas() {
+        MineracaoCatalog planta = planta2();
+        if (planta.tochas() <= 0) {
+            return;
+        }
+        int espaco = espacoDasTochas(planta.sonares());
+        for (Player jogador : jogadoresVivos()) {
+            ItemStack tem = jogador.getInventory().getItem(espaco);
+            if (tem == null || tem.getType() != planta.tocha()
+                    || tem.getAmount() < planta.tochas()) {
+                darAsTochas(jogador, planta);
+            }
         }
     }
 
@@ -296,7 +319,11 @@ public final class Mineracao extends JogoDeArena {
         jogador.getInventory().setItem(0, picareta);
 
         if (planta.sonares() > 0) {
-            ItemStack sonar = new ItemStack(Material.SPYGLASS, planta.sonares());
+            // UM, e o resto vem pelo `entregar`. O sonar é uma luneta e
+            // luneta empilha até UMA: entregues numa pilha só de dois, o
+            // CreativePlots via pilha ilegal e apagava os dois — a partida
+            // começava sem a ferramenta em volta da qual o jogo é feito.
+            ItemStack sonar = new ItemStack(Material.SPYGLASS, 1);
             ItemMeta nome = sonar.getItemMeta();
             if (nome != null) {
                 nome.displayName(plugin.mini().deserialize(
@@ -308,9 +335,81 @@ public final class Mineracao extends JogoDeArena {
                                 false)));
                 sonar.setItemMeta(nome);
             }
-            jogador.getInventory().setItem(1, sonar);
+            ArenaComum.entregar(jogador, 1, sonar, planta.sonares());
         }
+        darAsTochas(jogador, planta);
         jogador.getInventory().setHeldItemSlot(0);
+    }
+
+    /** Em que espaço do cinto moram as tochas: depois da picareta e dos sonares. */
+    static int espacoDasTochas(int sonares) {
+        return Math.min(8, 1 + Math.max(0, sonares));
+    }
+
+    /**
+     * As tochas, e elas não acabam.
+     *
+     * O maciço é pedra maciça: nenhuma luz do céu entra, e cavar para dentro
+     * era cavar no escuro — o jogador não via o minério que estava raspando.
+     *
+     * <p>Repostas a cada segundo em vez de marcadas como infinitas: item com
+     * marca estranha é o que o anti-exploit deste servidor apaga, e foi
+     * exatamente assim que o sonar sumia.
+     */
+    private void darAsTochas(Player jogador, MineracaoCatalog planta) {
+        if (planta.tochas() <= 0) {
+            return;
+        }
+        ItemStack tocha = new ItemStack(planta.tocha(),
+                ArenaComum.cabemNaPilha(planta.tocha(), planta.tochas()));
+        ItemMeta nome = tocha.getItemMeta();
+        if (nome != null) {
+            nome.displayName(plugin.mini().deserialize(
+                    "<color:#FFB347>Tocha da Mina</color>").decoration(
+                    net.kyori.adventure.text.format.TextDecoration.ITALIC, false));
+            nome.lore(List.of(plugin.mini().deserialize(
+                    "<gray>não acaba — acenda onde quiser voltar</gray>")
+                    .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC,
+                            false)));
+            tocha.setItemMeta(nome);
+        }
+        jogador.getInventory().setItem(espacoDasTochas(planta.sonares()), tocha);
+    }
+
+    /**
+     * Só se acende tocha, e só dentro do maciço.
+     *
+     * O arcabouço proíbe assentar bloco por padrão, e é o que mantém o saguão
+     * e as torres de pé. A tocha é a única exceção deste jogo: ela não muda o
+     * maciço, não serve de degrau e não esconde minério.
+     */
+    @Override
+    protected boolean permiteColocar(org.bukkit.event.block.BlockPlaceEvent evento) {
+        if (!jogando() || !estaVivo(evento.getPlayer())) {
+            return false;
+        }
+        Block bloco = evento.getBlock();
+        if (!ehTocha(bloco.getType())) {
+            evento.getPlayer().sendActionBar(plugin.mini().deserialize(
+                    "<gray>aqui só se acende tocha</gray>"));
+            return false;
+        }
+        if (!MineracaoBuilder.noMacico(planta2(), bloco.getX(), bloco.getY(),
+                bloco.getZ())) {
+            evento.getPlayer().sendActionBar(plugin.mini().deserialize(
+                    "<color:#FF8A8A>fora do maciço</color>"));
+            return false;
+        }
+        return true;
+    }
+
+    /** Tocha de chão e tocha de parede são o mesmo item e blocos diferentes. */
+    static boolean ehTocha(Material qual) {
+        return qual == Material.TORCH || qual == Material.WALL_TORCH
+                || qual == Material.SOUL_TORCH
+                || qual == Material.SOUL_WALL_TORCH
+                || qual == Material.REDSTONE_TORCH
+                || qual == Material.REDSTONE_WALL_TORCH;
     }
 
     @EventHandler

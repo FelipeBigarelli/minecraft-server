@@ -118,6 +118,12 @@ public final class Arco extends JogoDeArena {
     //  A rodada
     // ------------------------------------------------------------------
 
+    /** A lista lateral mostra o placar deste jogo. */
+    @Override
+    protected Placar placarDaLateral() {
+        return placar;
+    }
+
     @Override
     protected void prepararArena(World mundo) {
         placar.zerar();

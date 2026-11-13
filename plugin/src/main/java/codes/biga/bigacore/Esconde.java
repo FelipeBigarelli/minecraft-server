@@ -144,6 +144,12 @@ public final class Esconde extends JogoDeArena {
     //  A rodada
     // ------------------------------------------------------------------
 
+    /** A lista lateral mostra o placar deste jogo. */
+    @Override
+    protected Placar placarDaLateral() {
+        return placar;
+    }
+
     @Override
     protected void prepararArena(World mundo) {
         placar.zerar();
@@ -441,12 +447,20 @@ public final class Esconde extends JogoDeArena {
         }
     }
 
+    /**
+     * O time que apaga a etiqueta de nome.
+     *
+     * Ele mora no quadro DA ARENA e não no do servidor, e isto deixou de ser
+     * detalhe no dia em que a lista lateral chegou: a lateral põe cada
+     * jogador num quadro próprio, e time que vive no quadro principal deixa
+     * de valer para quem está vendo outro. O disfarce voltaria a ser um
+     * caixote com o nome escrito em cima.
+     */
     private Team oTime() {
-        if (Bukkit.getScoreboardManager() == null) {
+        Scoreboard tabuleiro = lateral().quadro();
+        if (tabuleiro == null) {
             return null;
         }
-        Scoreboard tabuleiro = Bukkit.getScoreboardManager()
-                .getMainScoreboard();
         Team time = tabuleiro.getTeam(TIME);
         if (time == null) {
             time = tabuleiro.registerNewTeam(TIME);

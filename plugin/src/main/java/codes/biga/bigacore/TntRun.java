@@ -119,6 +119,66 @@ public final class TntRun implements Listener, JogoDeMinigame {
      */
     private final Set<UUID> fila = new LinkedHashSet<>();
     private final Set<UUID> vivos = new LinkedHashSet<>();
+
+    /**
+     * A lista lateral com quem continua de pé.
+     *
+     * Aqui e não herdada do {@code JogoDeArena} porque este jogo fica FORA do
+     * arcabouço — ele e o Spleef são os dois últimos, e já foram esquecidos
+     * em três mudanças do arcabouço seguidas: os letreiros do saguão, o
+     * preparo da largada e a trava do /speed. Toda vez que o arcabouço ganha
+     * alguma coisa, estes dois precisam dela à mão.
+     */
+    private PlacarLateral lateral;
+
+    private PlacarLateral lateral() {
+        if (lateral == null) {
+            lateral = new PlacarLateral(plugin, "tntrun");
+        }
+        return lateral;
+    }
+
+    /**
+     * As linhas: quem está de pé primeiro, quem caiu depois.
+     *
+     * Os caídos continuam na lista de propósito. Ver o próprio nome apagado
+     * é a confirmação de que a rodada acabou PARA VOCÊ e não para todo mundo
+     * — e num jogo em que se perde caindo num buraco, essa confusão acontece.
+     */
+    /**
+     * Desenha a lateral, e só enquanto há rodada.
+     *
+     * No saguão ela fica apagada de propósito: antes da largada ninguém está
+     * "de pé" nem "fora", e uma lista de todo mundo marcado como fora é pior
+     * que lista nenhuma.
+     */
+    private void desenharALateral(TntRunCatalog planta) {
+        if (estado == Estado.ESPERANDO || estado == Estado.CONTAGEM) {
+            lateral().apagar();
+            return;
+        }
+        lateral().titulo("<color:" + planta.corDoTexto() + "><bold>"
+                + HubBuilder.escapar(planta.titulo()) + "</bold></color>");
+        lateral().desenhar(linhasDaLateral());
+    }
+
+    private java.util.List<PlacarLateral.Linha> linhasDaLateral() {
+        java.util.List<PlacarLateral.Linha> linhas = new java.util.ArrayList<>();
+        for (UUID id : naArena) {
+            Player quem = Bukkit.getPlayer(id);
+            if (quem != null && vivos.contains(id)) {
+                linhas.add(new PlacarLateral.Linha(quem.getName(), "de pé"));
+            }
+        }
+        for (UUID id : naArena) {
+            Player quem = Bukkit.getPlayer(id);
+            if (quem != null && !vivos.contains(id)
+                    && quem.getGameMode() != org.bukkit.GameMode.CREATIVE) {
+                linhas.add(new PlacarLateral.Linha(quem.getName(), "fora"));
+            }
+        }
+        return linhas;
+    }
     private final Map<UUID, GameMode> modoAnterior = new HashMap<>();
     private final Map<UUID, Long> ultimaVolta = new HashMap<>();
     private final Map<Ponto, Integer> derretendo = new HashMap<>();
@@ -292,6 +352,7 @@ public final class TntRun implements Listener, JogoDeMinigame {
     }
 
     private void entrou(Player jogador) {
+        lateral().mostrarPara(jogador);
         instrucoes(jogador);
         // Quem chegou com /speed ligado no hub não traz a velocidade
         // para dentro da arena.
@@ -343,6 +404,7 @@ public final class TntRun implements Listener, JogoDeMinigame {
         ultimaVolta.remove(id);
         Player jogador = Bukkit.getPlayer(id);
         if (jogador != null) {
+            lateral().esconderDe(jogador);
             if (barra != null) {
                 jogador.hideBossBar(barra);
             }
@@ -528,6 +590,7 @@ public final class TntRun implements Listener, JogoDeMinigame {
     // ------------------------------------------------------------------
 
     private void cicloDeSegundo(TntRunCatalog planta) {
+        desenharALateral(plugin.tntRunCatalog());
         switch (estado) {
             case ESPERANDO -> {
                 destravarEspectadores(planta);

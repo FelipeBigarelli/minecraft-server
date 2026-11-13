@@ -345,7 +345,7 @@ public final class Labirinto extends JogoDeArena {
         if (quantos <= 0) {
             return;
         }
-        ItemStack giz = new ItemStack(cor, quantos);
+        ItemStack giz = new ItemStack(cor, ArenaComum.cabemNaPilha(cor, quantos));
         ItemMeta nome = giz.getItemMeta();
         if (nome != null) {
             nome.displayName(plugin.mini().deserialize(

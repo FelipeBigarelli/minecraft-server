@@ -180,6 +180,12 @@ public final class SkyWars extends JogoDeArena {
     //  A rodada
     // ------------------------------------------------------------------
 
+    /** A lista lateral mostra o placar deste jogo. */
+    @Override
+    protected Placar placarDaLateral() {
+        return placar;
+    }
+
     @Override
     protected void prepararArena(World mundo) {
         SkyWarsCatalog planta = planta2();

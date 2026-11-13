@@ -8,6 +8,8 @@ import org.bukkit.Color;
 import org.bukkit.GameMode;
 import org.bukkit.GameRule;
 import org.bukkit.Location;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
@@ -100,6 +102,15 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
     private String ultimoTextoDaPlaca = "";
     private BossBar barra;
 
+    /**
+     * A lista lateral com o placar da partida.
+     *
+     * Uma por jogo e criada na primeira vez que alguém entra: pôr a lateral
+     * no quadro principal do servidor faria os vinte jogos disputarem a mesma
+     * faixa e mostraria o placar da MINERAÇÃO a quem está no spawn.
+     */
+    private PlacarLateral lateral;
+
     protected JogoDeArena(BigaCore plugin) {
         this.plugin = plugin;
     }
@@ -139,6 +150,67 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
      */
     protected GameMode modoDeJogo() {
         return GameMode.ADVENTURE;
+    }
+
+    /** A lista lateral desta arena. */
+    protected PlacarLateral lateral() {
+        if (lateral == null) {
+            lateral = new PlacarLateral(plugin, planta().etiqueta());
+        }
+        return lateral;
+    }
+
+    /**
+     * O placar que a lista lateral mostra.
+     *
+     * Nulo nos jogos em que o número não é ponto e sim quem continua de pé —
+     * metade dos vinte. Esses caem no desenho de sobrevivência, que lista os
+     * da arena com "de pé" ou "fora": a pergunta que o jogador tem num TNT
+     * RUN não é quantos pontos alguém fez, é quem ainda está correndo.
+     */
+    protected Placar placarDaLateral() {
+        return null;
+    }
+
+    /**
+     * As linhas da lista lateral.
+     *
+     * Jogo de pontos: o ranking, do primeiro ao último. Jogo de sobrevivência:
+     * quem está de pé primeiro, quem já caiu depois — e os caídos continuam na
+     * lista de propósito, porque ver o próprio nome apagado é a confirmação de
+     * que a rodada acabou PARA VOCÊ e não para todo mundo.
+     */
+    protected List<PlacarLateral.Linha> linhasDaLateral() {
+        Placar quadro = placarDaLateral();
+        List<PlacarLateral.Linha> linhas = new ArrayList<>();
+        if (quadro != null) {
+            for (UUID id : quadro.ranking()) {
+                Player quem = Bukkit.getPlayer(id);
+                if (quem != null) {
+                    linhas.add(new PlacarLateral.Linha(quem.getName(),
+                            quadro.de(id) + " pts"));
+                }
+            }
+            return linhas;
+        }
+        for (Player quem : jogadoresDaArena()) {
+            if (estaVivo(quem)) {
+                linhas.add(new PlacarLateral.Linha(quem.getName(), "de pé"));
+            }
+        }
+        for (Player quem : jogadoresDaArena()) {
+            if (!estaVivo(quem) && quem.getGameMode() != GameMode.CREATIVE) {
+                linhas.add(new PlacarLateral.Linha(quem.getName(), "fora"));
+            }
+        }
+        return linhas;
+    }
+
+    /** O cabeçalho da lista lateral: o nome do jogo, na cor dele. */
+    protected String tituloDaLateral() {
+        PlantaDeArena planta = planta();
+        return "<color:" + planta.corDoTexto() + "><bold>"
+                + HubBuilder.escapar(planta.titulo()) + "</bold></color>";
     }
 
     protected void aCadaTique(World mundo) {
@@ -494,6 +566,7 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
         if (barra != null) {
             jogador.showBossBar(barra);
         }
+        lateral().mostrarPara(jogador);
         aoEntrarNaArena(jogador);
         instrucoes(jogador);
 
@@ -543,6 +616,7 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
             if (barra != null) {
                 jogador.hideBossBar(barra);
             }
+            lateral().esconderDe(jogador);
             devolverModo(jogador);
             plugin.mochila().devolver(jogador);
         } else {
@@ -655,6 +729,23 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
                 }
             }
         }
+        desenharALateral();
+    }
+
+    /**
+     * Desenha a lista lateral, e só enquanto há rodada.
+     *
+     * No saguão ela fica apagada de propósito: antes da largada ninguém está
+     * "de pé" nem "fora" e ninguém tem ponto, e uma lista de todo mundo
+     * marcado como fora é pior que lista nenhuma.
+     */
+    private void desenharALateral() {
+        if (estado == Estado.ESPERANDO || estado == Estado.CONTAGEM) {
+            lateral().apagar();
+            return;
+        }
+        lateral().titulo(tituloDaLateral());
+        lateral().desenhar(linhasDaLateral());
     }
 
     /**

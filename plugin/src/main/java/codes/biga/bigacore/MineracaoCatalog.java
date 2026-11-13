@@ -144,6 +144,27 @@ public final class MineracaoCatalog extends CatalogoDeArena {
         return Math.max(0, config.getInt("regras.sonares", 2));
     }
 
+    /**
+     * Quantas tochas o jogador leva, e elas não acabam.
+     *
+     * O maciço é pedra maciça: nenhuma luz do céu entra nele, e cavar para
+     * dentro é cavar no escuro — o jogador não via o minério que estava
+     * raspando. A tocha não é conforto, é a diferença entre jogar e adivinhar.
+     *
+     * <p>Infinita porque a alternativa é pior: uma tocha contada vira um
+     * segundo recurso para administrar, e o jogo já tem o sonar para isso.
+     * Com tocha infinita a decisão que sobra é a boa — ONDE acender, que é o
+     * que separa quem abre um túnel que dá para voltar de quem se perde no
+     * próprio buraco.
+     */
+    public int tochas() {
+        return Math.max(0, Math.min(64, config.getInt("regras.tochas", 16)));
+    }
+
+    public org.bukkit.Material tocha() {
+        return cor("tocha", org.bukkit.Material.TORCH);
+    }
+
     public int sonarAlcance() {
         return Math.max(2, config.getInt("regras.sonar-alcance", 10));
     }

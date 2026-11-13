@@ -397,6 +397,84 @@ public final class ArenaComum {
      * @param teto  o máximo que a parte de cima pode valer
      * @return {x, y, z} da velocidade nova
      */
+    /**
+     * Em quantas pilhas LEGAIS um punhado de itens se parte.
+     *
+     * <h2>Por que isto existe</h2>
+     *
+     * A MINERAÇÃO entregava dois sonares numa pilha só. O sonar é uma
+     * LUNETA, e luneta no Minecraft empilha até UM. O que chegava ao jogador
+     * não era uma pilha de dois: era uma pilha ilegal, e o CreativePlots
+     * deste servidor tem proteção contra isso ligada — ele via o item,
+     * escrevia "[Exploit Protection] Illegal stack detected and removed" no
+     * bate-papo e APAGAVA o sonar. A partida começava sem a ferramenta que o
+     * jogo inteiro é construído em volta, e nada no plugin dava erro: do
+     * nosso lado o item tinha sido entregue.
+     *
+     * <p>É o mesmo tipo de armadilha do {@code setUnbreakable}: um item
+     * perfeitamente válido para a API do Bukkit e inválido para o
+     * anti-exploit que roda ao lado. Quem escreve o kit não tem como lembrar
+     * de cabeça que luneta empilha 1, bola de neve 16 e flecha 64.
+     *
+     * <p>Recebe o máximo como NÚMERO em vez de perguntar ao material porque
+     * {@code Material.getMaxStackSize()} precisa do registro vivo do
+     * servidor e não roda em teste. Assim a conta — que é a parte que erra —
+     * é testável, e só a leitura do máximo fica do lado do servidor.
+     *
+     * @return os tamanhos de cada pilha, em ordem; vazio se não há nada.
+     */
+    public static int[] fatias(int quantos, int maximo) {
+        if (quantos <= 0) {
+            return new int[0];
+        }
+        int teto = Math.max(1, maximo);
+        int cheias = quantos / teto;
+        int resto = quantos % teto;
+        int[] saida = new int[cheias + (resto > 0 ? 1 : 0)];
+        java.util.Arrays.fill(saida, 0, cheias, teto);
+        if (resto > 0) {
+            saida[cheias] = resto;
+        }
+        return saida;
+    }
+
+    /**
+     * Põe o item na mão do jogador SEM montar uma pilha ilegal.
+     *
+     * Quando o punhado não cabe numa pilha só, ele escorre para os espaços
+     * seguintes. É o que a MINERAÇÃO precisa: dois sonares são duas lunetas
+     * em dois espaços, porque luneta empilha até uma.
+     *
+     * <p>Aqui e não no {@code JogoDeArena} porque o TNT RUN e o SPLEEF ficam
+     * FORA do arcabouço, e já foram esquecidos três vezes por isso.
+     *
+     * @return quantos espaços foram ocupados, a partir de {@code espaco}.
+     */
+    public static int entregar(org.bukkit.entity.Player jogador, int espaco,
+                               org.bukkit.inventory.ItemStack modelo,
+                               int quantos) {
+        int[] pilhas = fatias(quantos, modelo.getType().getMaxStackSize());
+        for (int k = 0; k < pilhas.length; k++) {
+            org.bukkit.inventory.ItemStack copia = modelo.clone();
+            copia.setAmount(pilhas[k]);
+            jogador.getInventory().setItem(espaco + k, copia);
+        }
+        return pilhas.length;
+    }
+
+    /**
+     * Quantos desses itens cabem numa pilha, no máximo.
+     *
+     * Para o kit cujo desenho PRECISA de uma pilha só num espaço marcado — a
+     * bola de neve do Spleef e da Guerra de Neve fica no espaço zero e o jogo
+     * conta por ela. Aí não dá para escorrer para o espaço seguinte: o que dá
+     * é entregar o que cabe. Um yml que peça 32 bolas passa a receber 16 em
+     * vez de receber ZERO, que é o que o anti-exploit devolvia.
+     */
+    public static int cabemNaPilha(org.bukkit.Material qual, int quantos) {
+        return Math.min(Math.max(0, quantos), qual.getMaxStackSize());
+    }
+
     public static double[] empurrao(double dx, double dz, double vx, double vy,
                                     double vz, double forca, double alto,
                                     double teto) {
