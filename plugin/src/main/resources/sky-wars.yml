@@ -1,24 +1,43 @@
 # -------------------------------------------------------------
-#  SKY WARS — uma ilha, uma chance
+#  SKY WARS — uma ilha, um baú, uma chance
 #
-#  Dezesseis ilhas num anel sobre o vazio e uma ilha no meio, com
-#  baús. Todos largam na sua ilha, atravessam em ponte e o último
-#  de pé ganha. Não há chão: o vazio é o jogo.
+#  Dezesseis ilhas num anel sobre o vazio e uma ilha no meio.
+#  Cada jogador cai na SUA ilha de mãos vazias, abre o baú dela,
+#  se equipa com o que achou, faz ponte e luta. O último de pé
+#  ganha. Não há chão: o vazio é o jogo.
 #
-#  OS TRÊS DEFEITOS DA REFERÊNCIA, E O QUE FAZEMOS DIFERENTE
+#  O BAÚ DA ILHA É O JOGO, E ELE TINHA SIDO TIRADO
 #
-#  O estudo rendeu três reclamações que os jogadores do gênero
-#  fazem há anos, com nome e proposta:
+#  A primeira versão desta arena não tinha baú nas ilhas: o kit
+#  chegava na mão de todo mundo, igual, sorteado por partida.
+#  A intenção era boa — atacar a reclamação mais antiga do gênero,
+#  "o baú decide a partida" (há proposta de nome próprio nos
+#  fóruns: SEE, Skywars Equipment Equality) — e o resultado era
+#  outro jogo. Sem baú não existe o saque, e o saque é os quinze
+#  primeiros segundos de toda partida de Sky Wars: abrir, ver o
+#  que veio, decidir se dá para rushar o vizinho ou se é melhor
+#  esperar. Tirar o baú não consertou a loteria: apagou a partida.
 #
-#  - "O BAÚ DECIDE A PARTIDA". Um abre espada de ferro e armadura
-#    e o outro abre picareta de madeira. Há até proposta de nome
-#    próprio nos fóruns — SEE, Skywars Equipment Equality — e um
-#    servidor grande já aceitou garantir armadura em todo baú.
-#    Aqui a ideia vai até o fim: NÃO HÁ BAÚ NAS ILHAS. O kit é
-#    entregue na mão de todo mundo na largada, igual para todos,
-#    sorteado uma vez por PARTIDA — a variedade entre partidas
-#    fica, a loteria entre jogadores não. De lambuja, acaba a
-#    reclamação de que quem joga no celular saqueia mais devagar.
+#  Então o baú voltou, e a loteria é cercada do jeito que os
+#  próprios jogadores do gênero propõem — GARANTIR O PISO, não
+#  apagar o sorteio. A proposta de fórum sobre as pérolas do meio
+#  diz exatamente isso: que a menor quantidade que se pode achar
+#  seja garantida em pelo menos um baú. Aqui:
+#
+#  - A ESPADA É A MESMA EM TODA ILHA. É o nível da partida, e ele
+#    é um só para todas as ilhas. A reclamação do gênero é sobre a
+#    ARMA — "um abre espada de ferro e o outro abre picareta de
+#    madeira" — e é na arma que a garantia tem de morder. Subir de
+#    espada só existe num lugar: a ilha do meio.
+#  - O RESTO VARIA, E É ISSO QUE FAZ O BAÚ VALER A PENA ABRIR.
+#    Quantas peças de armadura (nunca o conjunto todo), quantos
+#    blocos de ponte acima do piso, se veio arco, se veio cura.
+#    Duas ilhas vizinhas quase nunca abrem a mesma coisa.
+#  - O PISO É GARANTIDO EM TODA ILHA: a espada, comida, pelo menos
+#    uma peça de armadura e blocos de ponte bastantes para ir até
+#    o vizinho E VOLTAR. Ninguém abre um baú que o deixa preso.
+#
+#  OS OUTROS DOIS DEFEITOS DA REFERÊNCIA
 #
 #  - "QUEM FAZ PONTE RÁPIDO PEGA O BAÚ DO MEIO". A proposta do
 #    fórum é uma barreira em volta do meio, que cai na hora
@@ -27,15 +46,17 @@
 #    primeiro passa a ganhar POSIÇÃO e não o baú. A réplica dos
 #    fóruns continua valendo e é boa: fazer ponte se aprende, e
 #    ficar sem bloco no meio da ponte é aperto honesto.
+#  - "O BAÚ DO MEIO É INÚTIL E CHATO" / "o do meio já dá vantagem
+#    demais". As duas reclamações existem e são a mesma pergunta:
+#    quanto o meio vale? Aqui o meio vale EXATAMENTE um nível
+#    acima, e `conferirNiveis` prende as duas pontas — o melhor
+#    nível ainda precisa de três golpes cheios para derrubar
+#    alguém de vida cheia, e o melhor não bate mais que o dobro
+#    do pior.
 #
-#  - "O BAÚ DO MEIO É INÚTIL E CHATO" / "o do meio já dá
-#    vantagem demais". As duas reclamações existem, e elas são a
-#    mesma pergunta: quanto o meio vale? Aqui o meio vale
-#    EXATAMENTE um nível acima do kit da partida, e
-#    `conferirNiveis` prende as duas pontas — o melhor nível
-#    ainda precisa de três golpes cheios para derrubar alguém de
-#    vida cheia, e o melhor não pode bater mais que o dobro do
-#    pior. Vantagem que se vira jogando.
+#  O SOCO MACHUCA, POUCO. De mãos vazias ninguém fica indefeso:
+#  quem for rushado no segundo três tem de poder revidar. O soco
+#  tira `dano-do-soco`, que é menos de metade da pior espada.
 #
 #  SÓ SE QUEBRA O QUE ALGUÉM COLOCOU. As ilhas não se mineram:
 #  sem essa regra, a primeira jogada de todo mundo é cavar a
@@ -67,6 +88,12 @@ arena:
   ilha-anel: 44
   ilha-raio: 3
   ilha-altura: 2
+
+  # Quantos baús tem cada ilha do anel. A referência varia de um
+  # a três; dois cabem numa ilha de raio 3 sem encostar no marco
+  # nem no ponto de largada, e dois já dão a sensação de escolher
+  # qual abrir primeiro.
+  baus-da-ilha: 2
 
   # A ilha do meio, que é o que se disputa.
   meio-raio: 9
@@ -116,18 +143,68 @@ paleta:
   torre-luz: SEA_LANTERN
   folhagem: AZALEA_LEAVES
 
-# Os níveis de kit, do pior para o melhor. O kit da partida é
-# sorteado entre os de baixo e o baú do meio é sempre UM nível
-# acima — ver `conferirNiveis`, que exige que as quatro listas
-# tenham o mesmo tamanho e que dano, blocos e flechas nunca
-# desçam de um nível para o próximo. Sem isso, "nível mais alto"
-# poderia ser pior que o mais baixo e nada no yml pareceria
-# errado.
+# -------------------------------------------------------------
+#  OS NÍVEIS DE SAQUE
+#
+#  Um nível é sorteado por PARTIDA e vale para todas as ilhas do
+#  anel; a ilha do meio é sempre UM nível acima. É o eixo que a
+#  referência chama de "Normal" e "Insane": a partida inteira
+#  acontece num patamar de loot, e o patamar muda de partida para
+#  partida.
+#
+#  As seis listas têm de ter o mesmo tamanho, e dano, blocos,
+#  flechas e redução nunca podem DESCER de um nível para o
+#  próximo — `conferirNiveis` recusa. Sem isso, "nível mais alto"
+#  poderia ser pior que o mais baixo e nada no yml pareceria
+#  errado: o baú do meio PIORARIA o equipamento de quem o pegou.
+#
+#  'armadura' é a família da peça; as quatro peças (capacete,
+#  peito, calça, bota) saem dela. 'reducao' é quanto cada peça
+#  equipada tira de dano, em porcento — é por ela que couro e
+#  diamante significam coisas diferentes, já que o dano deste
+#  servidor é contado pelo plugin e a armadura de vanilla não
+#  entraria na conta sozinha.
+# -------------------------------------------------------------
 niveis:
   espada: [WOODEN_SWORD, STONE_SWORD, IRON_SWORD, DIAMOND_SWORD]
   dano: [14, 18, 22, 26]
   blocos: [24, 28, 32, 40]
   flechas: [0, 6, 10, 16]
+  armadura: [LEATHER, CHAINMAIL, IRON, DIAMOND]
+  reducao: [4, 6, 8, 10]
+
+# -------------------------------------------------------------
+#  O BAÚ DA ILHA
+#
+#  O piso é garantido em toda ilha; o resto é sorteado por cima
+#  dele, baú por baú e ilha por ilha.
+# -------------------------------------------------------------
+saque:
+  # Quantas peças de armadura o baú da ilha dá, no mínimo e no
+  # máximo. NUNCA as quatro: o conjunto completo é o prêmio da
+  # ilha do meio, e uma ilha do anel que já o desse tornaria a
+  # travessia desnecessária.
+  armadura-minima: 1
+  armadura-maxima: 2
+
+  # Os blocos de ponte. O piso é garantido e `conferirSaque` exige
+  # que ele dê para ir até o vizinho E VOLTAR: um baú que deixa
+  # alguém preso na própria ilha não é um baú ruim, é um bug.
+  blocos-garantidos: 24
+  blocos-extras: 16
+
+  # A chance, em cem, de o baú da ilha trazer arco com flechas e
+  # de trazer item de cura. O arco não sobe o dano da espada: é
+  # outra jogada, e é por isso que ele pode faltar sem desequilibrar.
+  chance-de-arco: 40
+  chance-de-cura: 25
+
+  # Quantos itens de cura o baú da ilha dá, quando dá.
+  curas-na-ilha: 1
+
+  # A comida, garantida: ninguém perde a partida de fome por azar.
+  item-de-comida: COOKED_BEEF
+  comida: 3
 
 regras:
   minimo: 2
@@ -147,12 +224,25 @@ regras:
   # funciona igual em toda arena.
   periodo-do-golpe: 13
 
+  # O soco de mão vazia. Existe porque agora todo mundo larga sem
+  # nada: quem for rushado antes de abrir o baú tem de poder
+  # revidar. Menos da metade da pior espada, para abrir o baú
+  # continuar sendo a primeira coisa a fazer.
+  dano-do-soco: 6
+
   # A flecha: o tiro cheio é forte, e o fraco é quase nada. Mesma
   # física do ARCO E FLECHA.
   dano-da-flecha: 30
   forca-minima: 0.3
 
-  # O item de cura do baú do meio e quanto ele devolve.
+  # O teto da redução somada da armadura, em porcento. As peças
+  # somam, e quatro peças de diamante somariam exatamente isto.
+  # O teto escrito é o que impede que acrescentar um nível de
+  # armadura ao yml transforme a vítima numa parede e a luta em
+  # nada — `conferirNiveis` confere a conta contra ele.
+  reducao-maxima: 40
+
+  # O item de cura e quanto ele devolve.
   item-de-cura: GOLDEN_APPLE
   cura-do-item: 35
   curas-no-bau: 2
@@ -181,12 +271,13 @@ regras:
 textos:
   titulo: "SKY WARS"
   cor: "#EAF4FF"
-  subtitulo: "uma ilha, uma chance"
+  subtitulo: "uma ilha, um baú, uma chance"
   regras:
     - "clique em [ENTRAR] para entrar na fila"
-    - "o kit é o mesmo para todos e sorteado por partida"
-    - "não há baú nas ilhas: o baú é só no meio"
+    - "você larga sem nada: abra o baú da sua ilha"
+    - "a espada é a mesma em toda ilha; o resto varia"
     - "a cúpula do meio cai na hora marcada"
+    - "só no meio a espada sobe de nível"
     - "só se quebra o bloco que alguém colocou"
     - "o anel cai no fim, uma ilha de cada vez, em ordem"
     - "o vazio não perdoa, e tem autor"

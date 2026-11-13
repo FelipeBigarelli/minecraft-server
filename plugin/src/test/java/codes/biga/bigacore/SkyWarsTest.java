@@ -1,5 +1,6 @@
 package codes.biga.bigacore;
 
+import org.bukkit.Material;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -22,16 +23,29 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * As contas do SKY WARS, conferidas sem servidor.
  *
- * <h2>Os dois testes que valem mais aqui</h2>
+ * <h2>Os testes que valem mais aqui</h2>
  *
- * {@link #oKitQueMataDeDoisGolpesEhRecusado} e
- * {@link #oKitQueBateMaisQueODobroEhRecusado} são o par que justifica este
- * jogo não entregar o kit no baú como todo Sky Wars entrega. A reclamação do
- * gênero tem nome próprio nos fóruns dos jogadores — SEE, <i>Skywars
- * Equipment Equality</i> — e ela não é "o baú é injusto" no abstrato: é que o
- * baú bom mata o baú ruim em dois golpes, e não há jogada que conserte dois
- * golpes. Os dois testes põem número nisso: o melhor nível precisa de três
- * golpes cheios, e não pode bater mais que o dobro do pior.
+ * {@link #oPisoDoBauEhGarantidoEmTodoSorteio} é o principal, e ele guarda a
+ * correção de um erro de desenho que já foi para produção. A primeira versão
+ * desta arena NÃO tinha baú nas ilhas: o kit chegava na mão de todo mundo,
+ * igual. A intenção era atacar a reclamação mais antiga do gênero — que tem
+ * nome próprio nos fóruns dos jogadores, SEE, <i>Skywars Equipment
+ * Equality</i> — e o resultado foi outro jogo, porque sem baú não existe o
+ * saque e o saque é os quinze primeiros segundos de toda partida.
+ *
+ * <p>O baú voltou e a loteria é cercada como os próprios jogadores propõem:
+ * garantindo o PISO. Dez mil sorteios depois, todo baú tem espada, comida,
+ * armadura e blocos de ponte bastantes para ir ao vizinho e voltar — e
+ * {@link #doisBausQuaseNuncaAbremAMesmaCoisa} garante o outro lado, que é o
+ * baú ainda ter o que revelar.
+ *
+ * <p>{@link #oSaqueQueMataDeDoisGolpesEhRecusado} e
+ * {@link #oSaqueQueBateMaisQueODobroEhRecusado} põem número nas duas pontas
+ * do equipamento: o melhor nível precisa de três golpes cheios, e não pode
+ * bater mais que o dobro do pior. E
+ * {@link #aLutaQueNaoAcabaEhRecusada} põe a ponta de cima, que é nova e veio
+ * junto com a armadura: a pior espada ainda tem de derrubar o conjunto
+ * completo do melhor nível antes de o anel cair debaixo dos dois.
  *
  * <p>{@link #aCupulaQueCaiAntesDaTravessiaEhRecusada} é o terceiro. A cúpula
  * sobre o meio é a proposta dos próprios jogadores contra "quem faz ponte
@@ -69,6 +83,24 @@ class SkyWarsTest {
     private static final List<Integer> DANOS = List.of(14, 18, 22, 26);
     private static final List<Integer> BLOCOS = List.of(24, 28, 32, 40);
     private static final List<Integer> FLECHAS = List.of(0, 6, 10, 16);
+    private static final List<String> ARMADURAS = List.of("LEATHER",
+            "CHAINMAIL", "IRON", "DIAMOND");
+    private static final List<Integer> REDUCOES = List.of(4, 6, 8, 10);
+    private static final int REDUCAO_MAXIMA = 40;
+
+    private static final int BAUS_DA_ILHA = 2;
+    private static final int ARM_MINIMA = 1;
+    private static final int ARM_MAXIMA = 2;
+    private static final int BLOCOS_GARANTIDOS = 24;
+    private static final int BLOCOS_EXTRAS = 16;
+    private static final int CHANCE_ARCO = 40;
+    private static final int CHANCE_CURA = 25;
+    private static final int CURAS_NA_ILHA = 1;
+    private static final int COMIDA = 3;
+    private static final int DANO_DO_SOCO = 6;
+
+    /** Quantos sorteios de baú o teste roda. */
+    private static final int SORTEIOS = 10000;
 
     /** A travessia do anel até a beira do meio, em blocos de ponte. */
     private static final int TRAVESSIA = ANEL - RAIO - MEIO_RAIO;
@@ -108,17 +140,46 @@ class SkyWarsTest {
         assertEquals(DANOS, arena.getIntegerList("niveis.dano"));
         assertEquals(BLOCOS, arena.getIntegerList("niveis.blocos"));
         assertEquals(FLECHAS, arena.getIntegerList("niveis.flechas"));
+        assertEquals(ARMADURAS, arena.getStringList("niveis.armadura"));
+        assertEquals(REDUCOES, arena.getIntegerList("niveis.reducao"));
+        assertEquals(REDUCAO_MAXIMA, arena.getInt("regras.reducao-maxima"));
+        assertEquals(DANO_DO_SOCO, arena.getInt("regras.dano-do-soco"));
+        assertEquals(BAUS_DA_ILHA, arena.getInt("arena.baus-da-ilha"));
+        assertEquals(ARM_MINIMA, arena.getInt("saque.armadura-minima"));
+        assertEquals(ARM_MAXIMA, arena.getInt("saque.armadura-maxima"));
+        assertEquals(BLOCOS_GARANTIDOS, arena.getInt("saque.blocos-garantidos"));
+        assertEquals(BLOCOS_EXTRAS, arena.getInt("saque.blocos-extras"));
+        assertEquals(CHANCE_ARCO, arena.getInt("saque.chance-de-arco"));
+        assertEquals(CHANCE_CURA, arena.getInt("saque.chance-de-cura"));
+        assertEquals(CURAS_NA_ILHA, arena.getInt("saque.curas-na-ilha"));
+        assertEquals(COMIDA, arena.getInt("saque.comida"));
+        assertTrue(arena.getInt("arena.baus-da-ilha") >= 1,
+                "sem baú na ilha não existe o saque, e foi esse o erro que "
+                        + "esta arena já cometeu uma vez");
     }
 
     @Test
-    @DisplayName("os números do yml passam nas três conferências")
+    @DisplayName("os números do yml passam nas quatro conferências")
     void ymlPassaNasConferencias() {
-        assertNull(SkyWarsBuilder.conferirNiveis(ESPADAS, DANOS, BLOCOS,
-                FLECHAS, VIDA_CHEIA));
+        assertNull(niveis(ESPADAS, DANOS, BLOCOS, FLECHAS));
+        assertNull(SkyWarsBuilder.conferirSaque(ARM_MINIMA, ARM_MAXIMA,
+                BLOCOS_GARANTIDOS, BLOCOS_EXTRAS, CHANCE_ARCO, CHANCE_CURA,
+                COMIDA, vao(), DANO_DO_SOCO, DANOS));
         assertNull(SkyWarsBuilder.conferirIlhas(ILHAS, ANEL, RAIO, MEIO_RAIO,
-                BLOCOS));
+                BLOCOS_GARANTIDOS, BAUS_DA_ILHA));
         assertNull(SkyWarsBuilder.conferirRelogio(PARA_O_MEIO, CERCO,
                 POR_ILHA, ILHAS, TEMPO_LIMITE, TRAVESSIA));
+    }
+
+    /** Atalho: as seis listas, com armadura e redução do yml. */
+    private static String niveis(List<String> espadas, List<Integer> danos,
+                                 List<Integer> blocos, List<Integer> flechas) {
+        return SkyWarsBuilder.conferirNiveis(espadas, danos, blocos, flechas,
+                ARMADURAS, REDUCOES, VIDA_CHEIA, REDUCAO_MAXIMA);
+    }
+
+    private static double vao() {
+        return SkyWarsCatalog.vaoEntreIlhas(ILHAS, ANEL, RAIO);
     }
 
     @Test
@@ -138,7 +199,7 @@ class SkyWarsTest {
     }
 
     // ------------------------------------------------------------------
-    //  Os níveis de kit — o coração do jogo
+    //  Os níveis de saque — o coração do jogo
     // ------------------------------------------------------------------
 
     /**
@@ -150,11 +211,10 @@ class SkyWarsTest {
      * resto do jogo pode confiar que pegar o meio é bom e não é tudo.
      */
     @Test
-    @DisplayName("o kit que mata de dois golpes é recusado")
-    void oKitQueMataDeDoisGolpesEhRecusado() {
+    @DisplayName("o saque que mata de dois golpes é recusado")
+    void oSaqueQueMataDeDoisGolpesEhRecusado() {
         List<Integer> brabo = List.of(14, 20, 30, 40);
-        String erro = SkyWarsBuilder.conferirNiveis(ESPADAS, brabo, BLOCOS,
-                FLECHAS, VIDA_CHEIA);
+        String erro = niveis(ESPADAS, brabo, BLOCOS, FLECHAS);
         assertNotNull(erro, "40 de dano contra 100 de vida derruba em 2,5 "
                 + "golpes e tinha de ser recusado");
         assertTrue(erro.contains("2.5"), "o erro tem de dizer em quantos "
@@ -165,11 +225,10 @@ class SkyWarsTest {
     }
 
     @Test
-    @DisplayName("o kit que bate mais que o dobro do pior é recusado")
-    void oKitQueBateMaisQueODobroEhRecusado() {
+    @DisplayName("o saque que bate mais que o dobro do pior é recusado")
+    void oSaqueQueBateMaisQueODobroEhRecusado() {
         List<Integer> esticado = List.of(10, 14, 18, 22);
-        assertNotNull(SkyWarsBuilder.conferirNiveis(ESPADAS, esticado, BLOCOS,
-                        FLECHAS, VIDA_CHEIA),
+        assertNotNull(niveis(ESPADAS, esticado, BLOCOS, FLECHAS),
                 "22 contra 10 é 2,2 vezes e tinha de ser recusado");
 
         double razao = DANOS.get(DANOS.size() - 1) / (double) DANOS.get(0);
@@ -182,24 +241,29 @@ class SkyWarsTest {
     @Test
     @DisplayName("a lista de nível que desce é recusada")
     void aListaQueDesceEhRecusada() {
-        assertNotNull(SkyWarsBuilder.conferirNiveis(ESPADAS,
-                List.of(14, 18, 16, 22), BLOCOS, FLECHAS, VIDA_CHEIA),
+        assertNotNull(niveis(ESPADAS, List.of(14, 18, 16, 22), BLOCOS, FLECHAS),
                 "dano descendo do nível 2 para o 3");
-        assertNotNull(SkyWarsBuilder.conferirNiveis(ESPADAS, DANOS,
-                List.of(24, 28, 20, 40), FLECHAS, VIDA_CHEIA),
+        assertNotNull(niveis(ESPADAS, DANOS, List.of(24, 28, 20, 40), FLECHAS),
                 "blocos descendo");
-        assertNotNull(SkyWarsBuilder.conferirNiveis(ESPADAS, DANOS, BLOCOS,
-                List.of(0, 6, 4, 16), VIDA_CHEIA),
+        assertNotNull(niveis(ESPADAS, DANOS, BLOCOS, List.of(0, 6, 4, 16)),
                 "flechas descendo");
+        assertNotNull(SkyWarsBuilder.conferirNiveis(ESPADAS, DANOS, BLOCOS,
+                        FLECHAS, ARMADURAS, List.of(4, 6, 5, 10), VIDA_CHEIA,
+                        REDUCAO_MAXIMA),
+                "redução descendo: vestir o conjunto do meio PIORARIA a "
+                        + "defesa de quem o pegou, e nada no yml pareceria errado");
     }
 
     @Test
-    @DisplayName("as quatro listas de nível têm de ter o mesmo tamanho")
+    @DisplayName("as seis listas de nível têm de ter o mesmo tamanho")
     void aListaCurtaEhRecusada() {
-        assertNotNull(SkyWarsBuilder.conferirNiveis(ESPADAS,
-                List.of(14, 18, 22), BLOCOS, FLECHAS, VIDA_CHEIA),
+        assertNotNull(niveis(ESPADAS, List.of(14, 18, 22), BLOCOS, FLECHAS),
                 "três danos para quatro espadas: o quarto nível leria o "
                         + "último da lista em silêncio");
+        assertNotNull(SkyWarsBuilder.conferirNiveis(ESPADAS, DANOS, BLOCOS,
+                        FLECHAS, List.of("LEATHER", "IRON"), REDUCOES,
+                        VIDA_CHEIA, REDUCAO_MAXIMA),
+                "duas armaduras para quatro espadas");
     }
 
     @Test
@@ -207,21 +271,131 @@ class SkyWarsTest {
     void aEspadaInventadaEhRecusada() {
         List<String> torta = List.of("WOODEN_SWORD", "STONE_SWORD",
                 "ESPADA_DE_PEDRA_SABAO", "DIAMOND_SWORD");
-        assertNotNull(SkyWarsBuilder.conferirNiveis(torta, DANOS, BLOCOS,
-                        FLECHAS, VIDA_CHEIA),
+        assertNotNull(niveis(torta, DANOS, BLOCOS, FLECHAS),
                 "nome inventado entregaria espada de madeira sem avisar");
+    }
+
+    @Test
+    @DisplayName("a família de armadura incompleta é recusada")
+    void aArmaduraIncompletaEhRecusada() {
+        // TURTLE só existe como capacete: um nível com ela entregaria uma
+        // peça onde o nível de baixo entrega quatro.
+        assertNotNull(SkyWarsBuilder.conferirNiveis(ESPADAS, DANOS, BLOCOS,
+                        FLECHAS, List.of("LEATHER", "CHAINMAIL", "TURTLE",
+                                "DIAMOND"), REDUCOES, VIDA_CHEIA,
+                        REDUCAO_MAXIMA),
+                "a tartaruga só tem capacete e o nível dela daria menos "
+                        + "armadura que o de baixo");
+        for (String familia : ARMADURAS) {
+            assertEquals(SkyWarsCatalog.PECAS.size(),
+                    SkyWarsCatalog.pecasDaFamilia(familia).size(),
+                    "a família " + familia + " não tem as quatro peças");
+        }
+    }
+
+    /**
+     * A ponta de CIMA, que é nova e veio junto com a armadura.
+     *
+     * As duas pontas antigas cuidam do atacante forte demais. Esta cuida do
+     * contrário, que a armadura trouxe: a vítima dura demais. Duas pessoas
+     * trocando golpes sem resultado até o anel cair debaixo delas não é
+     * empate, é o jogo travando — e nada no yml pareceria errado.
+     */
+    @Test
+    @DisplayName("a luta que não acaba é recusada")
+    void aLutaQueNaoAcabaEhRecusada() {
+        String erro = SkyWarsBuilder.conferirNiveis(ESPADAS, DANOS, BLOCOS,
+                FLECHAS, ARMADURAS, List.of(18, 20, 22, 24), VIDA_CHEIA, 90);
+        assertNotNull(erro, "24% por peça com teto de 90% deixa o conjunto "
+                + "aparando 90% e a pior espada tirando 1 por golpe");
+
+        // E o do yml acaba: o conjunto completo de diamante apara 40%, e a
+        // pior espada ainda derruba em menos de doze golpes.
+        double blindagem = SkyWarsCatalog.reducaoTotal(
+                SkyWarsCatalog.PECAS.size(),
+                REDUCOES.get(REDUCOES.size() - 1), REDUCAO_MAXIMA);
+        assertEquals(0.40, blindagem, 1e-9, "quatro peças de 10% com teto de "
+                + REDUCAO_MAXIMA + "% têm de dar 40%");
+        double golpes = SkyWarsCatalog.golpesPara(VIDA_CHEIA, DANOS.get(0),
+                blindagem);
+        assertTrue(golpes <= 14, "a pior espada precisa de " + golpes
+                + " golpes contra o conjunto completo, e o teto é 14");
+        assertTrue(golpes >= 5, "a pior espada derruba o conjunto completo em "
+                + golpes + " golpes: com tão pouco, vestir as quatro peças do "
+                + "meio não vale a travessia");
+
+        // Esse é o canto extremo — espada de madeira contra diamante cheio, e
+        // quem está de madeira DEVE perder essa. A luta que acontece de
+        // verdade é entre dois do nível da partida, e ela é curta: com duas
+        // peças do próprio nível, a conta fica entre quatro e sete golpes.
+        for (int nivel = 0; nivel < DANOS.size(); nivel++) {
+            double pelado = SkyWarsCatalog.golpesPara(VIDA_CHEIA,
+                    DANOS.get(nivel), 0);
+            double parelha = SkyWarsCatalog.golpesPara(VIDA_CHEIA,
+                    DANOS.get(nivel), SkyWarsCatalog.reducaoTotal(ARM_MAXIMA,
+                            REDUCOES.get(nivel), REDUCAO_MAXIMA));
+            assertTrue(parelha >= 3.0 && parelha <= 8.0, "dois jogadores do "
+                    + "nível " + nivel + ", cada um com " + ARM_MAXIMA
+                    + " peças do próprio nível, levam " + parelha
+                    + " golpes para se derrubar — a luta parelha tem de ficar "
+                    + "entre três e oito golpes, que é onde o tempo do golpe "
+                    + "ainda é a habilidade que decide");
+            // E a armadura do próprio nível acrescenta pouco: ela é uma
+            // vantagem de verdade sem ser a diferença entre ganhar e perder.
+            // Antes de a armadura existir, estas lutas já levavam de 3,8 a
+            // 7,1 golpes — a armadura não pode ser o que mudou o jogo.
+            assertTrue(parelha <= pelado * 1.3, "no nível " + nivel
+                    + " as " + ARM_MAXIMA + " peças do baú da ilha esticam a "
+                    + "luta de " + Math.round(pelado * 100) / 100.0 + " para "
+                    + Math.round(parelha * 100) / 100.0 + " golpes, que é "
+                    + Math.round(parelha / pelado * 100) + "% a mais: acima "
+                    + "de trinta por cento, quem abriu o baú com duas peças "
+                    + "ganha de quem abriu com uma antes de qualquer jogada");
+        }
+    }
+
+    @Test
+    @DisplayName("a armadura apara, mas nunca zera o dano")
+    void aArmaduraNuncaZera() {
+        for (int dano = 1; dano <= 40; dano++) {
+            for (int pecas = 0; pecas <= SkyWarsCatalog.PECAS.size(); pecas++) {
+                for (int porPeca : REDUCOES) {
+                    int sobra = SkyWarsCatalog.danoComArmadura(dano,
+                            SkyWarsCatalog.reducaoTotal(pecas, porPeca,
+                                    REDUCAO_MAXIMA));
+                    assertTrue(sobra >= 1, "dano " + dano + " com " + pecas
+                            + " peça(s) de " + porPeca + "% virou " + sobra
+                            + ": armadura é vantagem, não imunidade — com "
+                            + "zero, dois jogadores de armadura cheia ficariam "
+                            + "se batendo até o anel cair");
+                    assertTrue(sobra <= dano, "a armadura aumentou o dano");
+                }
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("o teto da redução vale mesmo com mais peças que as quatro")
+    void oTetoDaReducaoVale() {
+        assertEquals(REDUCAO_MAXIMA / 100.0,
+                SkyWarsCatalog.aparo(1000, REDUCAO_MAXIMA), 1e-9,
+                "sem teto, um yml com dez por cento a mais por peça faria a "
+                        + "vítima virar parede");
+        assertEquals(0.0, SkyWarsCatalog.aparo(-5, REDUCAO_MAXIMA), 1e-9,
+                "redução negativa não pode virar dano extra");
     }
 
     @Test
     @DisplayName("um nível só é recusado, porque o meio não teria para onde subir")
     void umNivelSoEhRecusado() {
         assertNotNull(SkyWarsBuilder.conferirNiveis(List.of("IRON_SWORD"),
-                List.of(22), List.of(32), List.of(10), VIDA_CHEIA));
+                List.of(22), List.of(32), List.of(10), List.of("IRON"),
+                List.of(8), VIDA_CHEIA, REDUCAO_MAXIMA));
     }
 
     @Test
-    @DisplayName("o kit da partida nunca é o melhor nível, e o meio é um acima")
-    void oKitDaPartidaDeixaOMelhorParaOMeio() {
+    @DisplayName("o nível da partida nunca é o melhor, e o meio é um acima")
+    void oNivelDaPartidaDeixaOMelhorParaOMeio() {
         Random sorteio = new Random(20261112L);
         Set<Integer> vistos = new HashSet<>();
         for (int k = 0; k < 4000; k++) {
@@ -308,25 +482,329 @@ class SkyWarsTest {
     @Test
     @DisplayName("o pior kit atravessa para o vizinho e tem com que voltar")
     void oPiorKitAtravessaEVolta() {
-        double vao = SkyWarsCatalog.vaoEntreIlhas(ILHAS, ANEL, RAIO);
-        assertTrue(BLOCOS.get(0) >= Math.ceil(vao) * 2,
-                "o pior kit dá " + BLOCOS.get(0) + " blocos e o vão pede "
+        double vao = vao();
+        assertTrue(BLOCOS_GARANTIDOS >= Math.ceil(vao) * 2,
+                "o baú garante " + BLOCOS_GARANTIDOS + " blocos e o vão pede "
                         + Math.ceil(vao) + ": sem o dobro, atravessar deixa "
                         + "de ser decisão e vira aposta");
         assertNotNull(SkyWarsBuilder.conferirIlhas(ILHAS, ANEL, RAIO,
-                        MEIO_RAIO, List.of(10, 14, 18, 22)),
-                "dez blocos não dão nem a ida");
+                        MEIO_RAIO, 10, BAUS_DA_ILHA),
+                "dez blocos garantidos não dão nem a ida");
+        assertNotNull(SkyWarsBuilder.conferirSaque(ARM_MINIMA, ARM_MAXIMA, 10,
+                        BLOCOS_EXTRAS, CHANCE_ARCO, CHANCE_CURA, COMIDA, vao,
+                        DANO_DO_SOCO, DANOS),
+                "um baú que deixa quem o abriu preso na própria ilha não é um "
+                        + "baú ruim, é um bug");
     }
 
     @Test
     @DisplayName("o anel apertado e o anel largo demais são recusados")
     void oAnelForaDeMedidaEhRecusado() {
         assertNotNull(SkyWarsBuilder.conferirIlhas(ILHAS, 20, RAIO, MEIO_RAIO,
-                BLOCOS), "anel de 20 com meio de 9 encosta no meio");
+                BLOCOS_GARANTIDOS, BAUS_DA_ILHA),
+                "anel de 20 com meio de 9 encosta no meio");
         assertNotNull(SkyWarsBuilder.conferirIlhas(40, ANEL, RAIO, MEIO_RAIO,
-                BLOCOS), "quarenta ilhas num anel de 44 ficam encostadas");
+                BLOCOS_GARANTIDOS, BAUS_DA_ILHA),
+                "quarenta ilhas num anel de 44 ficam encostadas");
         assertNotNull(SkyWarsBuilder.conferirIlhas(4, ANEL, RAIO, MEIO_RAIO,
-                BLOCOS), "quatro ilhas num anel de 44 ficam longe demais");
+                BLOCOS_GARANTIDOS, BAUS_DA_ILHA),
+                "quatro ilhas num anel de 44 ficam longe demais");
+        assertNotNull(SkyWarsBuilder.conferirIlhas(ILHAS, ANEL, 2, MEIO_RAIO,
+                BLOCOS_GARANTIDOS, BAUS_DA_ILHA),
+                "ilha de raio 2 não tem onde pôr baú sem encostar na beira, e "
+                        + "baú na beira some junto com a ilha no cerco");
+    }
+
+    // ------------------------------------------------------------------
+    //  O BAÚ DA ILHA — a correção
+    // ------------------------------------------------------------------
+
+    /**
+     * O piso do baú é garantido em TODO sorteio.
+     *
+     * Este é o teste que guarda a correção. A primeira versão desta arena não
+     * tinha baú nas ilhas — o kit chegava na mão de todo mundo, igual — e a
+     * intenção era atacar a reclamação mais antiga do gênero. O resultado era
+     * outro jogo: sem baú não existe o saque, e o saque é os quinze primeiros
+     * segundos de toda partida de Sky Wars.
+     *
+     * <p>O baú voltou e a loteria é cercada como os próprios jogadores do
+     * gênero propõem — garantindo o PISO, não apagando o sorteio. Dez mil
+     * sorteios: não pode existir um só que deixe alguém sem espada, sem
+     * comida, sem armadura ou sem ponte para sair da ilha.
+     */
+    @Test
+    @DisplayName("o piso do baú é garantido em todo sorteio")
+    void oPisoDoBauEhGarantidoEmTodoSorteio() {
+        Random sorteio = new Random(20261113L);
+        int precisaParaIrEVoltar = (int) Math.ceil(vao()) * 2;
+        for (int k = 0; k < SORTEIOS; k++) {
+            int nivel = SkyWarsCatalog.nivelDaPartida(ESPADAS.size(), sorteio);
+            SkyWarsCatalog.Saque saque = sorteia(nivel, sorteio);
+
+            assertNotNull(saque.espada(), "sorteio " + k + ": baú sem espada");
+            assertTrue(saque.espada().name().endsWith("_SWORD"),
+                    "sorteio " + k + ": o baú deu " + saque.espada()
+                            + " no lugar de uma espada");
+            assertTrue(saque.armadura().size() >= ARM_MINIMA,
+                    "sorteio " + k + ": o baú deu " + saque.armadura().size()
+                            + " peça(s) de armadura e o mínimo é " + ARM_MINIMA
+                            + " — quem abrir esse baú perde a partida por "
+                            + "sorteio, que é a reclamação do gênero");
+            assertTrue(saque.blocos() >= precisaParaIrEVoltar,
+                    "sorteio " + k + ": o baú deu " + saque.blocos()
+                            + " blocos e ir ao vizinho e voltar pede "
+                            + precisaParaIrEVoltar + " — esse baú deixa quem "
+                            + "o abriu preso na ilha, esperando o anel cair");
+            assertTrue(saque.comida() >= 1, "sorteio " + k + ": baú sem "
+                    + "comida — perder de fome por azar não é jogada de ninguém");
+        }
+    }
+
+    /**
+     * O baú NUNCA dá o conjunto completo, e a espada é a mesma em toda ilha.
+     *
+     * As duas metades da garantia, e elas puxam para lados opostos. A espada
+     * fixa é onde a reclamação do gênero morde: "um abre espada de ferro e o
+     * outro abre picareta de madeira" é sobre a ARMA. O conjunto que falta é o
+     * que mantém a ilha do meio valendo a travessia — uma ilha do anel que já
+     * desse as quatro peças tornaria o meio enfeite, e volta a outra
+     * reclamação, a de que o baú do meio é inútil e chato.
+     */
+    @Test
+    @DisplayName("o baú da ilha nunca dá o conjunto completo nem muda a espada")
+    void oBauDaIlhaNaoDaOConjuntoNemMudaAEspada() {
+        Random sorteio = new Random(777L);
+        for (int nivel = 0; nivel < ESPADAS.size(); nivel++) {
+            Material esperada = Material.matchMaterial(ESPADAS.get(nivel));
+            for (int k = 0; k < SORTEIOS / ESPADAS.size(); k++) {
+                SkyWarsCatalog.Saque saque = sorteia(nivel, sorteio);
+                assertEquals(esperada, saque.espada(), "no nível " + nivel
+                        + " um baú deu " + saque.espada() + " no lugar de "
+                        + esperada + ": a espada é a mesma em toda ilha, e é "
+                        + "nela que a garantia tem de morder");
+                assertTrue(saque.armadura().size() < SkyWarsCatalog.PECAS.size(),
+                        "um baú da ilha deu o conjunto completo: o conjunto é "
+                        + "o prêmio do meio, e uma ilha que já o desse "
+                        + "tornaria a travessia desnecessária");
+                assertTrue(saque.armadura().size() <= ARM_MAXIMA);
+                assertEquals(saque.armadura().size(),
+                        new HashSet<>(saque.armadura()).size(),
+                        "o baú deu a mesma peça duas vezes: a segunda não "
+                                + "veste e o jogador fica com uma peça a menos "
+                                + "do que o baú prometeu");
+            }
+        }
+    }
+
+    /**
+     * Dois baús quase nunca abrem a mesma coisa.
+     *
+     * É o outro lado da garantia e é tão necessário quanto ela. Um piso
+     * garantido sem sorteio por cima é o kit entregue na mão com um clique a
+     * mais — que foi exatamente o erro da versão anterior. O baú tem de ter o
+     * que revelar, senão abrir não é uma pergunta.
+     */
+    @Test
+    @DisplayName("dois baús quase nunca abrem a mesma coisa")
+    void doisBausQuaseNuncaAbremAMesmaCoisa() {
+        Random sorteio = new Random(31337L);
+        int iguais = 0;
+        int pares = 4000;
+        Set<String> vistos = new HashSet<>();
+        for (int k = 0; k < pares; k++) {
+            SkyWarsCatalog.Saque um = sorteia(1, sorteio);
+            SkyWarsCatalog.Saque outro = sorteia(1, sorteio);
+            if (assinatura(um).equals(assinatura(outro))) {
+                iguais++;
+            }
+            vistos.add(assinatura(um));
+        }
+        assertTrue(iguais * 4 < pares, "em " + pares + " pares de baús, "
+                + iguais + " abriram exatamente a mesma coisa: um piso "
+                + "garantido sem sorteio por cima é o kit entregue na mão com "
+                + "um clique a mais, que foi o erro da versão anterior");
+        assertTrue(vistos.size() >= 20, "o baú só sabe abrir " + vistos.size()
+                + " conteúdo(s) diferente(s): depois da segunda partida "
+                + "ninguém tem mais o que descobrir abrindo");
+    }
+
+    @Test
+    @DisplayName("o arco e a cura aparecem, e nem sempre")
+    void oArcoEACuraAparecemENemSempre() {
+        Random sorteio = new Random(4242L);
+        int comArco = 0;
+        int comCura = 0;
+        int quantos = 20000;
+        for (int k = 0; k < quantos; k++) {
+            // Nível 1: o 0 não tem flecha nenhuma, e um baú sem arco por
+            // falta de flecha não diz nada sobre a chance.
+            SkyWarsCatalog.Saque saque = sorteia(1, sorteio);
+            if (saque.arco()) {
+                comArco++;
+                assertTrue(saque.flechas() > 0, "veio arco sem flecha: um arco "
+                        + "sem flecha ocupa a mão e não é jogada nenhuma");
+            } else {
+                assertEquals(0, saque.flechas(), "vieram flechas sem arco");
+            }
+            if (saque.curas() > 0) {
+                comCura++;
+            }
+        }
+        double pctArco = 100.0 * comArco / quantos;
+        double pctCura = 100.0 * comCura / quantos;
+        assertTrue(Math.abs(pctArco - CHANCE_ARCO) < 3, "o arco saiu em "
+                + pctArco + "% dos baús e o yml pede " + CHANCE_ARCO + "%");
+        assertTrue(Math.abs(pctCura - CHANCE_CURA) < 3, "a cura saiu em "
+                + pctCura + "% dos baús e o yml pede " + CHANCE_CURA + "%");
+    }
+
+    @Test
+    @DisplayName("o nível 0 não promete flecha que não tem")
+    void oNivelZeroNaoPrometeFlecha() {
+        Random sorteio = new Random(5L);
+        for (int k = 0; k < 2000; k++) {
+            SkyWarsCatalog.Saque saque = sorteia(0, sorteio);
+            assertTrue(!saque.arco(), "o nível 0 tem 0 flechas no yml e mesmo "
+                    + "assim um baú dele veio com arco");
+        }
+    }
+
+    @Test
+    @DisplayName("o baú que sempre dá tudo e o baú que nunca varia são recusados")
+    void oBauSemSorteioEhRecusado() {
+        assertNotNull(SkyWarsBuilder.conferirSaque(2, 2, BLOCOS_GARANTIDOS,
+                        BLOCOS_EXTRAS, CHANCE_ARCO, CHANCE_CURA, COMIDA, vao(),
+                        DANO_DO_SOCO, DANOS),
+                "mínimo igual ao máximo: abrir o baú vira formalidade");
+        assertNotNull(SkyWarsBuilder.conferirSaque(ARM_MINIMA, ARM_MAXIMA,
+                        BLOCOS_GARANTIDOS, 0, CHANCE_ARCO, CHANCE_CURA, COMIDA,
+                        vao(), DANO_DO_SOCO, DANOS),
+                "sem blocos extras o baú não tem o que revelar no bloco");
+        assertNotNull(SkyWarsBuilder.conferirSaque(ARM_MINIMA, ARM_MAXIMA,
+                        BLOCOS_GARANTIDOS, BLOCOS_EXTRAS, 100, 100, COMIDA,
+                        vao(), DANO_DO_SOCO, DANOS),
+                "arco e cura sempre: é o kit na mão com um clique a mais");
+        assertNotNull(SkyWarsBuilder.conferirSaque(ARM_MINIMA, ARM_MAXIMA,
+                        BLOCOS_GARANTIDOS, BLOCOS_EXTRAS, 0, 0, COMIDA, vao(),
+                        DANO_DO_SOCO, DANOS),
+                "arco e cura nunca: tirando a armadura, todo baú é igual");
+        assertNotNull(SkyWarsBuilder.conferirSaque(0, ARM_MAXIMA,
+                        BLOCOS_GARANTIDOS, BLOCOS_EXTRAS, CHANCE_ARCO,
+                        CHANCE_CURA, COMIDA, vao(), DANO_DO_SOCO, DANOS),
+                "zero peças garantidas é o baú que faz perder por sorteio");
+        assertNotNull(SkyWarsBuilder.conferirSaque(ARM_MINIMA, 4,
+                        BLOCOS_GARANTIDOS, BLOCOS_EXTRAS, CHANCE_ARCO,
+                        CHANCE_CURA, COMIDA, vao(), DANO_DO_SOCO, DANOS),
+                "o conjunto completo na ilha do anel apaga o valor do meio");
+        assertNotNull(SkyWarsBuilder.conferirSaque(ARM_MINIMA, ARM_MAXIMA,
+                        BLOCOS_GARANTIDOS, BLOCOS_EXTRAS, CHANCE_ARCO,
+                        CHANCE_CURA, 0, vao(), DANO_DO_SOCO, DANOS),
+                "sem comida garantida dá para perder de fome por azar");
+    }
+
+    /**
+     * O soco existe porque todo mundo larga sem nada, e vale pouco de
+     * propósito.
+     *
+     * Com o baú de volta, o jogador cai na ilha de mãos vazias. Quem for
+     * rushado no segundo três tem de poder revidar — mas se o soco valesse
+     * perto da espada, abrir o baú deixaria de ser a primeira coisa a fazer e
+     * o saque perderia a razão de existir.
+     */
+    @Test
+    @DisplayName("o soco revida, mas não substitui o baú")
+    void oSocoRevidaMasNaoSubstituiOBau() {
+        assertTrue(DANO_DO_SOCO * 2 < DANOS.get(0), "o soco tira "
+                + DANO_DO_SOCO + " e a pior espada tira " + DANOS.get(0)
+                + ": com o soco valendo metade ou mais, correr para o baú "
+                + "deixa de ser a jogada de abertura");
+        assertTrue(DANO_DO_SOCO >= 1, "soco que não machuca deixa quem foi "
+                + "rushado antes de abrir o baú sem resposta nenhuma");
+        assertNotNull(SkyWarsBuilder.conferirSaque(ARM_MINIMA, ARM_MAXIMA,
+                        BLOCOS_GARANTIDOS, BLOCOS_EXTRAS, CHANCE_ARCO,
+                        CHANCE_CURA, COMIDA, vao(), 12, DANOS),
+                "soco de 12 contra espada de 14 faria o baú não valer a corrida");
+
+        // E o soco não derruba ninguém rápido: são muitos golpes.
+        double golpes = SkyWarsCatalog.golpesPara(VIDA_CHEIA, DANO_DO_SOCO, 0);
+        assertTrue(golpes >= 12, "o soco derruba em " + golpes + " golpes");
+    }
+
+    @Test
+    @DisplayName("os baús da ilha ficam na ilha, não se empilham e não encostam na beira")
+    void osBausDaIlhaCabemNaIlha() {
+        Set<String> todos = new HashSet<>();
+        for (int k = 0; k < ILHAS; k++) {
+            int[] centro = SkyWarsCatalog.centroDaIlha(k, ILHAS, ANEL);
+            assertNotNull(centro);
+            List<int[]> baus = SkyWarsCatalog.pontosDosBausDaIlha(k, ILHAS,
+                    ANEL, RAIO, BAUS_DA_ILHA);
+            assertEquals(BAUS_DA_ILHA, baus.size(), "a ilha " + k + " tem "
+                    + baus.size() + " baú(s) e o yml pede " + BAUS_DA_ILHA);
+            for (int[] onde : baus) {
+                int dx = onde[0] - centro[0];
+                int dz = onde[1] - centro[1];
+                assertTrue(ArenaComum.noDiscoMeio(dx, dz, RAIO - 1),
+                        "o baú em (" + dx + "," + dz + ") da ilha " + k
+                                + " está na beira: ele sumiria junto com a "
+                                + "ilha quando o cerco a derrubasse, com o "
+                                + "conteúdo dentro");
+                assertTrue(!(dx == 0 && dz == 0), "o baú da ilha " + k
+                        + " caiu em cima do marco, que ocupa o meio dela");
+                assertTrue(todos.add(onde[0] + ":" + onde[1]),
+                        "duas ilhas com baú no mesmo bloco do mundo: ("
+                                + onde[0] + "," + onde[1] + ")");
+            }
+        }
+        assertEquals(ILHAS * BAUS_DA_ILHA, todos.size());
+    }
+
+    @Test
+    @DisplayName("o conjunto completo de armadura só existe na ilha do meio")
+    void oConjuntoSoExisteNoMeio() {
+        for (String familia : ARMADURAS) {
+            List<Material> pecas = SkyWarsCatalog.pecasDaFamilia(familia);
+            assertEquals(SkyWarsCatalog.PECAS.size(), pecas.size());
+            assertEquals(pecas.size(), new HashSet<>(pecas).size(),
+                    "a família " + familia + " repetiu uma peça");
+        }
+        // O baú da ilha para no máximo em ARM_MAXIMA; o do meio dá as quatro.
+        assertTrue(ARM_MAXIMA < SkyWarsCatalog.PECAS.size(),
+                "a ilha do anel pode dar o conjunto completo e o meio deixa "
+                        + "de ter o que oferecer a quem já saqueou a própria "
+                        + "ilha");
+        // E o meio é um nível acima: as peças dele são de outra família.
+        for (int nivel = 0; nivel < ESPADAS.size() - 1; nivel++) {
+            int doMeio = SkyWarsCatalog.nivelDoMeio(nivel, ESPADAS.size());
+            assertTrue(doMeio > nivel, "o meio do nível " + nivel + " é "
+                    + doMeio);
+            assertTrue(!ARMADURAS.get(doMeio).equals(ARMADURAS.get(nivel)),
+                    "a armadura do meio é da mesma família da ilha no nível "
+                            + nivel + ": atravessar daria quatro peças iguais "
+                            + "às que já estavam no baú de casa");
+        }
+    }
+
+    /** A assinatura de um saque, para contar quantos conteúdos diferentes há. */
+    private static String assinatura(SkyWarsCatalog.Saque saque) {
+        List<String> pecas = new ArrayList<>();
+        for (Material peca : saque.armadura()) {
+            pecas.add(peca.name());
+        }
+        java.util.Collections.sort(pecas);
+        return saque.espada() + "|" + pecas + "|" + saque.blocos() + "|"
+                + saque.arco() + "|" + saque.flechas() + "|" + saque.curas();
+    }
+
+    /** Um sorteio de baú com os números do yml, no nível pedido. */
+    private static SkyWarsCatalog.Saque sorteia(int nivel, Random sorteio) {
+        return SkyWarsCatalog.sortearSaque(
+                Material.matchMaterial(ESPADAS.get(nivel)),
+                SkyWarsCatalog.pecasDaFamilia(ARMADURAS.get(nivel)),
+                ARM_MINIMA, ARM_MAXIMA, BLOCOS_GARANTIDOS, BLOCOS_EXTRAS,
+                CHANCE_ARCO, FLECHAS.get(nivel), CHANCE_CURA, CURAS_NA_ILHA,
+                COMIDA, sorteio);
     }
 
     @Test

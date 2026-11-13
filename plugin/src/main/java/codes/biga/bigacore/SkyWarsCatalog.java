@@ -8,14 +8,32 @@ import java.util.List;
 /**
  * A planta do SKY WARS.
  *
- * <h2>O kit é sorteado por partida, não por jogador</h2>
+ * <h2>O baú da ilha é o jogo, e a garantia é no PISO</h2>
  *
- * O defeito do gênero tem nome próprio nos fóruns dos jogadores — SEE,
- * <i>Skywars Equipment Equality</i> — e a reclamação é sempre a mesma: um abre
- * espada de ferro e armadura e o outro abre picareta de madeira. Aqui a ideia
- * vai até o fim: {@link #nivelDaPartida} sorteia UM nível e ele vale para
- * todas as ilhas. A variedade entre partidas fica, a loteria entre jogadores
- * não — e não há baú nas ilhas para saquear, o kit chega na mão.
+ * A primeira versão desta planta não tinha baú nas ilhas: o kit chegava na mão
+ * de todo mundo, igual, sorteado por partida. A intenção era atacar o defeito
+ * mais antigo do gênero — que tem nome próprio nos fóruns dos jogadores, SEE,
+ * <i>Skywars Equipment Equality</i>, e a reclamação é sempre a mesma: um abre
+ * espada de ferro e o outro abre picareta de madeira. O resultado foi outro
+ * jogo. Sem baú não existe o saque, e o saque é os quinze primeiros segundos
+ * de toda partida de Sky Wars.
+ *
+ * <p>O baú voltou, e a loteria é cercada como os próprios jogadores do gênero
+ * propõem: GARANTIR O PISO, não apagar o sorteio. A proposta de fórum sobre as
+ * pérolas do meio pede exatamente isso — que a menor quantidade que se pode
+ * achar seja garantida em pelo menos um baú.
+ *
+ * <ul>
+ *   <li>A ESPADA é a mesma em toda ilha: {@link #nivelDaPartida} sorteia UM
+ *       nível e ele vale para o anel inteiro. A reclamação do gênero é sobre a
+ *       ARMA, e é na arma que a garantia morde.</li>
+ *   <li>O RESTO varia, baú por baú: quantas peças de armadura, quantos blocos
+ *       acima do piso, se veio arco, se veio cura. É {@link #sortearSaque},
+ *       e é por isso que abrir o baú vale a pena.</li>
+ *   <li>O PISO é garantido: espada, comida, pelo menos uma peça e blocos
+ *       bastantes para ir ao vizinho E VOLTAR. Ninguém abre um baú que o
+ *       deixa preso.</li>
+ * </ul>
  *
  * <h2>O meio vale exatamente um nível</h2>
  *
@@ -55,6 +73,11 @@ public final class SkyWarsCatalog extends CatalogoDeArena {
 
     public int ilhaAltura() {
         return Math.max(1, config.getInt("arena.ilha-altura", 2));
+    }
+
+    /** Quantos baús tem cada ilha do anel. */
+    public int bausDaIlha() {
+        return Math.max(1, config.getInt("arena.baus-da-ilha", 2));
     }
 
     public int meioRaio() {
@@ -166,9 +189,46 @@ public final class SkyWarsCatalog extends CatalogoDeArena {
         return List.copyOf(saida);
     }
 
+    /** Os baús de uma ilha do anel, em coordenada do mundo. */
+    public List<int[]> pontosDosBausDaIlha(int k) {
+        return pontosDosBausDaIlha(k, ilhas(), ilhaAnel(), ilhaRaio(),
+                bausDaIlha());
+    }
+
+    /**
+     * Os baús de uma ilha, num anelzinho em volta do marco dela.
+     *
+     * Em volta do marco e não em cima dele: o marco é o que faz a ilha ser
+     * achada de longe e ele ocupa o meio. O anelzinho é de raio
+     * {@code raio - 2} — num raio 3 isso dá 1, que põe os baús encostados no
+     * marco, à vista de quem larga e sem encostar na beira. Baú na beira cai
+     * junto com a ilha no cerco e desaparece com o conteúdo dentro.
+     */
+    public static List<int[]> pontosDosBausDaIlha(int k, int ilhas, int anel,
+                                                  int raio, int quantos) {
+        int[] centro = centroDaIlha(k, ilhas, anel);
+        if (centro == null) {
+            return List.of();
+        }
+        List<int[]> saida = new ArrayList<>();
+        int anelzinho = Math.max(1, raio - 2);
+        for (int q = 0; q < Math.max(1, quantos); q++) {
+            double angulo = -Math.PI / 2 + 2 * Math.PI * q
+                    / Math.max(1, quantos);
+            saida.add(new int[]{
+                    centro[0] + (int) Math.round(Math.cos(angulo) * anelzinho),
+                    centro[1] + (int) Math.round(Math.sin(angulo) * anelzinho)});
+        }
+        return List.copyOf(saida);
+    }
+
     // ------------------------------------------------------------------
     //  Regras
     // ------------------------------------------------------------------
+
+    public int danoDoSoco() {
+        return Math.max(1, config.getInt("regras.dano-do-soco", 6));
+    }
 
     public int vidaCheia() {
         return Math.max(20, config.getInt("regras.vida-cheia", 100));
@@ -308,6 +368,180 @@ public final class SkyWarsCatalog extends CatalogoDeArena {
 
     public Material blocoDePonte() {
         return cor("bloco-de-ponte", Material.LIGHT_BLUE_CONCRETE);
+    }
+
+    public List<String> nivelArmadura() {
+        List<String> lista = config.getStringList("niveis.armadura");
+        return lista.isEmpty() ? List.of("LEATHER") : List.copyOf(lista);
+    }
+
+    public List<Integer> nivelReducao() {
+        List<Integer> lista = config.getIntegerList("niveis.reducao");
+        return lista.isEmpty() ? List.of(4) : List.copyOf(lista);
+    }
+
+    /** Quanto cada peça equipada do nível tira de dano, em porcento. */
+    public int reducaoDoNivel(int nivel) {
+        return daLista(nivelReducao(), nivel, 4);
+    }
+
+    /**
+     * O teto da redução somada, em porcento.
+     *
+     * Existe porque as peças somam e quatro peças do melhor nível somariam
+     * quarenta por cento — e um teto escrito é o que impede que mexer numa
+     * lista do yml transforme a vítima em parede. Sem ele, acrescentar um
+     * quinto nível de armadura faria a luta nunca acabar e nada no yml
+     * pareceria errado.
+     */
+    public int reducaoMaxima() {
+        return Math.max(0, Math.min(80, config.getInt("regras.reducao-maxima", 40)));
+    }
+
+    /** Uma soma de porcentagens virada em fração, com o teto aplicado. */
+    public static double aparo(int somaPorCento, int teto) {
+        return Math.min(Math.max(0, teto), Math.max(0, somaPorCento)) / 100.0;
+    }
+
+    /** A redução somada de tantas peças iguais, já com o teto aplicado. */
+    public static double reducaoTotal(int pecas, int porPeca, int teto) {
+        return aparo(Math.max(0, pecas) * Math.max(0, porPeca), teto);
+    }
+
+    /** O dano que sobra depois da armadura. Nunca zero: armadura não é imunidade. */
+    public static int danoComArmadura(int dano, double reducao) {
+        return Math.max(1, (int) Math.round(dano * (1.0 - reducao)));
+    }
+
+    /** Quantos golpes derrubam alguém de vida cheia, com tanta armadura. */
+    public static double golpesPara(int vida, int dano, double reducao) {
+        return vida / (double) danoComArmadura(dano, reducao);
+    }
+
+    /** A família de armadura do nível, como PREFIXO: IRON, DIAMOND... */
+    public String armaduraDoNivel(int nivel) {
+        List<String> lista = nivelArmadura();
+        return lista.get(Math.max(0, Math.min(lista.size() - 1, nivel)))
+                .trim().toUpperCase(java.util.Locale.ROOT);
+    }
+
+    /** As quatro peças da família, na ordem capacete, peito, calça, bota. */
+    public static List<Material> pecasDaFamilia(String familia) {
+        List<Material> saida = new ArrayList<>();
+        for (String peca : PECAS) {
+            Material qual = Material.matchMaterial(familia + "_" + peca);
+            if (qual != null) {
+                saida.add(qual);
+            }
+        }
+        return List.copyOf(saida);
+    }
+
+    /** Os sufixos das quatro peças, na ordem em que se vestem. */
+    public static final List<String> PECAS =
+            List.of("HELMET", "CHESTPLATE", "LEGGINGS", "BOOTS");
+
+    // ------------------------------------------------------------------
+    //  O saque do baú da ilha
+    // ------------------------------------------------------------------
+
+    public int armaduraMinima() {
+        return Math.max(0, Math.min(4, config.getInt("saque.armadura-minima", 1)));
+    }
+
+    public int armaduraMaxima() {
+        return Math.max(armaduraMinima(),
+                Math.min(4, config.getInt("saque.armadura-maxima", 2)));
+    }
+
+    public int blocosGarantidos() {
+        return Math.max(1, config.getInt("saque.blocos-garantidos", 24));
+    }
+
+    public int blocosExtras() {
+        return Math.max(0, config.getInt("saque.blocos-extras", 16));
+    }
+
+    public int chanceDeArco() {
+        return Math.max(0, Math.min(100, config.getInt("saque.chance-de-arco", 40)));
+    }
+
+    public int chanceDeCura() {
+        return Math.max(0, Math.min(100, config.getInt("saque.chance-de-cura", 25)));
+    }
+
+    public int curasNaIlha() {
+        return Math.max(1, config.getInt("saque.curas-na-ilha", 1));
+    }
+
+    public Material itemDeComida() {
+        return cor("item-de-comida", Material.COOKED_BEEF);
+    }
+
+    public int comida() {
+        return Math.max(1, config.getInt("saque.comida", 3));
+    }
+
+    /**
+     * O que um baú de ilha recebeu.
+     *
+     * Um registro e não quatro variáveis soltas porque é ele que o teste
+     * sorteia dez mil vezes para conferir o piso: a pergunta "existe algum
+     * sorteio que não dá espada?" só tem resposta se o sorteio devolver um
+     * valor em vez de mexer num inventário.
+     */
+    public record Saque(Material espada, List<Material> armadura, int blocos,
+                        boolean arco, int flechas, int curas, int comida) {
+    }
+
+    /**
+     * Sorteia o conteúdo de um baú de ilha.
+     *
+     * A estrutura é "piso garantido, sorteio por cima", e cada linha abaixo é
+     * de um dos dois lados:
+     *
+     * <ul>
+     *   <li>GARANTIDO: a espada do nível da partida — a mesma em toda ilha,
+     *       porque é na arma que a reclamação do gênero morde —, a comida, os
+     *       {@code blocosGarantidos} e {@code armaduraMinima} peças.</li>
+     *   <li>SORTEADO: quantas peças acima do mínimo (até
+     *       {@code armaduraMaxima}, nunca as quatro), QUAIS peças, quantos
+     *       blocos extras, se veio arco, se veio cura.</li>
+     * </ul>
+     *
+     * <p>Nada do que é sorteado sobe o dano da espada. É de propósito: o arco
+     * é outra jogada, a armadura é defesa com teto, e o bloco é mobilidade.
+     * Assim o baú pode ser mais sortudo que o do vizinho sem que isso decida
+     * a luta antes de ela começar — que é a reclamação que a primeira versão
+     * desta arena tentou resolver apagando o baú inteiro.
+     */
+    public static Saque sortearSaque(Material espada, List<Material> familia,
+                                     int minimo, int maximo, int blocosPiso,
+                                     int blocosExtras, int chanceArco,
+                                     int flechas, int chanceCura, int curas,
+                                     int comida, java.util.Random sorteio) {
+        int quantasPecas = minimo + (maximo > minimo
+                ? sorteio.nextInt(maximo - minimo + 1) : 0);
+        List<Material> baralho = new ArrayList<>(familia);
+        java.util.Collections.shuffle(baralho, sorteio);
+        List<Material> pecas = List.copyOf(baralho.subList(0,
+                Math.min(quantasPecas, baralho.size())));
+
+        int blocos = blocosPiso
+                + (blocosExtras > 0 ? sorteio.nextInt(blocosExtras + 1) : 0);
+        boolean temArco = flechas > 0 && sorteio.nextInt(100) < chanceArco;
+        int temCura = sorteio.nextInt(100) < chanceCura ? curas : 0;
+        return new Saque(espada, pecas, blocos, temArco,
+                temArco ? flechas : 0, temCura, comida);
+    }
+
+    /** O mesmo, com os números desta planta e o nível da partida. */
+    public Saque sortearSaque(int nivel, java.util.Random sorteio) {
+        return sortearSaque(espadaDoNivel(nivel),
+                pecasDaFamilia(armaduraDoNivel(nivel)), armaduraMinima(),
+                armaduraMaxima(), blocosGarantidos(), blocosExtras(),
+                chanceDeArco(), flechasDoNivel(nivel), chanceDeCura(),
+                curasNaIlha(), comida(), sorteio);
     }
 
     // ------------------------------------------------------------------

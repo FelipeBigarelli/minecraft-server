@@ -12,32 +12,42 @@ import java.util.List;
 /**
  * Levanta as ilhas do SKY WARS.
  *
- * <h2>A conferência que responde à reclamação mais antiga do gênero</h2>
+ * <h2>As três conferências, e o que cada uma evita</h2>
  *
- * {@link #conferirNiveis} é a resposta às duas reclamações OPOSTAS que os
+ * {@link #conferirNiveis} responde às duas reclamações OPOSTAS que os
  * jogadores fazem do baú do meio — "é inútil e chato" e "já dá vantagem
- * demais". As duas são a mesma pergunta, quanto o meio vale, e as duas pontas
- * cabem em dois números:
+ * demais". As duas são a mesma pergunta, quanto o meio vale, e as pontas
+ * cabem em três números:
  *
  * <ul>
  *   <li><b>O melhor nível ainda precisa de três golpes cheios</b> para
- *       derrubar alguém de vida cheia. Menos que isso e pegar o baú do meio
- *       não é vantagem, é a partida — quem chegou primeiro mata de dois
- *       golpes e não há jogada que conserte.</li>
- *   <li><b>O melhor não bate mais que o dobro do pior.</b> Acima disso o kit
- *       decide a luta antes de ela começar, e é exatamente a reclamação que
- *       deu nome a uma proposta de fórum (SEE, <i>Skywars Equipment
- *       Equality</i>).</li>
+ *       derrubar alguém de vida cheia e sem armadura. Menos que isso e pegar o
+ *       baú do meio não é vantagem, é a partida — quem chegou primeiro mata de
+ *       dois golpes e não há jogada que conserte.</li>
+ *   <li><b>O melhor não bate mais que o dobro do pior.</b> Acima disso o
+ *       equipamento decide a luta antes de ela começar, e é exatamente a
+ *       reclamação que deu nome a uma proposta de fórum (SEE, <i>Skywars
+ *       Equipment Equality</i>).</li>
+ *   <li><b>A pior espada ainda derruba o conjunto completo do melhor nível</b>
+ *       em menos de catorze golpes. É a ponta de cima, e ela é nova: com
+ *       armadura no baú, a luta pode deixar de acabar — e duas pessoas
+ *       trocando golpes sem resultado até o anel cair debaixo delas não é
+ *       empate, é o jogo travando.</li>
  * </ul>
  *
- * <p>E uma terceira, que não vem de reclamação nenhuma e sim de erro de
- * digitação: as quatro listas de nível têm de ter o mesmo tamanho e dano,
- * blocos e flechas nunca podem DESCER de um nível para o próximo. Sem isso,
- * "nível mais alto" pode ser pior que o mais baixo e nada no yml parece
- * errado.
+ * <p>E uma quarta exigência, que não vem de reclamação nenhuma e sim de erro
+ * de digitação: as seis listas de nível têm de ter o mesmo tamanho, e dano,
+ * blocos, flechas e redução nunca podem DESCER de um nível para o próximo.
+ * Sem isso, "nível mais alto" pode ser pior que o mais baixo e nada no yml
+ * parece errado — o baú do meio PIORARIA o equipamento de quem o pegou.
+ *
+ * <p>{@link #conferirSaque} cuida do baú da ilha: o piso garantido tem de dar
+ * para ir ao vizinho E VOLTAR, e o baú nunca pode dar o conjunto completo de
+ * armadura — o conjunto é o prêmio do meio, e uma ilha do anel que já o desse
+ * tornaria a travessia desnecessária.
  *
  * <p>{@link #conferirIlhas} mede o vão: a ponte entre vizinhas tem de ser
- * curta o bastante para alguém atravessar com o kit que recebeu, e longa o
+ * curta o bastante para alguém atravessar com o que achou no baú, e longa o
  * bastante para a travessia ser uma decisão.
  */
 public final class SkyWarsBuilder implements ConstrutorDeArena {
@@ -56,6 +66,17 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
     /** Quantos blocos de ponte o vão entre vizinhas pode pedir, no máximo. */
     private static final int VAO_MAXIMO = 16;
 
+    /**
+     * Em quantos golpes a PIOR espada ainda tem de derrubar o conjunto
+     * completo do melhor nível.
+     *
+     * Catorze golpes com o período de treze tiques são uns nove segundos de
+     * pancadaria sem errar — longo, e é para ser: é o teto, não a média.
+     * Acima disso a luta deixa de acabar, e duas pessoas trocando golpes sem
+     * resultado até o anel cair debaixo delas não é empate, é travamento.
+     */
+    private static final int GOLPES_MAXIMOS_DO_PIOR = 14;
+
     private final BigaCore plugin;
     private int contador;
 
@@ -73,11 +94,21 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
 
         String problema = conferirNiveis(planta.nivelEspada(),
                 planta.nivelDano(), planta.nivelBlocos(),
-                planta.nivelFlechas(), planta.vidaCheia());
+                planta.nivelFlechas(), planta.nivelArmadura(),
+                planta.nivelReducao(), planta.vidaCheia(),
+                planta.reducaoMaxima());
+        if (problema == null) {
+            problema = conferirSaque(planta.armaduraMinima(),
+                    planta.armaduraMaxima(), planta.blocosGarantidos(),
+                    planta.blocosExtras(), planta.chanceDeArco(),
+                    planta.chanceDeCura(), planta.comida(),
+                    planta.vaoEntreIlhas(), planta.danoDoSoco(),
+                    planta.nivelDano());
+        }
         if (problema == null) {
             problema = conferirIlhas(planta.ilhas(), planta.ilhaAnel(),
                     planta.ilhaRaio(), planta.meioRaio(),
-                    planta.nivelBlocos());
+                    planta.blocosGarantidos(), planta.bausDaIlha());
         }
         if (problema == null) {
             problema = conferirRelogio(planta.segundosParaOMeio(),
@@ -98,7 +129,12 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
                     + ". " + planta.ilhas() + " ilhas de raio "
                     + planta.ilhaRaio() + " no anel " + planta.ilhaAnel()
                     + ", com " + Math.round(planta.vaoEntreIlhas() * 10) / 10.0
-                    + " blocos de vão entre vizinhas. Meio de raio "
+                    + " blocos de vão entre vizinhas e " + planta.bausDaIlha()
+                    + " baú(s) por ilha (garantem espada, comida, "
+                    + planta.armaduraMinima() + "-" + planta.armaduraMaxima()
+                    + " peça(s) e " + planta.blocosGarantidos() + "-"
+                    + (planta.blocosGarantidos() + planta.blocosExtras())
+                    + " blocos). Meio de raio "
                     + planta.meioRaio() + " com " + planta.meioBaus()
                     + " baús sob cúpula de " + planta.cupulaAltura()
                     + " fiadas, que cai em " + planta.segundosParaOMeio()
@@ -177,23 +213,37 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
     //  Conferência — pura, para o teste rodar sem servidor
     // ------------------------------------------------------------------
 
-    /** Ver o cabeçalho da classe: as duas pontas do valor do baú do meio. */
+    /** Ver o cabeçalho da classe: as três pontas do valor do equipamento. */
     static String conferirNiveis(List<String> espadas, List<Integer> danos,
                                  List<Integer> blocos, List<Integer> flechas,
-                                 int vidaCheia) {
+                                 List<String> armaduras,
+                                 List<Integer> reducoes, int vidaCheia,
+                                 int reducaoMaxima) {
         int quantos = espadas.size();
         if (quantos < 2) {
-            return "Há " + quantos + " nível(is) de kit: com um só, o baú do "
+            return "Há " + quantos + " nível(is) de saque: com um só, o baú do "
                     + "meio não tem para onde subir e a ilha do meio vira "
                     + "enfeite.";
         }
         if (danos.size() != quantos || blocos.size() != quantos
-                || flechas.size() != quantos) {
+                || flechas.size() != quantos || armaduras.size() != quantos
+                || reducoes.size() != quantos) {
             return "As listas de nível têm tamanhos diferentes: " + quantos
                     + " espadas, " + danos.size() + " danos, " + blocos.size()
-                    + " contagens de bloco e " + flechas.size()
-                    + " de flecha. O nível que faltar seria lido do último da "
-                    + "lista, em silêncio.";
+                    + " contagens de bloco, " + flechas.size()
+                    + " de flecha, " + armaduras.size() + " armaduras e "
+                    + reducoes.size() + " reduções. O nível que faltar seria "
+                    + "lido do último da lista, em silêncio.";
+        }
+        for (String familia : armaduras) {
+            List<Material> pecas = SkyWarsCatalog.pecasDaFamilia(
+                    familia.trim().toUpperCase(java.util.Locale.ROOT));
+            if (pecas.size() != SkyWarsCatalog.PECAS.size()) {
+                return "A armadura '" + familia + "' só tem " + pecas.size()
+                        + " das " + SkyWarsCatalog.PECAS.size() + " peças "
+                        + "neste Minecraft: o baú daquele nível entregaria "
+                        + "menos armadura que o do nível de baixo, sem avisar.";
+            }
         }
         for (String nome : espadas) {
             if (Material.matchMaterial(nome.trim().toUpperCase()) == null) {
@@ -220,6 +270,20 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
                         + " flechas e o nível " + k + " dá "
                         + flechas.get(k - 1) + ".";
             }
+            if (reducoes.get(k) < reducoes.get(k - 1)) {
+                return "A armadura do nível " + (k + 1) + " tira "
+                        + reducoes.get(k) + "% por peça e a do nível " + k
+                        + " tira " + reducoes.get(k - 1) + "%: nível mais alto "
+                        + "tem de defender mais, senão vestir o conjunto do "
+                        + "meio PIORA a defesa de quem o pegou.";
+            }
+        }
+        for (int reducao : reducoes) {
+            if (reducao < 0 || reducao > 25) {
+                return "Uma peça tira " + reducao + "% de dano: acima de 25 "
+                        + "duas peças já passam de metade e a armadura deixa "
+                        + "de ser vantagem para ser imunidade.";
+            }
         }
         int melhor = danos.get(quantos - 1);
         int pior = danos.get(0);
@@ -239,21 +303,108 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
         if (razao > RAZAO_MAXIMA) {
             return "O melhor nível bate " + Math.round(razao * 100) / 100.0
                     + " vezes o pior, e o máximo é " + RAZAO_MAXIMA + ": "
-                    + "acima disso o kit decide a luta antes de ela começar, "
-                    + "que é a reclamação mais antiga do gênero.";
+                    + "acima disso o equipamento decide a luta antes de ela "
+                    + "começar, que é a reclamação mais antiga do gênero.";
+        }
+
+        // A ponta de cima: a pior espada contra o conjunto completo do melhor
+        // nível, que é o que alguém veste depois de saquear o meio.
+        double blindagem = SkyWarsCatalog.reducaoTotal(
+                SkyWarsCatalog.PECAS.size(), reducoes.get(quantos - 1),
+                reducaoMaxima);
+        double arrasto = SkyWarsCatalog.golpesPara(vidaCheia, pior, blindagem);
+        if (arrasto > GOLPES_MAXIMOS_DO_PIOR) {
+            return "A pior espada tira " + pior + " e o conjunto completo do "
+                    + "melhor nível apara " + Math.round(blindagem * 100)
+                    + "%, o que dá " + Math.round(arrasto * 10) / 10.0
+                    + " golpes para derrubar alguém — o máximo é "
+                    + GOLPES_MAXIMOS_DO_PIOR + ". Acima disso a luta deixa de "
+                    + "acabar, e duas pessoas trocando golpes sem resultado "
+                    + "até o anel cair debaixo delas não é empate, é o jogo "
+                    + "travando.";
         }
         return null;
     }
 
     /**
-     * A ponte entre vizinhas é curta, e dá para atravessar com o kit.
+     * O baú da ilha: o piso que ele garante e o teto que ele não passa.
      *
-     * O vão tem de caber nos blocos do PIOR nível com sobra, porque o pior
-     * nível é o que mais gente vai ter — e um jogador que gasta o kit inteiro
-     * para chegar na ilha do vizinho chega lá sem ter com que voltar.
+     * Duas exigências, e as duas vêm do mesmo lugar — da versão anterior
+     * desta arena, que tirou o baú das ilhas para acabar com a loteria e
+     * acabou com o saque junto. O baú voltou com o piso garantido, e é aqui
+     * que o piso é conferido.
+     */
+    static String conferirSaque(int minimo, int maximo, int blocosPiso,
+                                int blocosExtras, int chanceArco,
+                                int chanceCura, int comida, double vao,
+                                int danoDoSoco, List<Integer> danos) {
+        if (minimo < 1) {
+            return "O baú da ilha garante " + minimo + " peça(s) de armadura: "
+                    + "com zero, existe o baú que não dá defesa nenhuma, e "
+                    + "quem o abrir perde a partida por sorteio — que é "
+                    + "exatamente a reclamação do gênero.";
+        }
+        if (maximo < minimo) {
+            return "O baú da ilha dá no mínimo " + minimo + " peça(s) e no "
+                    + "máximo " + maximo + ".";
+        }
+        if (maximo >= SkyWarsCatalog.PECAS.size()) {
+            return "O baú da ilha pode dar " + maximo + " peças, que é o "
+                    + "conjunto completo: o conjunto é o prêmio da ilha do "
+                    + "meio, e uma ilha do anel que já o desse tornaria a "
+                    + "travessia desnecessária — volta a reclamação de que o "
+                    + "baú do meio é inútil e chato.";
+        }
+        if (maximo == minimo) {
+            return "O baú da ilha dá sempre " + minimo + " peça(s): sem "
+                    + "variação nenhuma, abrir o baú deixa de ser uma "
+                    + "pergunta e vira uma formalidade.";
+        }
+        int precisa = (int) Math.ceil(vao) * 2;
+        if (blocosPiso < precisa) {
+            return "O baú da ilha garante " + blocosPiso + " bloco(s) de "
+                    + "ponte e o vão até o vizinho pede " + precisa
+                    + " para ir e voltar: existe baú que deixa quem o abriu "
+                    + "preso na própria ilha, esperando o anel cair.";
+        }
+        if (blocosExtras <= 0) {
+            return "O baú da ilha dá sempre os mesmos " + blocosPiso
+                    + " blocos: é o piso sem sorteio nenhum por cima, e aí o "
+                    + "baú não tem o que revelar.";
+        }
+        if (chanceArco <= 0 && chanceCura <= 0) {
+            return "O baú da ilha nunca dá arco nem cura: tirando a armadura, "
+                    + "todas as ilhas abrem a mesma coisa.";
+        }
+        if (chanceArco >= 100 && chanceCura >= 100) {
+            return "O baú da ilha SEMPRE dá arco e cura: é o kit entregue na "
+                    + "mão com um clique a mais, que foi o erro da versão "
+                    + "anterior desta arena.";
+        }
+        if (comida < 1) {
+            return "O baú da ilha não garante comida: perder a partida de "
+                    + "fome por azar de baú não é jogada de ninguém.";
+        }
+        int pior = danos.isEmpty() ? 1 : danos.get(0);
+        if (danoDoSoco * 2 >= pior) {
+            return "O soco tira " + danoDoSoco + " e a pior espada tira "
+                    + pior + ": com o soco valendo metade ou mais da espada, "
+                    + "abrir o baú deixa de ser a primeira coisa a fazer e o "
+                    + "saque perde a razão de existir.";
+        }
+        return null;
+    }
+
+    /**
+     * A ponte entre vizinhas é curta, e dá para atravessar com o que o baú
+     * garante.
+     *
+     * Contra o piso GARANTIDO do baú e não contra o melhor sorteio: a conta
+     * tem de valer para a ilha mais azarada do anel, senão ela vale para
+     * ninguém.
      */
     static String conferirIlhas(int ilhas, int anel, int raio, int meioRaio,
-                                List<Integer> blocos) {
+                                int blocosGarantidos, int bausDaIlha) {
         if (anel - raio - meioRaio < 8) {
             return "Do anel até a beira do meio há "
                     + (anel - raio - meioRaio) + " blocos: tão perto que a "
@@ -273,13 +424,45 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
                     + VAO_MAXIMO + ": ninguém atravessa para o vizinho e "
                     + "todas as partidas acabam no meio.";
         }
-        int piorKit = blocos.isEmpty() ? 0 : blocos.get(0);
-        if (piorKit < Math.ceil(vao) * 2) {
-            return "O pior kit dá " + piorKit + " blocos e o vão para o "
-                    + "vizinho pede " + (int) Math.ceil(vao) + ": com menos "
+        if (blocosGarantidos < Math.ceil(vao) * 2) {
+            return "O baú garante " + blocosGarantidos + " blocos e o vão para "
+                    + "o vizinho pede " + (int) Math.ceil(vao) + ": com menos "
                     + "do dobro, quem atravessa chega sem ter com que "
                     + "voltar, e atravessar deixa de ser decisão para ser "
                     + "aposta.";
+        }
+        if (bausDaIlha < 1) {
+            return "A ilha tem " + bausDaIlha + " baú(s): sem baú não existe "
+                    + "o saque, e o saque é os quinze primeiros segundos de "
+                    + "toda partida de Sky Wars.";
+        }
+        // Os baús moram num anelzinho de raio (raio - 2) em volta do marco.
+        // Com raio 2 esse anelzinho encosta na beira, e baú na beira cai
+        // junto com a ilha no cerco, com o conteúdo dentro.
+        if (raio < 3) {
+            return "A ilha tem raio " + raio + ": não sobra anel entre o "
+                    + "marco do meio e a beira para pôr baú, e baú na beira "
+                    + "some junto com a ilha quando o cerco a derruba.";
+        }
+        java.util.Set<String> ondes = new java.util.HashSet<>();
+        for (int[] onde : SkyWarsCatalog.pontosDosBausDaIlha(0, ilhas, anel,
+                raio, bausDaIlha)) {
+            int[] centro = SkyWarsCatalog.centroDaIlha(0, ilhas, anel);
+            if (centro == null) {
+                continue;
+            }
+            int dx = onde[0] - centro[0];
+            int dz = onde[1] - centro[1];
+            if (!ArenaComum.noDiscoMeio(dx, dz, raio - 1)) {
+                return "Um baú da ilha cairia em (" + dx + "," + dz + "), que "
+                        + "está na beira de uma ilha de raio " + raio + ": "
+                        + "ele sumiria junto com a ilha no cerco.";
+            }
+            if (!ondes.add(dx + ":" + dz)) {
+                return "Dois baús da ilha cairiam no mesmo bloco (" + dx + ","
+                        + dz + "): a ilha teria " + bausDaIlha + " baús no yml "
+                        + "e menos que isso no chão.";
+            }
         }
         return null;
     }
@@ -358,6 +541,14 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
         por(mundo, centro[0], y + 1, centro[1], marco);
         por(mundo, centro[0], y + 2, centro[1],
                 planta.cor("poste-luz", Material.SEA_LANTERN));
+
+        // E os baús, encostados nele. Postos aqui e não numa passada
+        // separada porque a ilha e o baú dela nascem e morrem juntos: o
+        // cerco derruba a ilha inteira, e refazê-la tem de devolver os dois.
+        Material bau = planta.cor("bau", Material.CHEST);
+        for (int[] onde : planta.pontosDosBausDaIlha(k)) {
+            por(mundo, onde[0], y + 1, onde[1], bau);
+        }
     }
 
     /** Apaga uma ilha do anel: é isso que o cerco faz. */
@@ -492,15 +683,15 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
         int longe = Math.max(3, planta.meioRaio() - 1);
         List<List<Component>> textos = List.of(
                 List.of(plugin.mini().deserialize("<color:" + cor
-                                + "><b>O KIT</b></color>"),
-                        plugin.mini().deserialize("<white>é igual para</white>"),
-                        plugin.mini().deserialize("<white>todo mundo</white>"),
-                        plugin.mini().deserialize("<gray>sem loteria</gray>")),
+                                + "><b>A ESPADA</b></color>"),
+                        plugin.mini().deserialize("<white>é a mesma em</white>"),
+                        plugin.mini().deserialize("<white>toda ilha</white>"),
+                        plugin.mini().deserialize("<gray>o resto varia</gray>")),
                 List.of(plugin.mini().deserialize("<color:" + cor
-                                + "><b>O BAÚ</b></color>"),
-                        plugin.mini().deserialize("<white>só existe aqui</white>"),
-                        plugin.mini().deserialize("<white>e abre na hora</white>"),
-                        plugin.mini().deserialize("<gray>marcada</gray>")),
+                                + "><b>SÓ AQUI</b></color>"),
+                        plugin.mini().deserialize("<white>a espada sobe</white>"),
+                        plugin.mini().deserialize("<white>de nível, quando</white>"),
+                        plugin.mini().deserialize("<gray>a cúpula cai</gray>")),
                 List.of(plugin.mini().deserialize("<color:" + cor
                                 + "><b>A PONTE</b></color>"),
                         plugin.mini().deserialize("<white>só se quebra</white>"),

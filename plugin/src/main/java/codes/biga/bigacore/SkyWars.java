@@ -42,19 +42,33 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * O SKY WARS: uma ilha, uma chance.
+ * O SKY WARS: uma ilha, um baú, uma chance.
+ *
+ * <h2>O erro que esta classe já cometeu</h2>
+ *
+ * A primeira versão não tinha baú nas ilhas. O kit chegava na mão de todo
+ * mundo, igual, sorteado por partida, e a intenção era boa: atacar a
+ * reclamação mais antiga do gênero, que tem nome próprio nos fóruns dos
+ * jogadores — SEE, <i>Skywars Equipment Equality</i>. O resultado era outro
+ * jogo. Sem baú não existe o SAQUE, e o saque é os quinze primeiros segundos
+ * de toda partida de Sky Wars: cair, correr, abrir, ver o que veio e decidir
+ * ali se dá para rushar o vizinho ou se é melhor se fechar. Tirar o baú não
+ * consertou a loteria — apagou a abertura da partida.
+ *
+ * <p>Fica registrado porque o erro é sedutor: cada passo parecia uma melhora
+ * e a soma deles era um jogo diferente com o mesmo nome.
  *
  * <h2>Os três defeitos do gênero, e o que fazemos diferente</h2>
  *
  * <ul>
- *   <li><b>"O baú decide a partida."</b> A reclamação tem nome próprio nos
- *       fóruns dos jogadores — SEE, <i>Skywars Equipment Equality</i> — e um
- *       servidor grande já aceitou garantir armadura em todo baú. Aqui a
- *       ideia vai até o fim: NÃO HÁ BAÚ NAS ILHAS. {@link #darOKit} entrega o
- *       mesmo kit na mão de todo mundo, sorteado uma vez por PARTIDA. A
- *       variedade entre partidas fica, a loteria entre jogadores não — e de
- *       lambuja acaba a reclamação de que quem joga no celular saqueia mais
- *       devagar, porque não há o que saquear.</li>
+ *   <li><b>"O baú decide a partida."</b> O baú ficou, e a loteria é cercada
+ *       como os próprios jogadores do gênero propõem — garantindo o PISO em
+ *       vez de apagar o sorteio; a proposta de fórum sobre as pérolas do meio
+ *       pede exatamente que a menor quantidade achável seja garantida em pelo
+ *       menos um baú. A ESPADA é a mesma em toda ilha, porque a reclamação é
+ *       sobre a arma; o resto do baú varia, e é por isso que abrir vale a
+ *       pena. Ver {@link SkyWarsCatalog#sortearSaque} e
+ *       {@link SkyWarsBuilder#conferirSaque}.</li>
  *   <li><b>"Quem faz ponte rápido pega o baú do meio."</b> A proposta dos
  *       próprios jogadores é uma barreira em volta do meio que cai na hora
  *       marcada, e é o que {@link #abrirOMeio} faz. Chegar primeiro passa a
@@ -72,7 +86,7 @@ import java.util.UUID;
  * Sem essa regra, a primeira jogada de todo mundo é cavar a própria ilha para
  * virar bloco de ponte, e o anel desaparece antes de a partida começar — e
  * pior, quem cava mais rápido tem mais ponte, o que traz de volta pela porta
- * dos fundos a desigualdade que o kit igual tirou pela porta da frente.
+ * dos fundos a desigualdade que o piso garantido do baú fechou pela frente.
  * {@link #colocados} guarda o que foi posto e {@link #permiteQuebrar} só
  * deixa quebrar isso. O bloco de ponte é de outra cor justamente para a regra
  * ser visível no chão em vez de ser lida numa placa.
@@ -179,6 +193,7 @@ public final class SkyWars extends JogoDeArena {
 
         nivel = SkyWarsCatalog.nivelDaPartida(planta.quantosNiveis(), sorteio);
         nivelDoMeio = SkyWarsCatalog.nivelDoMeio(nivel, planta.quantosNiveis());
+        encherAsIlhas(mundo, planta);
         encherOsBaus(mundo, planta);
 
         ordemDaQueda = SkyWarsCatalog.ordemDaQueda(planta.ilhas(),
@@ -201,7 +216,7 @@ public final class SkyWars extends JogoDeArena {
             ilhaDe.put(id, ilha);
             jogador.teleport(SkyWarsBuilder.pontoDaIlha(mundo, planta, ilha));
             jogador.setFallDistance(0f);
-            darOKit(jogador, planta, nivel);
+            esvaziar(jogador);
             vida.put(id, planta.vidaCheia());
             quedas.put(id, 0);
             placar.entrar(id);
@@ -212,19 +227,18 @@ public final class SkyWars extends JogoDeArena {
     @Override
     protected void aoComecarRodada(World mundo) {
         SkyWarsCatalog planta = planta2();
-        anunciar("<gray>o kit é <white>igual para todos</white> e foi "
-                + "sorteado para esta partida: <white>"
-                + nomeBonito(planta.espadaDoNivel(nivel)) + "</white>, "
-                + "<white>" + planta.blocosDoNivel(nivel) + "</white> blocos "
-                + "de ponte" + (planta.flechasDoNivel(nivel) > 0
-                        ? " e <white>" + planta.flechasDoNivel(nivel)
-                                + "</white> flechas"
-                        : "") + ". Não há baú nas ilhas.</gray>");
+        anunciar("<gray>você largou <white>sem nada</white>: o saque está no "
+                + "<white>" + planta.bausDaIlha() + " baú(s)</white> da sua "
+                + "ilha. Esta partida saiu no nível <white>"
+                + nomeBonito(planta.espadaDoNivel(nivel)) + "</white> — a "
+                + "espada é <white>a mesma em toda ilha</white>, o resto do "
+                + "baú varia.</gray>");
         anunciar("<gray>o baú do meio tem <white>"
                 + nomeBonito(planta.espadaDoNivel(nivelDoMeio))
-                + "</white> e abre em <white>" + planta.segundosParaOMeio()
-                + "s</white>, quando a cúpula cair — chegar antes ganha "
-                + "<white>posição</white>, não o baú.</gray>");
+                + "</white> e o <white>conjunto de armadura</white>, e abre em "
+                + "<white>" + planta.segundosParaOMeio() + "s</white>, quando "
+                + "a cúpula cair — chegar antes ganha <white>posição</white>, "
+                + "não o baú.</gray>");
         anunciar("<gray>só se quebra o <white>bloco que alguém colocou</white>: "
                 + "as ilhas não se mineram. E em <white>"
                 + planta.segundosDeCerco() + "s</white> o anel começa a cair, "
@@ -279,6 +293,7 @@ public final class SkyWars extends JogoDeArena {
         agressor.remove(id);
         tiqueDoGolpe.remove(id);
         jogador.getInventory().clear();
+        jogador.getInventory().setArmorContents(null);
         devolverAVidaDoMinecraft(jogador);
     }
 
@@ -287,6 +302,7 @@ public final class SkyWars extends JogoDeArena {
         World mundo = mundoDaArena();
         for (Player jogador : jogadoresDaArena()) {
             jogador.getInventory().clear();
+            jogador.getInventory().setArmorContents(null);
             devolverAVidaDoMinecraft(jogador);
         }
         if (mundo != null) {
@@ -364,21 +380,18 @@ public final class SkyWars extends JogoDeArena {
     //  O kit e o baú
     // ------------------------------------------------------------------
 
-    private void darOKit(Player jogador, SkyWarsCatalog planta, int qualNivel) {
+    /**
+     * Larga de mãos vazias, que é como se larga num Sky Wars.
+     *
+     * A versão anterior entregava o kit na mão. Era bem-intencionado e era
+     * outro jogo: sem nada no inventário, a primeira decisão da partida passa
+     * a ser para qual baú correr, e é essa decisão que abre a partida no
+     * gênero. Limpa a armadura também — sobra de rodada anterior vestida é
+     * vantagem que ninguém saqueou.
+     */
+    private void esvaziar(Player jogador) {
         jogador.getInventory().clear();
-        jogador.getInventory().setItem(0,
-                marcar(planta.espadaDoNivel(qualNivel), 1, planta,
-                        "Espada do Céu"));
-        jogador.getInventory().setItem(1, new ItemStack(planta.blocoDePonte(),
-                Math.max(1, planta.blocosDoNivel(qualNivel))));
-        int flechas = planta.flechasDoNivel(qualNivel);
-        if (flechas > 0) {
-            jogador.getInventory().setItem(2,
-                    marcar(Material.BOW, 1, planta, "Arco do Céu"));
-            jogador.getInventory().setItem(3,
-                    new ItemStack(Material.ARROW, flechas));
-        }
-        jogador.getInventory().setHeldItemSlot(1);
+        jogador.getInventory().setArmorContents(null);
         jogador.setFoodLevel(20);
         jogador.setSaturation(20f);
         jogador.updateInventory();
@@ -397,11 +410,60 @@ public final class SkyWars extends JogoDeArena {
     }
 
     /**
+     * Enche os baús de cada ilha do anel, um sorteio por baú.
+     *
+     * Um sorteio por BAÚ e não por ilha: com dois baús na ilha, abrir um e
+     * depois o outro tem de revelar duas coisas diferentes, senão o segundo
+     * baú é só um clique a mais. E o piso vem garantido nos dois — quem abriu
+     * um já tem espada, comida, armadura e ponte para sair dali, e o segundo
+     * é o que ele ganha por gastar mais três segundos na própria ilha em vez
+     * de correr.
+     */
+    private void encherAsIlhas(World mundo, SkyWarsCatalog planta) {
+        int y = planta.topoY() + 1;
+        for (int k = 0; k < planta.ilhas(); k++) {
+            for (int[] onde : planta.pontosDosBausDaIlha(k)) {
+                Block bloco = mundo.getBlockAt(onde[0], y, onde[1]);
+                if (!(bloco.getState() instanceof Chest arca)) {
+                    continue;
+                }
+                Inventory dentro = arca.getBlockInventory();
+                dentro.clear();
+                porOSaque(dentro, planta, planta.sortearSaque(nivel, sorteio));
+            }
+        }
+    }
+
+    /** Põe um saque sorteado dentro de um baú, sempre na mesma ordem. */
+    private void porOSaque(Inventory dentro, SkyWarsCatalog planta,
+                           SkyWarsCatalog.Saque saque) {
+        dentro.setItem(0, marcar(saque.espada(), 1, planta, "Espada do Céu"));
+        dentro.setItem(2, new ItemStack(planta.blocoDePonte(), saque.blocos()));
+        int slot = 3;
+        for (Material peca : saque.armadura()) {
+            dentro.setItem(slot++, new ItemStack(peca, 1));
+        }
+        if (saque.arco()) {
+            dentro.setItem(7, marcar(Material.BOW, 1, planta, "Arco do Céu"));
+            dentro.setItem(8, new ItemStack(Material.ARROW, saque.flechas()));
+        }
+        if (saque.curas() > 0) {
+            dentro.setItem(13, new ItemStack(planta.itemDeCura(), saque.curas()));
+        }
+        dentro.setItem(17, new ItemStack(planta.itemDeComida(), planta.comida()));
+    }
+
+    /**
      * Enche os baús do meio, todos com o MESMO conteúdo.
      *
      * Iguais entre si de propósito: se o primeiro baú tivesse a espada e o
      * segundo tivesse flecha, chegar primeiro voltaria a decidir a partida — e
      * a cúpula existe justamente para chegar primeiro não decidir nada.
+     *
+     * <p>E o meio é o único lugar que dá o CONJUNTO COMPLETO de armadura. É
+     * o que ele tem para oferecer a quem já saqueou a própria ilha: a ilha dá
+     * uma ou duas peças, o meio dá as quatro e um nível acima. Sem isso, quem
+     * abriu um baú de sorte não teria por que atravessar.
      */
     private void encherOsBaus(World mundo, SkyWarsCatalog planta) {
         int y = planta.topoY() + 1;
@@ -416,14 +478,19 @@ public final class SkyWars extends JogoDeArena {
                     planta, "Espada do Meio"));
             dentro.setItem(2, new ItemStack(planta.blocoDePonte(),
                     Math.max(1, planta.blocosDoNivel(nivelDoMeio))));
+            int slot = 3;
+            for (Material peca : SkyWarsCatalog.pecasDaFamilia(
+                    planta.armaduraDoNivel(nivelDoMeio))) {
+                dentro.setItem(slot++, new ItemStack(peca, 1));
+            }
             int flechas = planta.flechasDoNivel(nivelDoMeio);
             if (flechas > 0) {
-                dentro.setItem(4, marcar(Material.BOW, 1, planta,
+                dentro.setItem(8, marcar(Material.BOW, 1, planta,
                         "Arco do Meio"));
-                dentro.setItem(5, new ItemStack(Material.ARROW, flechas));
+                dentro.setItem(9, new ItemStack(Material.ARROW, flechas));
             }
             if (planta.curasNoBau() > 0) {
-                dentro.setItem(7, new ItemStack(planta.itemDeCura(),
+                dentro.setItem(13, new ItemStack(planta.itemDeCura(),
                         planta.curasNoBau()));
             }
         }
@@ -474,24 +541,26 @@ public final class SkyWars extends JogoDeArena {
         SkyWarsCatalog planta = planta2();
         UUID id = alvo.getUniqueId();
 
+        // Sem espada na mão o soco machuca, pouco. Existe porque agora todo
+        // mundo larga sem nada: quem for rushado antes de abrir o baú tem de
+        // poder revidar. `conferirSaque` exige que o soco valha menos da
+        // metade da pior espada, para abrir o baú continuar sendo a primeira
+        // coisa a fazer.
         int qualNivel = nivelDaEspada(
                 quemBateu.getInventory().getItemInMainHand().getType());
-        if (qualNivel < 0) {
-            // Sem espada na mão: o soco não é jogada deste jogo, e deixar o
-            // soco machucar faria o kit valer menos do que ele vale.
-            quemBateu.sendActionBar(plugin.mini().deserialize(
-                    "<gray>só a espada machuca aqui</gray>"));
-            return;
-        }
+        int base = qualNivel < 0 ? planta.danoDoSoco()
+                : planta.danoDoNivel(qualNivel);
+        String como = qualNivel < 0 ? "soco" : "espada";
+
         if (carencia.getOrDefault(id, 0L) > tiquesDeJogo()) {
             return;
         }
         double prontidao = quemBateu.getAttackCooldown();
         carencia.put(id, tiquesDeJogo() + planta.periodoDoGolpe());
 
-        int dano = Math.max(1, (int) Math.round(planta.danoDoNivel(qualNivel)
+        int dano = Math.max(1, (int) Math.round(base
                 * ArenaPvpCatalog.forcaDoGolpe(prontidao)));
-        aplicarDano(alvo, quemBateu, planta, dano, prontidao, "espada");
+        aplicarDano(alvo, quemBateu, planta, dano, prontidao, como);
         empurrar(quemBateu, alvo, planta, prontidao);
     }
 
@@ -557,9 +626,43 @@ public final class SkyWars extends JogoDeArena {
     }
 
     /** Tira a vida, guarda o crédito e derruba se zerou. */
+    /**
+     * Quanto a armadura vestida apara, em fração do dano.
+     *
+     * Lê a peça de verdade no corpo e acha a família dela na lista de níveis.
+     * É assim e não por um número guardado num mapa porque a peça pode ter
+     * vindo do baú da ilha, do baú do meio ou do chão de alguém que caiu — o
+     * corpo é a única fonte que sabe de todas as três.
+     *
+     * <p>Do melhor nível para o pior, para o caso de uma família ser prefixo
+     * de outra num yml editado à mão: ganha a melhor que casar, nunca a que
+     * casar por acaso.
+     */
+    private double blindagemDe(Player alvo, SkyWarsCatalog planta) {
+        List<String> familias = planta.nivelArmadura();
+        int soma = 0;
+        for (ItemStack peca : alvo.getInventory().getArmorContents()) {
+            if (peca == null || peca.getType().isAir()) {
+                continue;
+            }
+            String nome = peca.getType().name();
+            for (int k = familias.size() - 1; k >= 0; k--) {
+                String familia = familias.get(k).trim()
+                        .toUpperCase(java.util.Locale.ROOT);
+                if (nome.startsWith(familia + "_")) {
+                    soma += planta.reducaoDoNivel(k);
+                    break;
+                }
+            }
+        }
+        return SkyWarsCatalog.aparo(soma, planta.reducaoMaxima());
+    }
+
     private void aplicarDano(Player alvo, Player dono, SkyWarsCatalog planta,
-                             int dano, double forca, String como) {
+                             int bruto, double forca, String como) {
         UUID id = alvo.getUniqueId();
+        double blindagem = blindagemDe(alvo, planta);
+        int dano = SkyWarsCatalog.danoComArmadura(bruto, blindagem);
         int sobrou = Math.max(0,
                 vida.getOrDefault(id, planta.vidaCheia()) - dano);
         vida.put(id, sobrou);
@@ -570,11 +673,14 @@ public final class SkyWars extends JogoDeArena {
 
         String cor = forca >= 0.9 ? "#8BE04E"
                 : forca >= 0.6 ? "#FFD93D" : "#FF8A8A";
+        String aparou = blindagem <= 0 ? ""
+                : " <gray>(a armadura aparou <white>"
+                        + (int) Math.round(blindagem * 100) + "%</white>)</gray>";
         dono.sendActionBar(plugin.mini().deserialize("<color:" + cor + ">"
                 + (int) Math.round(forca * 100) + "% de " + como
                 + "</color> <gray>— tirou <white>" + dano + "</white> de "
                 + HubBuilder.escapar(alvo.getName()) + ", restam <white>"
-                + sobrou + "</white></gray>"));
+                + sobrou + "</white></gray>" + aparou));
         alvo.sendActionBar(plugin.mini().deserialize("<color:#FF8A8A>-" + dano
                 + "</color> <gray>de " + HubBuilder.escapar(dono.getName())
                 + " · restam <white>" + sobrou + "</white></gray>"));
@@ -630,6 +736,7 @@ public final class SkyWars extends JogoDeArena {
         agressor.remove(id);
         tiqueDoGolpe.remove(id);
         alvo.getInventory().clear();
+        alvo.getInventory().setArmorContents(null);
         devolverAVidaDoMinecraft(alvo);
 
         alvo.showTitle(Title.title(
@@ -932,7 +1039,7 @@ public final class SkyWars extends JogoDeArena {
         plugin.skyWarsBuilder().painelDoAr(mundo, planta,
                 plugin.mini().deserialize("<color:" + planta.corDoTexto()
                         + "><b>" + quantosVivos() + " NO AR</b></color>\n"
-                        + linha + "\n<gray>kit igual: "
+                        + linha + "\n<gray>espada da partida: "
                         + nomeBonito(planta.espadaDoNivel(nivel))
                         + "</gray>"));
     }
