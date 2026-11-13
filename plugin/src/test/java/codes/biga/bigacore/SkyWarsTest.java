@@ -972,6 +972,100 @@ class SkyWarsTest {
                 "poça que seca antes de a jogada acontecer");
     }
 
+    // ------------------------------------------------------------------
+    //  A silhueta das ilhas
+    // ------------------------------------------------------------------
+
+    /**
+     * As ilhas eram CILINDROS, e num jogo sobre o vazio isso aparece.
+     *
+     * De cima não se nota; de qualquer outro ângulo a arena parecia um
+     * tabuleiro de fichas de pôquer boiando. Toda ilha de céu que se
+     * reconhece como ilha de céu afunila: larga em cima, pontuda embaixo.
+     */
+    @Test
+    @DisplayName("a ilha afina para baixo e fecha em ponta")
+    void aIlhaAfinaEFechaEmPonta() {
+        int raio = 3;
+        int anterior = raio;
+        boolean fechou = false;
+        for (int fundo = 1; fundo < 4; fundo++) {
+            int deste = SkyWarsCatalog.raioDoFundo(raio, fundo, 1);
+            assertTrue(deste < anterior, "o andar " + fundo + " não estreitou: "
+                    + deste + " contra " + anterior);
+            anterior = deste;
+            if (deste <= 0) {
+                fechou = true;
+            }
+        }
+        assertTrue(fechou, "a ilha desceu quatro andares sem fechar em ponta: "
+                + "continua um cilindro, só que mais fundo");
+    }
+
+    @Test
+    @DisplayName("o meio afunila mais rápido, por ser muito maior")
+    void oMeioAfunilaMaisRapido() {
+        // Raio 9 com dois de estreitamento: 9, 7, 5, 3, 1 — a tigela funda.
+        int[] esperado = {7, 5, 3, 1, -1};
+        for (int fundo = 1; fundo <= esperado.length; fundo++) {
+            assertEquals(esperado[fundo - 1],
+                    SkyWarsCatalog.raioDoFundo(9, fundo, 2));
+        }
+        // E ele tem de afinar mais depressa que a ilha do anel, senão o meio
+        // vira um pilar e a arena perde o ponto de fuga.
+        assertTrue(SkyWarsCatalog.raioDoFundo(9, 3, 2)
+                < SkyWarsCatalog.raioDoFundo(9, 3, 1));
+    }
+
+    /**
+     * Afunilamento zero ou negativo não pode devolver o cilindro.
+     *
+     * É o que um yml editado à mão produz, e o cilindro de volta não
+     * pareceria erro nenhum: a arena só ficaria feia outra vez.
+     */
+    @Test
+    @DisplayName("afunilamento zero ainda afina")
+    void afunilamentoZeroAindaAfina() {
+        for (int torto : new int[]{0, -1, -99}) {
+            assertEquals(SkyWarsCatalog.raioDoFundo(5, 2, 1),
+                    SkyWarsCatalog.raioDoFundo(5, 2, torto),
+                    "afunilamento " + torto + " devolveu o cilindro");
+        }
+    }
+
+    /**
+     * O cerco tem de apagar a ilha INTEIRA, pé e tudo.
+     *
+     * {@code derrubarIlha} limpa de {@code topoY - ilhaAltura - 1} para cima.
+     * Se a ilha descesse mais fundo que isso, o cerco deixaria tocos de pé
+     * pendurados no vazio — e a rodada seguinte os reconstruiria por cima.
+     */
+    @Test
+    @DisplayName("o cerco alcança o pé mais fundo da ilha")
+    void oCercoAlcancaOPeDaIlha() throws Exception {
+        org.bukkit.configuration.file.YamlConfiguration config;
+        try (java.io.InputStream in = SkyWarsTest.class.getClassLoader()
+                .getResourceAsStream("sky-wars.yml")) {
+            config = org.bukkit.configuration.file.YamlConfiguration
+                    .loadConfiguration(new java.io.InputStreamReader(in,
+                            java.nio.charset.StandardCharsets.UTF_8));
+        }
+        int altura = config.getInt("arena.ilha-altura");
+        int raio = config.getInt("arena.ilha-raio");
+        int afunila = config.getInt("arena.ilha-afunilamento", 1);
+
+        int maisFundo = 0;
+        for (int fundo = 1; fundo < altura; fundo++) {
+            if (SkyWarsCatalog.raioDoFundo(raio, fundo, afunila) >= 0) {
+                maisFundo = fundo;
+            }
+        }
+        assertTrue(maisFundo <= altura + 1, "a ilha desce " + maisFundo
+                + " andares e o cerco só limpa " + (altura + 1));
+        assertTrue(maisFundo >= 2, "a ilha só desce " + maisFundo
+                + " andar: continua uma ficha de pôquer");
+    }
+
     private static SkyWarsCatalog.Saque sorteia(int nivel, Random sorteio) {
         return SkyWarsCatalog.sortearSaque(
                 Material.matchMaterial(ESPADAS.get(nivel)),

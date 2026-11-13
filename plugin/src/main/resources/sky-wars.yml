@@ -87,7 +87,20 @@ arena:
   ilhas: 16
   ilha-anel: 44
   ilha-raio: 3
-  ilha-altura: 2
+
+  # Quantos andares a ilha desce, e quanto ela ESTREITA por andar.
+  #
+  # As ilhas eram cilindros de dois andares: o mesmo disco repetido
+  # para baixo, fundo tão chato quanto o topo. De cima não se nota;
+  # de qualquer outro ângulo — e num jogo sobre o vazio, todo ângulo
+  # é outro ângulo — a arena parecia um tabuleiro de fichas de pôquer
+  # boiando.
+  #
+  # Com quatro andares e um de estreitamento, o raio 3 vira 3, 2, 1 e
+  # 0: a ilha fecha em ponta, que é a silhueta do mapa de referência,
+  # onde cada ilha é um cogumelo com o chapéu em cima e o pé afinando.
+  ilha-altura: 4
+  ilha-afunilamento: 1
 
   # Quantos baús tem cada ilha do anel. A referência varia de um
   # a três; dois cabem numa ilha de raio 3 sem encostar no marco
@@ -96,8 +109,14 @@ arena:
   baus-da-ilha: 2
 
   # A ilha do meio, que é o que se disputa.
+  #
+  # Ela afunila MAIS por andar que as do anel, e não por capricho: ela
+  # é três vezes mais larga e é a única que se vê das dezesseis ao
+  # mesmo tempo. Com raio 9, seis andares e dois de estreitamento, o
+  # pé dela desce 9, 7, 5, 3, 1 — a tigela funda do mapa baixado.
   meio-raio: 9
-  meio-altura: 3
+  meio-altura: 6
+  meio-afunilamento: 2
   meio-baus: 4
 
   # A cúpula que fecha o meio até a hora marcada.
@@ -116,6 +135,22 @@ paleta:
   ilha-corpo: CALCITE
   ilha-beira: SMOOTH_QUARTZ
   ilha-marco: QUARTZ_PILLAR
+
+  # O TEMA DAS ILHAS, se quiser trocar.
+  #
+  # O mapa de referência é de cogumelo: chapéu vermelho de pintas
+  # brancas em cima e o pé de cogumelo afinando embaixo. A silhueta
+  # daqui já é a dele; o que muda é a cor, e muda em quatro linhas.
+  # Para virar cogumelo, troque as quatro acima por:
+  #
+  #   ilha-topo: RED_MUSHROOM_BLOCK
+  #   ilha-corpo: MUSHROOM_STEM
+  #   ilha-beira: RED_MUSHROOM_BLOCK
+  #   ilha-marco: MUSHROOM_STEM
+  #
+  # Ficou o gelo porque ele é o que contrasta com o azul do vazio: o
+  # vermelho some contra o pôr do sol e as ilhas do outro lado do
+  # anel ficam difíceis de achar. Mas é gosto, e é uma linha cada.
 
   meio-topo: QUARTZ_BLOCK
   meio-corpo: SMOOTH_QUARTZ

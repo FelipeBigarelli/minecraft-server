@@ -531,7 +531,18 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
                 boolean naBeira = !ArenaComum.noDiscoMeio(dx, dz, raio - 1);
                 por(mundo, centro[0] + dx, y, centro[1] + dz,
                         naBeira ? beira : topo);
+                // E o pé da ilha, AFINANDO. Cada andar mais estreito que o
+                // de cima: é o que faz a ilha parecer arrancada do chão em
+                // vez de uma ficha de pôquer boiando.
                 for (int fundo = 1; fundo < planta.ilhaAltura(); fundo++) {
+                    int deste = SkyWarsCatalog.raioDoFundo(raio, fundo,
+                            planta.ilhaAfunilamento());
+                    if (deste < 0) {
+                        break;
+                    }
+                    if (!ArenaComum.noDiscoMeio(dx, dz, deste)) {
+                        continue;
+                    }
                     por(mundo, centro[0] + dx, y - fundo, centro[1] + dz,
                             corpo);
                 }
@@ -599,7 +610,18 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
                 }
                 boolean naBeira = !ArenaComum.noDiscoMeio(x, z, raio - 1);
                 por(mundo, x, y, z, naBeira ? beira : topo);
+                // A mesma tigela do mapa de referência: o meio é a ilha
+                // maior e a que mais afunila, porque é a que se vê de todas
+                // as dezesseis ilhas do anel ao mesmo tempo.
                 for (int fundo = 1; fundo < planta.meioAltura(); fundo++) {
+                    int deste = SkyWarsCatalog.raioDoFundo(raio, fundo,
+                            planta.meioAfunilamento());
+                    if (deste < 0) {
+                        break;
+                    }
+                    if (!ArenaComum.noDiscoMeio(x, z, deste)) {
+                        continue;
+                    }
                     por(mundo, x, y - fundo, z, corpo);
                 }
             }

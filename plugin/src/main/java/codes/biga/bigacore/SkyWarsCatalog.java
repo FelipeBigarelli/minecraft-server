@@ -437,6 +437,42 @@ public final class SkyWarsCatalog extends CatalogoDeArena {
         return List.copyOf(saida);
     }
 
+    // ------------------------------------------------------------------
+    //  A silhueta das ilhas
+    // ------------------------------------------------------------------
+
+    /**
+     * O raio do andar que fica {@code fundo} blocos abaixo do topo.
+     *
+     * As ilhas eram CILINDROS: o mesmo disco repetido para baixo, com o
+     * fundo tão chato quanto o topo. De cima não se nota; de qualquer outro
+     * ângulo — e num jogo sobre o vazio, todo ângulo é outro ângulo — a
+     * arena parecia um tabuleiro de fichas de pôquer flutuando.
+     *
+     * <p>Toda ilha de céu que se reconhece como ilha de céu AFUNILA: larga
+     * em cima, pontuda embaixo. É o que diz ao olho que aquilo foi arrancado
+     * do chão e está boiando, e é a silhueta do mapa que o Felipe mandou,
+     * onde cada ilha é um cogumelo com o chapéu em cima e o pé afinando.
+     *
+     * <p>Devolve zero ou menos quando o andar já fechou em ponta; quem
+     * constrói para de descer aí.
+     */
+    public static int raioDoFundo(int raio, int fundo, int afunilamento) {
+        return raio - fundo * Math.max(1, afunilamento);
+    }
+
+    /** Quanto a ilha do anel estreita por andar. */
+    public int ilhaAfunilamento() {
+        return Math.max(1, Math.min(4,
+                config.getInt("arena.ilha-afunilamento", 1)));
+    }
+
+    /** Quanto a ilha do meio estreita por andar: mais, por ser muito maior. */
+    public int meioAfunilamento() {
+        return Math.max(1, Math.min(6,
+                config.getInt("arena.meio-afunilamento", 2)));
+    }
+
     /** Os sufixos das quatro peças, na ordem em que se vestem. */
     public static final List<String> PECAS =
             List.of("HELMET", "CHESTPLATE", "LEGGINGS", "BOOTS");
