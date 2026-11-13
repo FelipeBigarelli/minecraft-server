@@ -71,9 +71,11 @@ public final class MundoDeJogo {
         // servidor gerar vazio em volta da estrada e, pior, discordar do que
         // está escrito no level.dat do próprio mapa. Só mundo que nasce aqui
         // nasce vazio.
-        boolean jaEstaEmDisco = mapaPronto && estaEmDisco(nome);
+        java.io.File achada = mapaPronto ? ondeEstaEmDisco(nome) : null;
+        boolean jaEstaEmDisco = achada != null;
         plugin.getLogger().info("[mundos] " + (jaEstaEmDisco
-                ? "Carregando o mundo '" + nome + "' que já está em disco."
+                ? "Carregando o mundo '" + nome + "' que já está em disco ("
+                        + achada.getPath() + ")."
                 : "Criando o mundo vazio '" + nome + "'."));
         try {
             WorldCreator receita = new WorldCreator(nome)
@@ -120,19 +122,60 @@ public final class MundoDeJogo {
      * junto. Hoje basta haver {@code region/} com alguma coisa dentro.
      */
     static boolean estaEmDisco(String nome) {
+        return ondeEstaEmDisco(nome) != null;
+    }
+
+    /**
+     * A pasta onde o mundo já está em disco, ou null se não está em lugar
+     * nenhum.
+     *
+     * <h3>Três lugares, e o primeiro é o único óbvio</h3>
+     *
+     * <ol>
+     *   <li>{@code <container>/<nome>/level.dat} — a pasta clássica;</li>
+     *   <li>{@code <container>/<nome>/region} — a mesma pasta de um mundo que
+     *       já foi mudado de lugar e perdeu o level.dat;</li>
+     *   <li>{@code <container>/<principal>/dimensions/minecraft/<nome>/region}
+     *       — onde o Paper moderno ARRUMA os mundos que não são o principal,
+     *       na subida. Lá dentro não há level.dat nenhum, porque o do
+     *       servidor passou a ser um só.</li>
+     * </ol>
+     *
+     * <p>Olhando só o primeiro lugar, o plugin anunciava "Criando o mundo
+     * vazio 'corrida_akina'" com os quatrocentos megabytes do Monte Akina
+     * intactos no terceiro — e, pior, mandava o gerador vazio junto.
+     *
+     * <p>O terceiro caminho é montado pelo NOME do mundo principal, e não
+     * pelo {@code getWorldFolder()} dele: o que aquela chamada devolve mudou
+     * entre versões do servidor, e a primeira tentativa de consertar isto
+     * falhou calada exatamente aí.
+     */
+    static java.io.File ondeEstaEmDisco(String nome) {
         java.io.File container = Bukkit.getWorldContainer();
-        if (new java.io.File(new java.io.File(container, nome),
-                "level.dat").isFile()) {
-            return true;
+        java.io.File classica = new java.io.File(container, nome);
+        if (new java.io.File(classica, "level.dat").isFile()
+                || temRegiao(classica)) {
+            return classica;
         }
         java.util.List<World> mundos = Bukkit.getWorlds();
         if (mundos.isEmpty()) {
-            return false;
+            return null;
         }
-        java.io.File mudado = new java.io.File(
-                mundos.get(0).getWorldFolder(),
-                "dimensions/minecraft/" + nome + "/region");
-        String[] regioes = mudado.list();
-        return regioes != null && regioes.length > 0;
+        String dentro = "dimensions/minecraft/" + nome;
+        java.io.File porNome = new java.io.File(
+                new java.io.File(container, mundos.get(0).getName()), dentro);
+        if (temRegiao(porNome)) {
+            return porNome;
+        }
+        java.io.File raiz = mundos.get(0).getWorldFolder();
+        java.io.File porPasta = raiz == null ? null
+                : new java.io.File(raiz, dentro);
+        return porPasta != null && temRegiao(porPasta) ? porPasta : null;
+    }
+
+    /** Se a pasta tem region/ com alguma coisa dentro. */
+    private static boolean temRegiao(java.io.File pasta) {
+        String[] dentro = new java.io.File(pasta, "region").list();
+        return dentro != null && dentro.length > 0;
     }
 }

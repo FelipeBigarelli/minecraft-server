@@ -462,10 +462,27 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
         }
 
         if (estado == Estado.JOGANDO) {
-            conferirQuedas(mundo);
-            aCadaTique(mundo);
-            if (rodadaAcabou()) {
+            if (vivos.isEmpty()) {
+                // A rodada abandonada.
+                //
+                // Nenhum dos vinte jogos sabia acabar sozinho: a condição de
+                // fim de cada um fala de quem ganhou, de quem sobrou ou do
+                // relógio, e com a arena vazia nenhuma delas acontece. Quem
+                // desse /warp no meio de uma partida de Build Battle deixava
+                // a arena rodando SETE MINUTOS para ninguém — e a placa do
+                // saguão dizia "em andamento" o tempo todo, sem deixar
+                // ninguém entrar.
+                //
+                // Sair da arena já tirava o jogador da partida; o que
+                // faltava era a partida perceber que ficou sem gente. Fica
+                // aqui, no arcabouço, porque vale para os vinte.
                 terminar();
+            } else {
+                conferirQuedas(mundo);
+                aCadaTique(mundo);
+                if (rodadaAcabou()) {
+                    terminar();
+                }
             }
         }
 

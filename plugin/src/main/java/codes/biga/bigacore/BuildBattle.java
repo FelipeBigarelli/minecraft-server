@@ -98,6 +98,9 @@ public final class BuildBattle extends JogoDeArena {
 
     private Fase fase = Fase.TEMA;
     private long tiqueDaFase;
+
+    /** Se o console já contou, nesta rodada, que o criativo caiu. */
+    private boolean avisouDoModo;
     private List<Integer> ordem = new ArrayList<>();
     private int naOrdem;
     private String tema = "";
@@ -372,6 +375,7 @@ public final class BuildBattle extends JogoDeArena {
                 if (naFase() >= planta.segundosDeObra()) {
                     comecarOPasseio(mundo, planta);
                 } else {
+                    garantirOCriativo();
                     avisarDaObra(planta);
                     if (naFase() % 15 == 0) {
                         mostrarOPainel(mundo, planta);
@@ -395,8 +399,52 @@ public final class BuildBattle extends JogoDeArena {
         }
     }
 
+    /**
+     * Põe — e MANTÉM — no criativo quem tem lote, durante a obra.
+     *
+     * <h3>Por que uma vez não bastava</h3>
+     *
+     * <p>{@link #comecarAObra} já dava o criativo a cada construtor, uma vez,
+     * no instante em que a obra abre. E o relato continuou sendo o mesmo: "não
+     * está iniciando no criativo". Um {@code setGameMode} é um pedido que
+     * qualquer outro plugin pode desfazer no tique seguinte, e aqui há três
+     * candidatos com o dedo no modo de jogo — o Multiverse com
+     * {@code enforce-gamemode: true}, o Multiverse-Inventories e o
+     * CreativePlots. Nenhum deles avisa quando desfaz.
+     *
+     * <p>Então o jogo para de pedir uma vez e passa a conferir a cada
+     * segundo: é barato, é imune a quem desfizer, e cobre de quebra quem
+     * entrou no meio e quem o servidor devolveu de um relogin. A primeira
+     * correção de cada rodada vai para o console dizendo em que modo o
+     * jogador estava — se houver mesmo alguém desfazendo, o log passa a
+     * dizer quem.
+     */
+    private void garantirOCriativo() {
+        for (Player jogador : jogadoresVivos()) {
+            if (loteDe.get(jogador.getUniqueId()) == null) {
+                continue;
+            }
+            GameMode tinha = jogador.getGameMode();
+            if (tinha == GameMode.CREATIVE) {
+                continue;
+            }
+            jogador.setGameMode(GameMode.CREATIVE);
+            jogador.setAllowFlight(true);
+            if (!avisouDoModo) {
+                avisouDoModo = true;
+                plugin.getLogger().warning("[build-battle] " + jogador.getName()
+                        + " estava em " + tinha + " durante a obra, e não em "
+                        + "CREATIVE: o modo foi reposto. Se isto se repetir a "
+                        + "cada rodada, há outro plugin desfazendo o criativo "
+                        + "(Multiverse enforce-gamemode, Multiverse-Inventories "
+                        + "ou CreativePlots).");
+            }
+        }
+    }
+
     private void comecarAObra(World mundo, BuildBattleCatalog planta) {
         virarFase(Fase.OBRA);
+        avisouDoModo = false;
         for (Player jogador : jogadoresVivos()) {
             Integer lote = loteDe.get(jogador.getUniqueId());
             if (lote == null) {

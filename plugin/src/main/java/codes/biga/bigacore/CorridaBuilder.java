@@ -674,6 +674,16 @@ public final class CorridaBuilder implements ConstrutorDeArena {
                 curso.indiceDoPortao(curso.quantosPortoes() - 1), false);
 
         caderno.salvar();
+        int linha = indiceDaLinha(base, planta.passoDoEixo());
+        double[] largada = curso.ponto(Math.min(curso.eixo().size() - 1,
+                indiceDaFila(0, planta.passoDoEixo(), base)));
+        plugin.getLogger().info("[corrida] a rodada é no percurso '"
+                + curso.nome() + "' (" + curso.arquivo() + "): grade a partir "
+                + "do ponto " + base + ", pole em (" + (int) largada[0] + ", "
+                + (int) Math.round(largada[1]) + ", " + (int) largada[2]
+                + "), linha no ponto " + linha + ", primeiro portão no "
+                + curso.indiceDoPortao(0) + " e chegada no "
+                + curso.indiceDoPortao(curso.quantosPortoes() - 1) + ".");
         return contador - antes;
     }
 
