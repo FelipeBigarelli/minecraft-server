@@ -686,6 +686,7 @@ public final class Esconde extends JogoDeArena {
                         + quantas + (quantas == 1 ? " captura" : " capturas")
                         + " · " + placar.de(deQuem) + " pontos</gray>"));
 
+        animarGolpe(pego, cacador);
         pego.showTitle(Title.title(
                 plugin.mini().deserialize("<color:#FF8A8A>ACHARAM VOCÊ</color>"),
                 plugin.mini().deserialize("<gray>"

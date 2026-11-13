@@ -508,7 +508,7 @@ public final class ArenaPvp extends JogoDeArena {
                 : Sound.ENTITY_PLAYER_ATTACK_WEAK;
         dono.playSound(dono.getLocation(), som, 1.0f,
                 (float) (0.9 + prontidao * 0.3));
-        alvo.playSound(alvo.getLocation(), Sound.ENTITY_PLAYER_HURT, 0.8f, 1.0f);
+        animarGolpe(alvo, dono);
         alvo.getWorld().spawnParticle(Particle.DAMAGE_INDICATOR,
                 alvo.getLocation().add(0, 1, 0),
                 Math.max(1, (int) Math.round(prontidao * 6)),

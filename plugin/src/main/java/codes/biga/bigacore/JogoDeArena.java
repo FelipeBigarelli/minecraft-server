@@ -1183,6 +1183,59 @@ public abstract class JogoDeArena implements Listener, JogoDeMinigame {
     }
 
     /**
+     * A animação do golpe: o lampejo vermelho de quem levou.
+     *
+     * <h2>Por que isto precisa existir</h2>
+     *
+     * Toda arena daqui cancela o dano do Minecraft — a vida é número do
+     * plugin e os corações são só o mostrador. O que vai junto, sem avisar, é
+     * TODA a reação visual do golpe: o alvo não pisca vermelho, não se
+     * inclina para o lado de onde veio a pancada, e o som de dor toca só para
+     * ele. Quem bate vê o próprio braço girar (isso o cliente desenha
+     * sozinho) e nada acontecer do outro lado. O golpe acerta, tira vida, e
+     * parece que errou.
+     *
+     * <p>É um defeito difícil de nomear jogando — ninguém diz "falta o
+     * ClientboundHurtAnimationPacket", diz "tá estranho". E é o tipo de coisa
+     * que não aparece em teste nenhum, porque a conta do dano está certa.
+     *
+     * <h2>O ângulo é relativo ao rosto do alvo</h2>
+     *
+     * O {@code playHurtAnimation} do Paper quer o ângulo de ONDE VEIO a
+     * pancada, contado a partir da cara do jogador: zero é de frente. É o que
+     * faz a tela dele inclinar para o lado certo, e é por isso que não dá
+     * para passar o yaw absoluto da direção — de costas, a inclinação sairia
+     * invertida e o jogador olharia para o lado errado.
+     *
+     * <p>No arcabouço porque são cinco jogos com briga e seriam cinco cópias:
+     * o sexto esqueceria, e o defeito voltaria num jogo só, que é a pior
+     * forma de ele voltar.
+     *
+     * @param alvo   quem levou
+     * @param deOnde de onde veio a pancada
+     */
+    protected void animarGolpe(Player alvo, Location deOnde) {
+        if (alvo == null || deOnde == null) {
+            return;
+        }
+        Location onde = alvo.getLocation();
+        double dx = deOnde.getX() - onde.getX();
+        double dz = deOnde.getZ() - onde.getZ();
+        float daPancada = dx * dx + dz * dz < 1.0E-6
+                ? onde.getYaw()
+                : ArenaComum.yawDaDirecao(dx, dz);
+        alvo.playHurtAnimation(daPancada - onde.getYaw());
+        // No mundo e não no jogador: o som de dor é a confirmação de quem
+        // BATEU, e tocado só para o alvo ele nunca chega em quem precisa.
+        alvo.getWorld().playSound(onde, Sound.ENTITY_PLAYER_HURT, 0.9f, 1.0f);
+    }
+
+    /** O mesmo, quando quem bateu é um jogador. */
+    protected void animarGolpe(Player alvo, Player quemBateu) {
+        animarGolpe(alvo, quemBateu == null ? null : quemBateu.getLocation());
+    }
+
+    /**
      * O kit da arena não se gasta.
      *
      * Antes isto era um item "inquebrável", e inquebrável é NBT que todo

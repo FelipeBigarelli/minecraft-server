@@ -490,8 +490,9 @@ public final class ReiDaMontanha extends JogoDeArena {
         alvo.setVelocity(alvo.getVelocity().multiply(0.3).add(direcao));
         alvo.setFallDistance(0f);
 
-        alvo.playSound(alvo.getLocation(), Sound.ENTITY_PLAYER_ATTACK_KNOCKBACK,
-                0.9f, 1.1f);
+        animarGolpe(alvo, quemBateu);
+        alvo.getWorld().playSound(alvo.getLocation(),
+                Sound.ENTITY_PLAYER_ATTACK_KNOCKBACK, 0.9f, 1.1f);
         quemBateu.playSound(quemBateu.getLocation(),
                 Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.6f, 1.4f);
         alvo.getWorld().spawnParticle(Particle.CRIT,

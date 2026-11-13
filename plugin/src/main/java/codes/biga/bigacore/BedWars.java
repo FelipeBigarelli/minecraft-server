@@ -504,7 +504,7 @@ public final class BedWars extends JogoDeArena {
                 + "<gray>— tirou <white>" + dano + "</white> de "
                 + HubBuilder.escapar(alvo.getName()) + ", restam <white>"
                 + sobrou + "</white></gray>"));
-        alvo.playSound(alvo.getLocation(), Sound.ENTITY_PLAYER_HURT, 0.8f, 1f);
+        animarGolpe(alvo, quemBateu);
         alvo.getWorld().spawnParticle(Particle.DAMAGE_INDICATOR,
                 alvo.getLocation().add(0, 1, 0), 4, 0.3, 0.4, 0.3, 0.05);
 
