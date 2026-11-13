@@ -213,17 +213,11 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
 
         ArenaComum.limparPaineis(mundo, TAG_PAINEL);
         ArenaComum.limparPaineis(mundo, TAG_AR);
-        for (int x = -alcance; x <= alcance; x++) {
-            for (int z = -alcance; z <= alcance; z++) {
-                for (int y = planta.fundoDaObra(); y <= planta.tetoDaObra(); y++) {
-                    // Esvaziando o que tiver dentro: um baú de saque trocado
-                    // por ar cospe o conteúdo no chão, e era isso que cobria
-                    // a arena de item depois de /biga refazer.
-                    contador += MapaDaArena.apagarSemDerrubar(
-                            mundo.getBlockAt(x, y, z));
-                }
-            }
-        }
+        // apagarACaixa esvazia o que tiver dentro antes de apagar: um baú
+        // de saque trocado por ar cospe o conteúdo no chão, e era isso que
+        // cobria a arena de item depois de /biga refazer.
+        contador += ArenaComum.apagarACaixa(mundo, alcance,
+                planta.fundoDaObra(), planta.tetoDaObra());
         return new Resultado(true, "SKY WARS apagado: " + contador
                 + " blocos.", contador);
     }
@@ -927,18 +921,8 @@ public final class SkyWarsBuilder implements ConstrutorDeArena {
     }
 
     private int contarOcupados(World mundo, SkyWarsCatalog planta) {
-        int alcance = planta.alcanceDaObra();
-        int ocupados = 0;
-        for (int x = -alcance; x <= alcance; x++) {
-            for (int z = -alcance; z <= alcance; z++) {
-                for (int y = planta.fundoDaObra(); y <= planta.tetoDaObra(); y++) {
-                    if (!mundo.getBlockAt(x, y, z).getType().isAir()) {
-                        ocupados++;
-                    }
-                }
-            }
-        }
-        return ocupados;
+        return ArenaComum.contarOcupados(mundo, planta.alcanceDaObra(),
+                planta.fundoDaObra(), planta.tetoDaObra());
     }
 
     private void por(World mundo, int x, int y, int z, Material material) {

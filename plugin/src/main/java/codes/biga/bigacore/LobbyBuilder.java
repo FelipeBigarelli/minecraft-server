@@ -168,17 +168,8 @@ public final class LobbyBuilder {
         contador = 0;
 
         limparPaineis(mundo);
-        for (int x = -alcance; x <= alcance; x++) {
-            for (int z = -alcance; z <= alcance; z++) {
-                for (int y = piso - 10; y <= piso + planta.alturaDaObra(); y++) {
-                    Block bloco = mundo.getBlockAt(x, y, z);
-                    if (!bloco.getType().isAir()) {
-                        bloco.setType(Material.AIR, false);
-                        contador++;
-                    }
-                }
-            }
-        }
+        contador += ArenaComum.apagarACaixa(mundo, alcance, piso - 10,
+                piso + planta.alturaDaObra());
         return new Resultado(true, "Lobby apagado: " + contador + " blocos.", contador);
     }
 
@@ -1376,19 +1367,8 @@ public final class LobbyBuilder {
 
     /** Quantos blocos já existem onde o lobby iria. Zero é o esperado. */
     private int contarOcupados(World mundo, MinigamesCatalog planta) {
-        int alcance = planta.alcanceDaObra();
         int piso = planta.pisoY();
-        int achados = 0;
-
-        for (int x = -alcance; x <= alcance; x++) {
-            for (int z = -alcance; z <= alcance; z++) {
-                for (int y = piso - 10; y <= piso + planta.alturaDaObra(); y++) {
-                    if (!mundo.getBlockAt(x, y, z).getType().isAir()) {
-                        achados++;
-                    }
-                }
-            }
-        }
-        return achados;
+        return ArenaComum.contarOcupados(mundo, planta.alcanceDaObra(),
+                piso - 10, piso + planta.alturaDaObra());
     }
 }

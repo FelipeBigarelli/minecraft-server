@@ -145,6 +145,27 @@ hub:
   mundo: hub
 
 # -----------------------------------------------------------
+#  A OBRA EM FATIAS
+#
+#  Quanto de cada tique o /biga refazer pode tomar para si.
+#  Refazer as vinte arenas é varrer vinte caixas de meio milhão
+#  de blocos cada; dentro de um tique só isso parava o servidor
+#  por mais de quinze segundos e o vigia do Paper despejava o
+#  rastro de pilha no console.
+#
+#  Agora a obra para onde o orçamento acaba, guarda onde parou e
+#  devolve o tique ao servidor. Um tique do Minecraft tem 50 ms,
+#  então 20 ms deixa o jogo lento — uns dez quadros por segundo —
+#  mas vivo, e a obra leva alguns segundos de relógio.
+#
+#  Abaixar o número deixa o servidor mais fluido e a obra mais
+#  demorada. Subir aproxima do travamento de volta; por isso o
+#  valor é limitado a 40, aconteça o que escrever aqui.
+# -----------------------------------------------------------
+obra:
+  orcamento-por-tique-ms: 20
+
+# -----------------------------------------------------------
 #  Lobby dos minigames
 #
 #  O mundo do claustro de vinte portais, com a planta no

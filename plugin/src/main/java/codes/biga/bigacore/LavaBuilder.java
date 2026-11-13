@@ -100,17 +100,8 @@ public final class LavaBuilder implements ConstrutorDeArena {
         contador = 0;
 
         ArenaComum.limparPaineis(mundo, TAG_PAINEL);
-        for (int x = -alcance; x <= alcance; x++) {
-            for (int z = -alcance; z <= alcance; z++) {
-                for (int y = planta.fundoDaObra(); y <= planta.tetoDaObra(); y++) {
-                    Block bloco = mundo.getBlockAt(x, y, z);
-                    if (!bloco.getType().isAir()) {
-                        bloco.setType(Material.AIR, false);
-                        contador++;
-                    }
-                }
-            }
-        }
+        contador += ArenaComum.apagarACaixa(mundo, alcance,
+                planta.fundoDaObra(), planta.tetoDaObra());
         return new Resultado(true, "Poço apagado: " + contador + " blocos.", contador);
     }
 
@@ -400,18 +391,8 @@ public final class LavaBuilder implements ConstrutorDeArena {
     }
 
     private int contarOcupados(World mundo, LavaCatalog planta) {
-        int alcance = planta.alcanceDaObra();
-        int ocupados = 0;
-        for (int x = -alcance; x <= alcance; x++) {
-            for (int z = -alcance; z <= alcance; z++) {
-                for (int y = planta.fundoDaObra(); y <= planta.tetoDaObra(); y++) {
-                    if (!mundo.getBlockAt(x, y, z).getType().isAir()) {
-                        ocupados++;
-                    }
-                }
-            }
-        }
-        return ocupados;
+        return ArenaComum.contarOcupados(mundo, planta.alcanceDaObra(),
+                planta.fundoDaObra(), planta.tetoDaObra());
     }
 
     private void por(World mundo, int x, int y, int z, Material material) {

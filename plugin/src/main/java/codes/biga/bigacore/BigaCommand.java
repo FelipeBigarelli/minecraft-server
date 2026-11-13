@@ -50,6 +50,9 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
 
     private final BigaCore plugin;
 
+    /** A obra de refazer todas, enquanto ela anda. Nula quando não há. */
+    private ObraEmFatias obraDeTodas;
+
     public BigaCommand(BigaCore plugin) {
         this.plugin = plugin;
     }
@@ -807,8 +810,9 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length < 2 || !args[1].equals("CONFIRMAR")) {
             sender.sendMessage(Component.text("Isto APAGA e levanta de novo as "
-                    + plugin.jogos().size() + " arenas, uma por uma. O servidor "
-                    + "trava por alguns segundos.", NamedTextColor.RED));
+                    + plugin.jogos().size() + " arenas, uma por uma. A obra é "
+                    + "feita em fatias: o servidor fica lento por alguns "
+                    + "segundos, mas não trava.", NamedTextColor.RED));
             sender.sendMessage(Component.text("É o que se roda depois de mudar "
                     + "a planta do saguão, que os " + plugin.jogos().size()
                     + " jogos dividem.", NamedTextColor.GRAY));
@@ -817,9 +821,42 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        int feitas = 0;
-        int blocos = 0;
+        if (obraDeTodas != null && !obraDeTodas.acabou()) {
+            sender.sendMessage(Component.text("Já tem um refazer em "
+                    + "andamento. Espere ele acabar.", NamedTextColor.RED));
+            return;
+        }
+
+        // A rodada de todo mundo para ANTES do primeiro bloco. A obra agora
+        // leva segundos de relógio em vez de um tique só, e uma rodada
+        // começando no meio dela largaria o jogador numa arena pela metade.
+        for (JogoRegistrado registrado : plugin.jogos().values()) {
+            registrado.jogo().pararRodada();
+            registrado.jogo().parar();
+        }
+
+        int[] apagados = {0};
+        int[] postos = {0};
+        int[] feitas = {0};
         List<String> falharam = new ArrayList<>();
+        int colunas = 0;
+
+        obraDeTodas = new ObraEmFatias(plugin, plugin.getConfig()
+                .getInt("obra.orcamento-por-tique-ms", 20), gastos -> {
+            for (JogoRegistrado registrado : plugin.jogos().values()) {
+                registrado.jogo().start();
+            }
+            obraDeTodas = null;
+            avisar(sender, Component.text(feitas[0] + " arena(s) refeitas em "
+                    + gastos / 1000.0 + "s de obra: " + apagados[0]
+                    + " blocos apagados, " + postos[0] + " postos.",
+                    NamedTextColor.GREEN));
+            if (!falharam.isEmpty()) {
+                avisar(sender, Component.text("Não saíram: "
+                        + String.join(", ", falharam), NamedTextColor.RED));
+            }
+        });
+
         for (JogoRegistrado registrado : plugin.jogos().values()) {
             org.bukkit.World mundo = plugin.getServer()
                     .getWorld(registrado.catalogo().mundo());
@@ -827,23 +864,43 @@ public final class BigaCommand implements CommandExecutor, TabCompleter {
                 falharam.add(registrado.etiqueta() + " (sem mundo)");
                 continue;
             }
-            registrado.construtor().desfazer(mundo);
-            ConstrutorDeArena.Resultado saiu =
-                    registrado.construtor().construir(mundo, true);
-            if (saiu.ok()) {
-                feitas++;
-                blocos += saiu.blocos();
-            } else {
-                falharam.add(registrado.etiqueta());
-            }
+            CatalogoDeArena planta = registrado.catalogo();
+            int alcance = planta.alcanceDaObra();
+            colunas += ObraEmFatias.colunasDaCaixa(alcance);
+
+            obraDeTodas.juntarPassoUnico(
+                    () -> ArenaComum.limparTodosOsPaineis(mundo));
+            obraDeTodas.juntar(ObraEmFatias.varrerCaixa(mundo, alcance,
+                    planta.fundoDaObra(), planta.tetoDaObra(), apagados));
+            obraDeTodas.juntarPassoUnico(() -> {
+                ConstrutorDeArena.Resultado saiu =
+                        registrado.construtor().construir(mundo, true);
+                if (saiu.ok()) {
+                    feitas[0]++;
+                    postos[0] += saiu.blocos();
+                } else {
+                    falharam.add(registrado.etiqueta());
+                }
+            });
         }
 
-        sender.sendMessage(Component.text(feitas + " arena(s) refeitas, "
-                + blocos + " blocos.", NamedTextColor.GREEN));
-        if (!falharam.isEmpty()) {
-            sender.sendMessage(Component.text("Não saíram: "
-                    + String.join(", ", falharam), NamedTextColor.RED));
+        sender.sendMessage(Component.text("Refazendo " + plugin.jogos().size()
+                + " arenas em fatias: " + colunas + " colunas para varrer. O "
+                + "servidor fica lento por alguns segundos, mas não trava.",
+                NamedTextColor.YELLOW));
+        obraDeTodas.comecar();
+    }
+
+    /** Um recado que não estoura se quem pediu a obra saiu do servidor. */
+    private void avisar(CommandSender sender, Component recado) {
+        if (sender instanceof org.bukkit.entity.Player quem
+                && !quem.isOnline()) {
+            plugin.getLogger().info(net.kyori.adventure.text.serializer
+                    .plain.PlainTextComponentSerializer.plainText()
+                    .serialize(recado));
+            return;
         }
+        sender.sendMessage(recado);
     }
 
     private void enviarAjudaDoJogo(CommandSender sender, String label,

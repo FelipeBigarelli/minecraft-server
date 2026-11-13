@@ -457,6 +457,100 @@ public final class ArenaComum {
         }
     }
 
+    /**
+     * Conta os blocos que não são ar numa caixa de arena.
+     *
+     * <h2>Por que os limites vêm de fora</h2>
+     *
+     * <p>Este método existia copiado em vinte e dois construtores, e nos
+     * vinte e dois o limite do laço era {@code y <= planta.tetoDaObra()}.
+     * Limite de laço em Java é reavaliado A CADA VOLTA: meio milhão de
+     * chamadas ao catálogo por arena, onde deveria haver uma.
+     *
+     * <p>E chamada ao catálogo não é barata. {@code tetoDaObra()} chama
+     * {@code saguaoY()}, que chama {@code topoY()}, que no Sky Wars vai ao
+     * mapa pronto e lê a configuração; no Parkour, {@code cumeY()} chegava a
+     * recalcular o percurso inteiro, salto por salto, com um
+     * {@code Math.hypot} em cada um. Foi exatamente este rastro que o vigia
+     * do Paper despejou três vezes no console quando o servidor parou por
+     * mais de quinze segundos num {@code /biga refazer CONFIRMAR}:
+     * {@code Math.hypot} ← {@code percurso} ← {@code cumeY} ←
+     * {@code saguaoY} ← {@code tetoDaObra} ← {@code contarOcupados}.
+     *
+     * <p>Receber três inteiros e mais nada é o conserto, e é também o que
+     * torna o método testável sem servidor nenhum na frente.
+     */
+    public static int contarOcupados(World mundo, int alcance, int fundo,
+                                     int teto) {
+        int achados = 0;
+        for (int x = -alcance; x <= alcance; x++) {
+            for (int z = -alcance; z <= alcance; z++) {
+                for (int y = fundo; y <= teto; y++) {
+                    if (!mundo.getBlockAt(x, y, z).getType().isAir()) {
+                        achados++;
+                    }
+                }
+            }
+        }
+        return achados;
+    }
+
+    /**
+     * Apaga tudo numa caixa de arena, e devolve quantos blocos saíram.
+     *
+     * <p>Mesma história dos limites içados de {@link #contarOcupados}. E
+     * apaga esvaziando antes o que guardar coisa dentro: varrer uma arena de
+     * Sky Wars com os baús de saque cheios cuspiria o conteúdo todo no chão.
+     */
+    public static int apagarACaixa(World mundo, int alcance, int fundo,
+                                   int teto) {
+        int tirados = 0;
+        for (int x = -alcance; x <= alcance; x++) {
+            for (int z = -alcance; z <= alcance; z++) {
+                for (int y = fundo; y <= teto; y++) {
+                    tirados += MapaDaArena.apagarSemDerrubar(
+                            mundo.getBlockAt(x, y, z));
+                }
+            }
+        }
+        return tirados;
+    }
+
+    /**
+     * O começo de toda etiqueta de entidade que o plugin põe no mundo.
+     *
+     * <p>É contrato, não enfeite: {@link #limparTodosOsPaineis} depende dele
+     * para achar o que apagar sem conhecer os vinte jogos um por um.
+     */
+    public static final String PREFIXO_DAS_ETIQUETAS = "bigacore_";
+
+    /**
+     * Apaga todo painel do plugin num mundo, qualquer que seja a etiqueta.
+     *
+     * <h2>Por que não a etiqueta exata</h2>
+     *
+     * <p>Cada construtor sabe as etiquetas dele e as apaga uma a uma dentro
+     * do {@code desfazer()}. Isso serve enquanto quem apaga é o próprio
+     * construtor — mas o refazer de todas as arenas precisa limpar o mundo
+     * SEM chamar o {@code desfazer()}, porque é a varredura de caixa dele,
+     * meio milhão de blocos de uma vez, que travava o servidor. Procurando
+     * pelo prefixo, a limpeza vale para os vinte jogos e para o vigésimo
+     * primeiro.
+     */
+    public static int limparTodosOsPaineis(World mundo) {
+        int tirados = 0;
+        for (Entity entidade : mundo.getEntities()) {
+            for (String etiqueta : entidade.getScoreboardTags()) {
+                if (etiqueta.startsWith(PREFIXO_DAS_ETIQUETAS)) {
+                    entidade.remove();
+                    tirados++;
+                    break;
+                }
+            }
+        }
+        return tirados;
+    }
+
     // ------------------------------------------------------------------
     //  O empurrão do golpe
     // ------------------------------------------------------------------

@@ -88,17 +88,8 @@ public final class ParkourBuilder implements ConstrutorDeArena {
         contador = 0;
 
         ArenaComum.limparPaineis(mundo, TAG_PAINEL);
-        for (int x = -alcance; x <= alcance; x++) {
-            for (int z = -alcance; z <= alcance; z++) {
-                for (int y = planta.fundoDaObra(); y <= planta.tetoDaObra(); y++) {
-                    Block bloco = mundo.getBlockAt(x, y, z);
-                    if (!bloco.getType().isAir()) {
-                        bloco.setType(Material.AIR, false);
-                        contador++;
-                    }
-                }
-            }
-        }
+        contador += ArenaComum.apagarACaixa(mundo, alcance,
+                planta.fundoDaObra(), planta.tetoDaObra());
         return new Resultado(true, "Árvore apagada: " + contador + " blocos.", contador);
     }
 
@@ -299,17 +290,7 @@ public final class ParkourBuilder implements ConstrutorDeArena {
     }
 
     private int contarOcupados(World mundo, ParkourCatalog planta) {
-        int alcance = planta.alcanceDaObra();
-        int achados = 0;
-        for (int x = -alcance; x <= alcance; x++) {
-            for (int z = -alcance; z <= alcance; z++) {
-                for (int y = planta.fundoDaObra(); y <= planta.tetoDaObra(); y++) {
-                    if (!mundo.getBlockAt(x, y, z).getType().isAir()) {
-                        achados++;
-                    }
-                }
-            }
-        }
-        return achados;
+        return ArenaComum.contarOcupados(mundo, planta.alcanceDaObra(),
+                planta.fundoDaObra(), planta.tetoDaObra());
     }
 }

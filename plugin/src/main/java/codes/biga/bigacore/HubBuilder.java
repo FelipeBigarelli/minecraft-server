@@ -152,17 +152,8 @@ public final class HubBuilder {
         int piso = planta.pisoY();
         int apagados = 0;
 
-        for (int u = -alcance; u <= alcance; u++) {
-            for (int v = -alcance; v <= alcance; v++) {
-                for (int y = piso - 8; y <= piso + planta.alturaDaObra(); y++) {
-                    Block bloco = mundo.getBlockAt(u, y, v);
-                    if (!bloco.getType().isAir()) {
-                        bloco.setType(Material.AIR, false);
-                        apagados++;
-                    }
-                }
-            }
-        }
+        apagados += ArenaComum.apagarACaixa(mundo, alcance, piso - 8,
+                piso + planta.alturaDaObra());
 
         limparPaineis(mundo);
         if (plugin.painelAjuda() != null) {
@@ -1152,19 +1143,8 @@ public final class HubBuilder {
 
     /** Quantos blocos já existem onde o hub iria. Zero é o esperado. */
     private int contarOcupados(World mundo, HubCatalog planta) {
-        int alcance = planta.alcanceDaObra();
         int piso = planta.pisoY();
-        int achados = 0;
-
-        for (int u = -alcance; u <= alcance; u++) {
-            for (int v = -alcance; v <= alcance; v++) {
-                for (int y = piso - 8; y <= piso + planta.alturaDaObra(); y++) {
-                    if (!mundo.getBlockAt(u, y, v).getType().isAir()) {
-                        achados++;
-                    }
-                }
-            }
-        }
-        return achados;
+        return ArenaComum.contarOcupados(mundo, planta.alcanceDaObra(),
+                piso - 8, piso + planta.alturaDaObra());
     }
 }
