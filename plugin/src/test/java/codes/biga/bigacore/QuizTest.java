@@ -199,6 +199,35 @@ class QuizTest {
     }
 
     @Test
+    @DisplayName("a vida vai colada no nome, sem etiqueta de cor e fora do empate")
+    void aVidaNaoEntraNoValor() {
+        // O defeito que isto pega apareceu na tela: a lista lateral ESCAPA o
+        // que recebe, então "<color:#FF6B6B>" saiu escrito na lateral em vez
+        // de pintar o coração. E se a vida fosse para o valor, dois
+        // jogadores com o mesmo ponto e vidas diferentes deixariam de
+        // empatar — o ponto é que ordena.
+        String comDuas = Quiz.nomeComVidas("zBigaBiga", true, 2);
+        assertEquals("zBigaBiga \u2764\u2764", comDuas);
+        assertFalse(comDuas.contains("<"), "nada de marcação no nome: a "
+                + "lateral escapa o texto e a etiqueta sairia escrita");
+        assertEquals("zBigaBiga", Quiz.nomeComVidas("zBigaBiga", true, 0));
+        assertEquals("zBigaBiga \u2715", Quiz.nomeComVidas("zBigaBiga", false, 2));
+        // Muita vida não estica a linha para fora da lateral.
+        assertEquals("quem \u2764\u2764\u2764", Quiz.nomeComVidas("quem", true, 9));
+
+        // E duas pessoas com o mesmo ponto continuam empatadas, por mais
+        // diferente que esteja a vida delas.
+        List<PlacarLateral.Linha> duas = List.of(
+                new PlacarLateral.Linha(Quiz.nomeComVidas("um", true, 2), "10 pts"),
+                new PlacarLateral.Linha(Quiz.nomeComVidas("outro", true, 1), "10 pts"));
+        List<String> escritas = PlacarLateral.montar(duas);
+        assertEquals(2, escritas.size());
+        assertTrue(escritas.get(1).contains("\u25cf"), "o segundo tinha de "
+                + "receber o mesmo disco de pódio do primeiro: "
+                + escritas.get(1));
+    }
+
+    @Test
     @DisplayName("com vidas zero volta a regra antiga: o primeiro erro elimina")
     void vidaZeroEhARegraAntiga() {
         assertTrue(Quiz.erroElimina(0));

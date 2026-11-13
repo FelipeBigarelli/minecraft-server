@@ -499,19 +499,32 @@ public final class Quiz extends JogoDeArena {
             if (quem == null) {
                 continue;
             }
-            String valor = placar.de(id) + " pts";
-            if (estaVivo(quem)) {
-                int tem = vidas.getOrDefault(id, 0);
-                valor += tem > 0
-                        ? " <color:#FF6B6B>" + "\u2764".repeat(Math.min(3, tem))
-                                + "</color>"
-                        : " <color:#6E7681>\u2715</color>";
-            } else {
-                valor += " <color:#6E7681>fora</color>";
-            }
-            linhas.add(new PlacarLateral.Linha(quem.getName(), valor));
+            linhas.add(new PlacarLateral.Linha(
+                    nomeComVidas(quem.getName(), estaVivo(quem),
+                            vidas.getOrDefault(id, 0)),
+                    placar.de(id) + " pts"));
         }
         return linhas;
+    }
+
+    /**
+     * O nome com as vidas penduradas, e a vida FORA do valor de propósito.
+     *
+     * Duas razões. A lista lateral escapa o valor antes de pintar — ela
+     * recebe texto, não marcação —, então etiqueta de cor posta aqui sairia
+     * escrita na tela em vez de colorida. E o valor é o que decide empate:
+     * com a vida grudada nele, dois jogadores com o mesmo ponto e vidas
+     * diferentes apareceriam em lugares diferentes, que é mentira. O ponto
+     * ordena; a vida só acompanha o nome.
+     */
+    static String nomeComVidas(String nome, boolean vivo, int vidas) {
+        if (!vivo) {
+            return nome + " \u2715";
+        }
+        if (vidas <= 0) {
+            return nome;
+        }
+        return nome + " " + "\u2764".repeat(Math.min(3, vidas));
     }
 
     /**
